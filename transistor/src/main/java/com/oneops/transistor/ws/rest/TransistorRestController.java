@@ -433,7 +433,7 @@ public class TransistorRestController extends AbstractRestController {
 	@RequestMapping(value="environments/{envId}/cost_data", method = RequestMethod.GET)
 	@ResponseBody
 	public List<CostData>  getCostData(@PathVariable long envId){
-		return envManager.getEnvCostData(envId);
+		return envManager.getEnvCostData(envId, false, null).get("actual");
 	}
 
 	@RequestMapping(value="environments/{envId}/cost", method = RequestMethod.GET)
@@ -446,7 +446,7 @@ public class TransistorRestController extends AbstractRestController {
 	@RequestMapping(value="environments/{envId}/estimated_cost_data", method = RequestMethod.GET)
 	@ResponseBody
 	public Map<String, List<CostData>> getEstimatedCostData(@PathVariable long envId){
-		return envManager.getEnvEstimatedCostData(envId);
+		return envManager.getEnvCostData(envId, true, null);
 	}
 
 	@RequestMapping(value="environments/{envId}/estimated_cost", method = RequestMethod.GET)
@@ -461,103 +461,10 @@ public class TransistorRestController extends AbstractRestController {
 	}
 
 
-	@RequestMapping(value="environments/{envId}/deployment_cost_data", method = RequestMethod.GET)
+	@RequestMapping(value="environments/{envId}/capacity", method = RequestMethod.GET)
 	@ResponseBody
-	public Map<String, List<CostData>> getDeploymentCostData(@PathVariable long envId){
-		BomData data = imBomProcessor.compileEnv(envId, "", null, null, false);
-		return envManager.getEnvEstimatedCostData(envId, data);
-	}
-
-	@RequestMapping(value="environments/{envId}/deployment_cost", method = RequestMethod.GET)
-	@ResponseBody
-	public Map<String, Map<String,Object>> calculateDeploymentCost(@PathVariable long envId) {
-		HashMap<String, Map<String, Object>> result = new HashMap<>();
-		Map<String, List<CostData>> estimatedCostData = getDeploymentCostData(envId);
-		for (String type : estimatedCostData.keySet()) {
-			result.put(type, getCostTotals(estimatedCostData.get(type)));
-		}
-		return result;
-	}
-
-	
-
-	@RequestMapping(value="environments/{envId}/deployment_capacity_data", method = RequestMethod.GET)
-	@ResponseBody
-	public Map<String, List<CapacityData>> getDeploymentCapacityData(@PathVariable long envId){
-		BomData data = imBomProcessor.compileEnv(envId, "", null, null, false);
-		return envManager.getEnvCapacity(envId, data);
-	}
-
-	@RequestMapping(value="environments/{envId}/deployment_capacity", method = RequestMethod.GET)
-	@ResponseBody
-	public Map<String, Map<String, Object>> getDeploymentCapacity(@PathVariable long envId){
-		HashMap<String, Map<String, Object>> result = new HashMap<>();
-		Map<String, List<CapacityData>> capacityData = getDeploymentCapacityData(envId);
-		for (String type : capacityData.keySet()) {
-			result.put(type, getCapacityTotals(capacityData.get(type)));
-		}
-		return result;
-	}
-
-
-	private Map<String, Object> getCapacityTotals(List<CapacityData> capacityData) {
-		Map<String, Object> map = new HashMap<>();
-		Map<String, Map<String, Integer>> byCloud = new HashMap<>();
-		Map<String, Map<String, Map<String, Integer>>> byPlatform = new HashMap<>();
-		
-		for (CapacityData capacity: capacityData){
-			String cloud = capacity.getCloud().getCiName();
-			String[] array = capacity.getRfc().getNsPath().split("/");
-			String platform = "";
-			if (array.length > 1) {
-				platform = String.join("/", array[array.length - 2], array[array.length - 1]);
-			}
-			String size = capacity.getSize();
-			Map<String, Map<String, Integer>> byPlatformMap = byPlatform.getOrDefault(platform, new HashMap<>());
-			Map<String, Integer> bySizeMap = byPlatformMap.getOrDefault(cloud, new HashMap<>());
-			byPlatformMap.put(cloud, bySizeMap);
-			byPlatform.put(platform, byPlatformMap);
-			bySizeMap.put(size, bySizeMap.getOrDefault(size, 0)+1);
-
-			bySizeMap = byCloud.getOrDefault(cloud, new HashMap<>());
-			bySizeMap.put(size, bySizeMap.getOrDefault(size, 0)+1);
-			byCloud.put(cloud, bySizeMap);
-		}
-		map.put("by_cloud", byCloud);
-		map.put("by_platform", byPlatform);
-		return map;
-	}
-
-
-
-
-	private Map<String, Object> getCostTotals(List<CostData> offerings) {
-		Map<String, Object> map = new HashMap<>();
-		Map<String, BigDecimal> byCloud = new HashMap<>();
-		Map<String, BigDecimal> byPlatform = new HashMap<>();
-		Map<String, BigDecimal> byService = new HashMap<>();
-		BigDecimal total = BigDecimal.ZERO;
-		for (CostData cost: offerings){
-			String cloud = cost.getCloud().getCiName();
-			String[] array = cost.getRfc().getNsPath().split("/");
-			String platform = "";
-			if (array.length > 1) {
-				platform = String.join("/", array[array.length - 2], array[array.length - 1]);
-			}
-			for (CmsCISimple offering : cost.getOfferings()) {
-				BigDecimal rate = new BigDecimal(offering.getCiAttributes().get("cost_rate"));
-				String serviceType = offering.getCiAttributes().get("service_type");
-				byPlatform.put(platform, byPlatform.getOrDefault(platform, BigDecimal.ZERO).add(rate));
-				byService.put(serviceType, byService.getOrDefault(serviceType, BigDecimal.ZERO).add(rate));
-				byCloud.put(cloud, byCloud.getOrDefault(cloud, BigDecimal.ZERO).add(rate));
-				total = total.add(rate);
-			}
-		}
-		map.put("by_cloud", byCloud);
-		map.put("by_platform", byPlatform);
-		map.put("by_service", byService);
-		map.put("total", total);
-		return map;
+	public Map<String, Map<String, Integer>>  getCapacityData(@PathVariable long envId){
+		return envManager.getEnvCapacity(envId);
 	}
 
 
@@ -614,7 +521,7 @@ public class TransistorRestController extends AbstractRestController {
 			}
 
 			if (cost != null && cost) {
-				Map<String, List<CostData>> estimatedCostData = envManager.getEnvEstimatedCostData(envId, bomData);
+				Map<String, List<CostData>> estimatedCostData = envManager.getEnvCostData(envId, true, bomData);
 				Map<String, Map<String, Object>> costMap = new HashMap<>();
 				for (String type : estimatedCostData.keySet()) {
 					costMap.put(type, getCostTotals(estimatedCostData.get(type)));
@@ -949,18 +856,6 @@ public class TransistorRestController extends AbstractRestController {
 		return disablePlatform(platId,userId);
 	}
 
-	private Map<String, Long> disablePlatform(long platId, String userId) {
-		long releaseId = manifestManager.disablePlatforms(Collections.singleton(platId), userId);
-		return toReleaseMap(releaseId);
-	}
-
-
-
-	private Map<String, Long> enablePlatform(long platId, String userId) {
-		long releaseId = manifestManager.enablePlatforms(Collections.singleton(platId), userId);
-		return toReleaseMap(releaseId);
-	}
-
 	@RequestMapping(value="platforms/{platId}/enable", method = RequestMethod.GET)
 	@ResponseBody
 	public Map<String,Long> enablePlatformGet(
@@ -977,8 +872,6 @@ public class TransistorRestController extends AbstractRestController {
 		return enablePlatform(platId, userId);
 	}
 
-
-
 	@RequestMapping(value="platforms/enable", method = RequestMethod.PUT)
 	@ResponseBody
 	public Map<String,Long> enablePlatforms(
@@ -991,10 +884,6 @@ public class TransistorRestController extends AbstractRestController {
 		long releaseId = manifestManager.enablePlatforms(platformsToEnable, userId);
 		return toReleaseMap(releaseId);
 	}
-
-
-
-
 
 	@RequestMapping(method=RequestMethod.PUT, value="platforms/{platId}/iaas")
 	@ResponseBody
@@ -1010,14 +899,6 @@ public class TransistorRestController extends AbstractRestController {
 		return result;
 	}
 
-
-    /**
-     * /platforms/{platformId}/rfcs, GET
-     * /platforms/{platformId}/rfcs/commit/discard PUT
-     * @param platId
-     * @param userId
-     * @return
-     */
     @RequestMapping(method=RequestMethod.GET, value="platforms/{platId}/rfcs")
     @ResponseBody
     public Map<String, List<?>> getPlatformRfcs(
@@ -1105,18 +986,6 @@ public class TransistorRestController extends AbstractRestController {
 		return toReleaseMap(releaseId);
 	}
 
-	
-	private Set<Long> toSet(String longString) {
-		Set<Long> longs = null;
-		if (longString != null && longString.length() > 0) {
-			longs = new HashSet<>();
-			for (String platIdStr : longString.split(",")) {
-				longs.add(Long.valueOf(platIdStr));
-			}
-		}
-		return longs;
-	}
-
 	@RequestMapping(value = "/snapshot/exportManifest", method = {RequestMethod.GET, RequestMethod.POST}, produces = "application/json")
 	@ResponseBody
 	public Snapshot exportManifest(@RequestParam(value = "ns") String namespace,
@@ -1199,5 +1068,55 @@ public class TransistorRestController extends AbstractRestController {
 
 	private Map<String,Long> toReleaseMap(long releaseId) {
 		return Collections.singletonMap(RELEASE_ID,releaseId);
+	}
+
+	private Map<String, Long> disablePlatform(long platId, String userId) {
+		long releaseId = manifestManager.disablePlatforms(Collections.singleton(platId), userId);
+		return toReleaseMap(releaseId);
+	}
+
+	private Map<String, Long> enablePlatform(long platId, String userId) {
+		long releaseId = manifestManager.enablePlatforms(Collections.singleton(platId), userId);
+		return toReleaseMap(releaseId);
+	}
+
+	private Set<Long> toSet(String longString) {
+		Set<Long> longs = null;
+		if (longString != null && longString.length() > 0) {
+			longs = new HashSet<>();
+			for (String platIdStr : longString.split(",")) {
+				longs.add(Long.valueOf(platIdStr));
+			}
+		}
+		return longs;
+	}
+
+	private Map<String, Object> getCostTotals(List<CostData> offerings) {
+		Map<String, Object> map = new HashMap<>();
+		Map<String, BigDecimal> byCloud = new HashMap<>();
+		Map<String, BigDecimal> byPlatform = new HashMap<>();
+		Map<String, BigDecimal> byService = new HashMap<>();
+		BigDecimal total = BigDecimal.ZERO;
+		for (CostData cost: offerings){
+			String cloud = cost.getCloud().getCiName();
+			String[] array = cost.getRfc().getNsPath().split("/");
+			String platform = "";
+			if (array.length > 1) {
+				platform = String.join("/", array[array.length - 2], array[array.length - 1]);
+			}
+			for (CmsCISimple offering : cost.getOfferings()) {
+				BigDecimal rate = new BigDecimal(offering.getCiAttributes().get("cost_rate"));
+				String serviceType = offering.getCiAttributes().get("service_type");
+				byPlatform.put(platform, byPlatform.getOrDefault(platform, BigDecimal.ZERO).add(rate));
+				byService.put(serviceType, byService.getOrDefault(serviceType, BigDecimal.ZERO).add(rate));
+				byCloud.put(cloud, byCloud.getOrDefault(cloud, BigDecimal.ZERO).add(rate));
+				total = total.add(rate);
+			}
+		}
+		map.put("by_cloud", byCloud);
+		map.put("by_platform", byPlatform);
+		map.put("by_service", byService);
+		map.put("total", total);
+		return map;
 	}
 }

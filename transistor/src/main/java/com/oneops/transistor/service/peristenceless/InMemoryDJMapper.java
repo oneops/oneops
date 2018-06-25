@@ -99,6 +99,14 @@ public class InMemoryDJMapper implements DJMapper{
     }
 
     @Override
+    public List<CmsRfcCI> getRfcCIByReleaseAndClass(long releaseId, String className) {
+        return cis.values().stream()
+                .filter(ci -> ci.getReleaseId() == releaseId &&
+                        (className == null || ci.getCiClassName().equals(className) || ci.getCiClassName().endsWith(className)))
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<CmsRelease> getLatestRelease(String nsPath, String releaseState) {
         ArrayList<CmsRelease> cmsReleases = new ArrayList<>();
         if (release != null) {
@@ -356,6 +364,16 @@ public class InMemoryDJMapper implements DJMapper{
     @Override
     public List<CmsRfcRelation> getOpenRfcRelationsNsLike(String relationName, String shortRelName, String ns, String nsLike, String fromClazzName, String toClazzName) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<CmsRfcRelation> getOpenRfcRelationByCiIds(String relName, String shortRelName, List<Long> fromCiIds, List<Long> toCiIds) {
+        return relations.values().stream()
+                .filter(r -> (relName == null || r.getRelationName().equals(relName)) &&
+                        (shortRelName == null || r.getRelationName().endsWith(shortRelName)) &&
+                        (fromCiIds == null || fromCiIds.contains(r.getFromCiId())) &&
+                        (toCiIds == null || toCiIds.contains(r.getToCiId())))
+                .collect(Collectors.toList());
     }
 
     @Override

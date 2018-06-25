@@ -133,8 +133,6 @@
 		<property name="cmProcessor" ref="cmsCmProcessor" />
         <property name="nsManager" ref="cmsNsManager" />
         <property name="rfcProcessor" ref="cmsRfcProcessor" />
-        <property name="dpmtProcessor" ref="cmsDpmtProcessor" />
-		<property name="cmRfcProcessor" ref="cmsCmRfcMrgProcessor"/>
 		<property name="bomManager" ref="bomManager" />
 		<property name="exprParser" ref="exprParser"/>
 		<property name="rfcUtil" ref="rfcUtil"/>
