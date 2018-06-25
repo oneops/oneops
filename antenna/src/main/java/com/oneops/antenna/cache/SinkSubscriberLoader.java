@@ -22,6 +22,8 @@ import com.google.common.cache.CacheLoader;
 import com.google.gson.Gson;
 import com.oneops.antenna.domain.BasicSubscriber;
 import com.oneops.antenna.domain.EmailSubscriber;
+import com.oneops.cms.dj.service.CmsDpmtProcessor;
+import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.notification.NotificationSeverity;
 import com.oneops.antenna.domain.SNSSubscriber;
 import com.oneops.antenna.domain.SlackSubscriber;
@@ -59,6 +61,8 @@ public class SinkSubscriberLoader extends CacheLoader<SinkKey, List<BasicSubscri
     private static Logger logger = Logger.getLogger(SinkSubscriberLoader.class);
     private final Gson gson;
     private final CmsCmProcessor cmProcessor;
+    private final CmsRfcProcessor rfcProcessor;
+    private final CmsDpmtProcessor dpmtProcessor;
     private final CmsCrypto cmsCrypto;
     private final URLSubscriber defaultSystemSubscriber;
 
@@ -66,10 +70,14 @@ public class SinkSubscriberLoader extends CacheLoader<SinkKey, List<BasicSubscri
     public SinkSubscriberLoader(URLSubscriber defaultSystemSubscriber,
                                 CmsCrypto cmsCrypto,
                                 CmsCmProcessor cmProcessor,
+                                CmsRfcProcessor rfcProcessor,
+                                CmsDpmtProcessor dpmtProcessor,
                                 Gson gson) {
         this.defaultSystemSubscriber = defaultSystemSubscriber;
         this.cmsCrypto = cmsCrypto;
         this.cmProcessor = cmProcessor;
+        this.rfcProcessor = rfcProcessor;
+        this.dpmtProcessor = dpmtProcessor;
         this.gson = gson;
     }
 
@@ -128,7 +136,7 @@ public class SinkSubscriberLoader extends CacheLoader<SinkKey, List<BasicSubscri
                     // Add notification filter
                     sub.setFilter(NotificationFilter.fromSinkCI(sink));
                     // Add message transformer
-                    sub.setTransformer(Transformer.fromSinkCI(sink));
+                    sub.setTransformer(Transformer.fromSinkCI(sink, cmProcessor, rfcProcessor, dpmtProcessor));
                     // Add dispatching method
                     sub.setDispatchMethod(Dispatcher.Method.SYNC);
                     // Finally, add the subscriber to the list

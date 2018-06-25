@@ -17,10 +17,12 @@
  *******************************************************************************/
 package com.oneops.notification.transform;
 
-import com.oneops.notification.NotificationMessage;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
-
+import com.oneops.cms.cm.service.CmsCmProcessor;
+import com.oneops.cms.dj.service.CmsDpmtProcessor;
+import com.oneops.cms.dj.service.CmsRfcProcessor;
+import com.oneops.notification.NotificationMessage;
 import org.apache.log4j.Logger;
 
 /**
@@ -40,6 +42,22 @@ public abstract class Transformer {
      * Transformer context
      */
     private Context ctx;
+
+    protected CmsCmProcessor cmProcessor;
+    protected CmsRfcProcessor rfcProcessor;
+    protected CmsDpmtProcessor dpmtProcessor;
+
+    public void setCmProcessor(CmsCmProcessor cmProcessor) {
+        this.cmProcessor = cmProcessor;
+    }
+
+    public void setRfcProcessor(CmsRfcProcessor rfcProcessor) {
+        this.rfcProcessor = rfcProcessor;
+    }
+
+    public void setDpmtProcessor(CmsDpmtProcessor dpmtProcessor) {
+        this.dpmtProcessor =dpmtProcessor;
+    }
 
     /**
      * Apply transformation to the notification message. Specific transformation
@@ -85,7 +103,7 @@ public abstract class Transformer {
      * @param sink transformer sink CI
      * @return newly built transformer. <code>null</code> if any error occurs.
      */
-    private static Transformer newTransformer(CmsCI sink) {
+    private static Transformer newTransformer(CmsCI sink, CmsCmProcessor cmProcessor, CmsRfcProcessor rfcProcessor, CmsDpmtProcessor dpmtProcessor) {
         Context ctx = buildCtxFromCI(sink);
         try {
             Class<?> klass = Class.forName(ctx.transformerClass());
@@ -94,6 +112,9 @@ public abstract class Transformer {
 
             } else {
                 Transformer t = (Transformer) klass.newInstance();
+                t.setCmProcessor(cmProcessor);
+                t.setRfcProcessor(rfcProcessor);
+                t.setDpmtProcessor(dpmtProcessor);
                 t.ctx(ctx);
                 return t;
             }
@@ -110,13 +131,13 @@ public abstract class Transformer {
      * @return newly built {@Transformer}. <code>null</code> if the message
      *         transformation is not enabled or N/A.
      */
-    public static Transformer fromSinkCI(CmsCI sink) {
+    public static Transformer fromSinkCI(CmsCI sink, CmsCmProcessor cmProcessor, CmsRfcProcessor rfcProcessor, CmsDpmtProcessor dpmtProcessor) {
         // For backward compatibility, check if the transformer is enabled.
         CmsCIAttribute attr = sink.getAttribute("mt_enabled");
         if (attr != null) {
             boolean mtEnabled = Boolean.valueOf(attr.getDjValue());
             if (mtEnabled) {
-                return newTransformer(sink);
+                return newTransformer(sink, cmProcessor, rfcProcessor, dpmtProcessor);
             }
         }
         return null;

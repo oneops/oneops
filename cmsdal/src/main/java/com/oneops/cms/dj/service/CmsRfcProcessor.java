@@ -913,6 +913,19 @@ public class CmsRfcProcessor {
 	}
 
 	/**
+	 * Gets the rfc cis by release id and ci class name (long or short).
+	 *
+	 * @param releaseId the release id
+	 * @param className the clazz name
+	 * @return the open rfc ci by clazz and name
+	 */
+	public List<CmsRfcCI> getRfcCIByReleaseAndClass(long releaseId, String className) {
+		List<CmsRfcCI> rfcList = djMapper.getRfcCIByReleaseAndClass(releaseId, className);
+		populateRfcCIAttributes(rfcList);
+		return rfcList;
+	}
+
+	/**
 	 * Gets the open rfc ci by clazz and name.
 	 *
 	 * @param nsPath the ns path
@@ -1527,7 +1540,20 @@ public class CmsRfcProcessor {
 		String nsLike = CmsUtil.likefyNsPath(nsPath);
 		return djMapper.getOpenRfcRelationsNsLike(relationName, shortRelName, nsPath, nsLike, fromClazzName, toClazzName);
 	}
-	
+
+	/**
+	 * Gets open rfc relations by from ci Ids
+	 *
+	 * @param relationName the relation name
+	 * @param shortRelName the short rel name
+	 * @param fromCiIds the to ci ids
+	 * @return the from ci relations by to ci ids naked
+	 */
+	public List<CmsRfcRelation> getOpenRfcRelationsByCiIdsNakedNoAttrs(String relationName,
+	String shortRelName, List<Long> fromCiIds, List<Long> toCiIds) {
+		return djMapper.getOpenRfcRelationByCiIds(relationName, shortRelName, fromCiIds, toCiIds);
+	}
+
 	/**
 	 * Update rfc relation.
 	 *
