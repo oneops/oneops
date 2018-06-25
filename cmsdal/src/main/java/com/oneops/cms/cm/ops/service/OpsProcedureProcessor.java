@@ -70,6 +70,9 @@ public class OpsProcedureProcessor {
 	private static final String ACTION_ONE_FOR_ALL_EXEC = "one-for-all";
 	private static final String SERVICE_TYPE_ATTR = "service_type";
 	private static final String SERVICE_TYPE_TORBIT = "torbit";
+	private static final String GSLB_MIGRATION = "gslb-migration";
+
+	private boolean gslbMigrationEnabled;
     
 	/**
 	 * Sets the ops mapper.
@@ -367,71 +370,86 @@ public class OpsProcedureProcessor {
      * @param proc the proc
      * @return the cms ops procedure
      */
-    public CmsOpsProcedure createCmsOpsProcedure(CmsOpsProcedure proc) {
+		public CmsOpsProcedure createCmsOpsProcedure(CmsOpsProcedure proc) {
 
-        if(proc.getActions().isEmpty()) {
-        	logger.warn("throwing exception, CmsOpsProcedure contains zero actions for proc ciId:" + proc.getCiId());
-            throw new OpsException(CmsError.OPS_ONE_ACTION_MUST_BE_ERROR,
-                                        "Ops Procedure must contains at least one action.");
-        }
-        
-        CmsOpsProcedure blockingProcedure = getBlockingOpsProcedure(proc);
-        if (blockingProcedure != null) {
-        	logger.warn("throwing exception, procedure blocked by proc: "+blockingProcedure.getCiId());
-        	throw createExceptionForAnchorBlock(proc.getCiId(), proc.getProcedureName(), blockingProcedure);
-		}
-        
-        blockingProcedure = getActionHoldingOpsProcedure(proc);
-        if (blockingProcedure != null){
-        	logger.warn("throwing exception, procedure blocked by action: "+blockingProcedure.getCiId());
-        	throw(createExceptionForActionBlock(proc.getCiId(), proc.getProcedureName(), blockingProcedure));
-    
-        }
-        
-		for (CmsOpsAction action: proc.getActions()) {
-		   blockingProcedure = getBlockingOpsProcedure(action);
-           if(blockingProcedure != null) {
-           		logger.warn("throwing exception, procedure's action blocked by proc: "+blockingProcedure.getCiId());
-            	throw createExceptionForAnchorBlock(action.getCiId(), action.getActionName(), blockingProcedure);
-           }
-           blockingProcedure = getActionHoldingOpsProcedure(action);
-       		if (blockingProcedure!=null){
-            	logger.warn("throwing exception, procedure's action blocked by action: "+blockingProcedure.getCiId());
-            	throw(createExceptionForActionBlock(action.getCiId(), action.getActionName(), blockingProcedure));
+			if (proc.getActions().isEmpty()) {
+				logger.warn(
+						"throwing exception, CmsOpsProcedure contains zero actions for proc ciId:" + proc
+								.getCiId());
+				throw new OpsException(CmsError.OPS_ONE_ACTION_MUST_BE_ERROR,
+						"Ops Procedure must contains at least one action.");
+			}
 
-           }
+			CmsOpsProcedure blockingProcedure = getBlockingOpsProcedure(proc);
+			if (blockingProcedure != null) {
+				logger
+						.warn("throwing exception, procedure blocked by proc: " + blockingProcedure.getCiId());
+				throw createExceptionForAnchorBlock(proc.getCiId(), proc.getProcedureName(),
+						blockingProcedure);
+			}
+
+			blockingProcedure = getActionHoldingOpsProcedure(proc);
+			if (blockingProcedure != null) {
+				logger.warn(
+						"throwing exception, procedure blocked by action: " + blockingProcedure.getCiId());
+				throw (createExceptionForActionBlock(proc.getCiId(), proc.getProcedureName(),
+						blockingProcedure));
+
+			}
+
+			for (CmsOpsAction action : proc.getActions()) {
+				blockingProcedure = getBlockingOpsProcedure(action);
+				if (blockingProcedure != null) {
+					logger.warn("throwing exception, procedure's action blocked by proc: " + blockingProcedure
+							.getCiId());
+					throw createExceptionForAnchorBlock(action.getCiId(), action.getActionName(),
+							blockingProcedure);
+				}
+				blockingProcedure = getActionHoldingOpsProcedure(action);
+				if (blockingProcedure != null) {
+					logger.warn(
+							"throwing exception, procedure's action blocked by action: " + blockingProcedure
+									.getCiId());
+					throw (createExceptionForActionBlock(action.getCiId(), action.getActionName(),
+							blockingProcedure));
+
+				}
 				/*
-				        if(opsMapper.isOpenedReleaseExistForCi(action.getCiId())) {
+								if(opsMapper.isOpenedReleaseExistForCi(action.getCiId())) {
 				            throw new OpsException(CmsError.OPS_ALREADY_HAVE_OPENED_RELEASE_ERROR,
 				                                        "Given ci " + action.getCiId() + " already has opened release in rfc.");
 				        }
 				 */
-       		
-			if (Boolean.FALSE == proc.getForceExecution()
-					&& isActiveDeploymentExistsForCi(action.getCiId())) {
-				logger.warn("throwing exception, CmsOpsProcedure has already active deployment");
-				throw new OpsException(
-						CmsError.OPS_ALREADY_HAVE_ACTIVE_DEPLOYMENT_ERROR,
-						GIVEN_CI + action.getCiId() + " has active deployment.");
+
+				if (Boolean.FALSE == proc.getForceExecution() && isActiveDeploymentExistsForCi(
+						action.getCiId())) {
+					logger.warn("throwing exception, CmsOpsProcedure has already active deployment");
+					throw new OpsException(CmsError.OPS_ALREADY_HAVE_ACTIVE_DEPLOYMENT_ERROR,
+							GIVEN_CI + action.getCiId() + " has active deployment.");
+				}
 			}
+			if (!isProcedureEnabled(proc)) {
+				String error = "procedure " + proc.getProcedureName() + " is currently not available";
+				logger.warn(error);
+				throw new OpsException(CmsError.OPS_ACTION_NOT_ENABLED, error);
+			}
+
+			proc.setProcedureId(opsMapper.getNextCmOpsProcedureId());
+			opsMapper.createCmsOpsProcedure(proc);
+
+			for (CmsOpsAction action : proc.getActions()) {
+				action.setProcedureId(proc.getProcedureId());
+				opsMapper.createCmsOpsAction(action);
+			}
+			logger.info("Created ops procedure procID: " + proc.getProcedureId() + " procName :" + proc
+					.getProcedureName() + " forceExecution :" + proc.getForceExecution());
+			return getCmsOpsProcedure(proc.getProcedureId(), false);
 		}
-		
-		
 
-        proc.setProcedureId(opsMapper.getNextCmOpsProcedureId());
-        opsMapper.createCmsOpsProcedure(proc);
+		private boolean isProcedureEnabled(CmsOpsProcedure proc) {
+			return GSLB_MIGRATION.equals(proc.getProcedureName()) ? gslbMigrationEnabled : true;
+		}
 
-        for(CmsOpsAction action: proc.getActions()) {
-            action.setProcedureId(proc.getProcedureId());
-            opsMapper.createCmsOpsAction(action);
-        }
-		logger.info("Created ops procedure procID: " + proc.getProcedureId()
-				+ " procName :" + proc.getProcedureName() + " forceExecution :"
-				+ proc.getForceExecution());
-        return getCmsOpsProcedure(proc.getProcedureId(), false);
-    }
-
-    
     /**
      * Checks for active or pending ops procedures that have an ops action associated
      * with the input proc's CiId
@@ -773,5 +791,10 @@ public class OpsProcedureProcessor {
 
 	public void updateProcedureCurrentStep(CmsOpsProcedure procedure) {
     	opsMapper.updateProcedureCurrentStep(procedure);
+	}
+
+	public OpsProcedureProcessor setGslbMigrationEnabled(boolean gslbMigrationEnabled) {
+		this.gslbMigrationEnabled = gslbMigrationEnabled;
+		return this;
 	}
 }
