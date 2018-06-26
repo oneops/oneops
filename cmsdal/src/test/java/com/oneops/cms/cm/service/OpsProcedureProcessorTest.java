@@ -150,6 +150,7 @@ public class OpsProcedureProcessorTest {
 
 	@Test
 	public void processProcedureRequestTest() {
+		procProcessor.setGslbMigrationEnabled(true);
 		CmsOpsProcedure procedure = new CmsOpsProcedure();
 		procedure.setCiId(300);
 		procedure.setArglist("{\"migrate\":\"true\"}");
