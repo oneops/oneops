@@ -17,9 +17,10 @@
   </properties>
 
   <dependencies>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-exec</artifactId>
+   <dependency>
+        <groupId>org.zeroturnaround</groupId>
+        <artifactId>zt-exec</artifactId>
+        <version>1.8</version>
     </dependency>
     <dependency>
       <groupId>commons-httpclient</groupId>
