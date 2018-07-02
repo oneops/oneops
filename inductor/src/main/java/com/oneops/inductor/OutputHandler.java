@@ -74,11 +74,13 @@ public class OutputHandler {
 
     private String getPrivateKey(final String line) {
         String beginRSAPrivateKeyTag = "-----BEGIN RSA PRIVATE KEY-----";
-        String endRSAPrivateKeyTag = "-----END RSA PRIVATE KEY-----\\n";
+        String endRSAPrivateKeyTag = "-----END RSA PRIVATE KEY-----";
         int startIndex = line.indexOf(beginRSAPrivateKeyTag);
-        int endIndex = line.indexOf(endRSAPrivateKeyTag) + endRSAPrivateKeyTag.length();
-        String privateKey = line.substring(startIndex, endIndex);
-        return privateKey;
+        int endIndex = line.indexOf(endRSAPrivateKeyTag);
+        if (startIndex == -1 || endIndex == -1)
+            return null;
+        endIndex += endRSAPrivateKeyTag.length();
+        return line.substring(startIndex, endIndex);
     }
 
     public void writeOutputToLogger(String line) {
@@ -88,10 +90,15 @@ public class OutputHandler {
                 result.appendStdOut(line + "\n");
             } else {
                 String privateKey = getPrivateKey(line);
-                line = line.replace(privateKey, PRIVATE_KEY_TEMP_TAG);
-                logger.info(logKey + "cmd out: " + line);
-                result.appendStdOut(line + "\n");
-                line = line.replace(PRIVATE_KEY_TEMP_TAG, privateKey);
+                if (privateKey != null) {
+                    line = line.replace(privateKey, PRIVATE_KEY_TEMP_TAG);
+                    logger.info(logKey + "cmd out: " + line);
+                    result.appendStdOut(line + "\n");
+                    line = line.replace(PRIVATE_KEY_TEMP_TAG, privateKey);
+                } else {
+                    logger.error(logKey + "ERROR: Private key not found.");
+                    result.appendStdOut("ERROR: Private key not found" + "\n");
+                }
             }
 
             if (line.indexOf(REBOOT_FLAG) > -1)
