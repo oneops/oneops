@@ -22,32 +22,24 @@ import java.util.List;
 public class TimelineQueryParam {
 	
 	private String nsPath;
-	private String releaseNsLike;
 	private String releaseNs;
-	private String dpmtNsLike;
+	private String dpmtNs;
+	private boolean isDesignNamespace;
+
 	private String type;
 	
 	private String filter;
 	private String wildcardFilter;
-	private String releaseClassFilter;
-
-	private List<Long> releaseScopeNsIds;
-	private List<Long> nsIdsMatchingFilter;
-
-	private String dpmtClassFilter;
-	private String dpmtNsLikeWithFilter;
+	private String rfcNsFilter;
 
 	private Long dpmtOffset;
 	private Long releaseOffset;
 	private Long endRelId;
-	private List<Long> releaseList;
-	
+
 	private List<Long> excludeReleaseList;
 	
 	private QueryOrder order;
 	private Integer limit;
-
-	private boolean isDesignNamespace;
 
 	public TimelineQueryParam(String nsPath, String filter, String type, QueryOrder order, Long releaseOffset, Long dpmtOffset, Integer limit) {
 		this.nsPath = nsPath;
@@ -57,14 +49,12 @@ public class TimelineQueryParam {
 		this.dpmtOffset = dpmtOffset;
 		this.releaseOffset = releaseOffset;
 		this.limit = limit;
-	}
 
-	public String getDpmtNsLike() {
-		return dpmtNsLike;
-	}
-
-	public void setDpmtNsLike(String envNsLike) {
-		this.dpmtNsLike = envNsLike;
+		this.isDesignNamespace = this.nsPath.contains("/_design");
+		this.dpmtNs = CmsUtil.appendToNs(this.nsPath, CmsConstants.BOM);
+		this.releaseNs = isDesignNamespace() ?
+				nsPath.substring(0, nsPath.indexOf("/_design")) :
+				CmsUtil.appendToNs(nsPath, CmsConstants.MANIFEST);
 	}
 
 	public String getWildcardFilter() {
@@ -75,28 +65,12 @@ public class TimelineQueryParam {
 		this.wildcardFilter = ciFilter;
 	}
 
-	public String getReleaseNsLike() {
-		return releaseNsLike;
-	}
-
-	public void setReleaseNsLike(String releaseNsLike) {
-		this.releaseNsLike = releaseNsLike;
-	}
-
 	public Long getEndRelId() {
 		return endRelId;
 	}
 
 	public void setEndRelId(Long endRelId) {
 		this.endRelId = endRelId;
-	}
-
-	public List<Long> getReleaseList() {
-		return releaseList;
-	}
-
-	public void setReleaseList(List<Long> releaseList) {
-		this.releaseList = releaseList;
 	}
 
 	public QueryOrder getOrder() {
@@ -139,20 +113,12 @@ public class TimelineQueryParam {
 		this.dpmtOffset = dpmtOffset;
 	}
 
-	public String getReleaseClassFilter() {
-		return releaseClassFilter;
+	public String getRfcNsFilter() {
+		return rfcNsFilter;
 	}
 
-	public void setReleaseClassFilter(String releaseClassFilter) {
-		this.releaseClassFilter = releaseClassFilter;
-	}
-
-	public String getDpmtClassFilter() {
-		return dpmtClassFilter;
-	}
-
-	public void setDpmtClassFilter(String dpmtClassFilter) {
-		this.dpmtClassFilter = dpmtClassFilter;
+	public void setRfcNsFilter(String rfcNsFilter) {
+		this.rfcNsFilter = rfcNsFilter;
 	}
 
 	public Long getReleaseOffset() {
@@ -169,14 +135,6 @@ public class TimelineQueryParam {
 
 	public void setType(String type) {
 		this.type = type;
-	}
-
-	public String getDpmtNsLikeWithFilter() {
-		return dpmtNsLikeWithFilter;
-	}
-
-	public void setDpmtNsLikeWithFilter(String dpmtNsLikeWithFilter) {
-		this.dpmtNsLikeWithFilter = dpmtNsLikeWithFilter;
 	}
 
 	public List<Long> getExcludeReleaseList() {
@@ -203,20 +161,11 @@ public class TimelineQueryParam {
 		this.releaseNs = releaseNs;
 	}
 
-	public List<Long> getNsIdsMatchingFilter() {
-		return nsIdsMatchingFilter;
+	public String getDpmtNs() {
+		return dpmtNs;
 	}
 
-	public void setNsIdsMatchingFilter(List<Long> nsIdsMatchingFilter) {
-		this.nsIdsMatchingFilter = nsIdsMatchingFilter;
+	public void setDpmtNs(String dpmtNs) {
+		this.dpmtNs = dpmtNs;
 	}
-
-	public List<Long> getReleaseScopeNsIds() {
-		return releaseScopeNsIds;
-	}
-
-	public void setReleaseScopeNsIds(List<Long> releaseScopeNsIds) {
-		this.releaseScopeNsIds = releaseScopeNsIds;
-	}
-
 }

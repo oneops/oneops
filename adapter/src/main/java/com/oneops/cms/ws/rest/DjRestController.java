@@ -17,28 +17,11 @@
  *******************************************************************************/
 package com.oneops.cms.ws.rest;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.servlet.http.HttpServletResponse;
-
 import com.oneops.cms.cm.domain.CmsAltNs;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-
-import com.oneops.cms.dj.domain.TimelineBase;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
+import com.oneops.cms.dj.domain.TimelineBase;
 import com.oneops.cms.dj.service.CmsDjManager;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.DJException;
@@ -50,6 +33,14 @@ import com.oneops.cms.util.QueryOrder;
 import com.oneops.cms.util.TimelineQueryParam;
 import com.oneops.cms.ws.exceptions.CmsSecurityException;
 import com.oneops.cms.ws.rest.util.CmsScopeVerifier;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Controller
 public class DjRestController extends AbstractRestController {
@@ -474,6 +465,7 @@ public class DjRestController extends AbstractRestController {
 
 		scopeVerifier.verifyScope(scope, nsPath);
 		QueryOrder queryOrder = QueryOrder.queryOrder(sort);
+		if (limit == null || limit <= 0 || limit > 100) limit = 20;
 		TimelineQueryParam queryParam = new TimelineQueryParam(nsPath, filter, type, queryOrder, releaseOffset, dpmtOffset, limit);
 		return djManager.getDjTimeLine(queryParam);
 	}

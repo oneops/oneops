@@ -378,18 +378,18 @@ public class ThreadLocalDJMapper implements DJMapper{
     }
 
     @Override
-    public List<TimelineRelease> getReleaseByFilter(TimelineQueryParam queryParam) {
-        return get().getReleaseByFilter(queryParam);
+    public List<TimelineRelease> getReleasesByCiFilter(TimelineQueryParam queryParam) {
+        return get().getReleasesByCiFilter(queryParam);
     }
 
     @Override
-    public List<TimelineRelease> getReleaseWithOnlyRelationsByFilter(TimelineQueryParam queryParam) {
-        return get().getReleaseWithOnlyRelationsByFilter(queryParam);
+    public List<TimelineRelease> getReleasesByRelationFilter(TimelineQueryParam queryParam) {
+        return get().getReleasesByRelationFilter(queryParam);
     }
 
     @Override
-    public List<TimelineRelease> getReleaseByNsPath(TimelineQueryParam queryParam) {
-        return get().getReleaseByNsPath(queryParam);
+    public List<TimelineRelease> getReleasesByNsPath(TimelineQueryParam queryParam) {
+        return get().getReleasesByNsPath(queryParam);
     }
 
     @Override

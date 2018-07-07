@@ -149,7 +149,7 @@ public class CmsUtil {
 		return likefyNsPathWithoutEndingSlash(resultNs);
 	}
 
-	private static String appendToNs(String nsPath, String suffix) {
+	public static String appendToNs(String nsPath, String suffix) {
 		if (nsPath.endsWith("/")) {
 			return nsPath + suffix;
 		}
