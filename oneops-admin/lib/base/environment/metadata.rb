@@ -201,3 +201,18 @@ attribute 'logging',
     :form => { 'field' => 'checkbox' },
     :filter => {"all" => {"visible" => "availability:eq:none"}}
   }
+
+attribute 'verify',
+  :description => "Run KitchenCI verification",
+  :required => "required",
+  :default => "default",
+  :format => {
+    :category => '5.Other',
+    :order => 3,
+    :help => 'For running integrated KitchenCI tests',
+    :form => { 'field' => 'select', 'options_for_select' => [ ['Default','default'],
+                                                              ['False','false'],
+                                                              ['True','true'] ]
+             },
+    :filter => {:all => {:visible => 'false'}}
+  }
