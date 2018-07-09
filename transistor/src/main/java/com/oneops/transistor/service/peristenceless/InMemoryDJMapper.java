@@ -437,17 +437,17 @@ public class InMemoryDJMapper implements DJMapper{
     }
 
     @Override
-    public List<TimelineRelease> getReleaseByFilter(TimelineQueryParam queryParam) {
+    public List<TimelineRelease> getReleasesByCiFilter(TimelineQueryParam queryParam) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public List<TimelineRelease> getReleaseWithOnlyRelationsByFilter(TimelineQueryParam queryParam) {
+    public List<TimelineRelease> getReleasesByRelationFilter(TimelineQueryParam queryParam) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public List<TimelineRelease> getReleaseByNsPath(TimelineQueryParam queryParam) {
+    public List<TimelineRelease> getReleasesByNsPath(TimelineQueryParam queryParam) {
         throw new UnsupportedOperationException();
     }
 

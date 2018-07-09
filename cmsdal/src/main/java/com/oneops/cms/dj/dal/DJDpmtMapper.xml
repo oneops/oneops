@@ -653,52 +653,51 @@
 			d.updated
 		from dj_deployment d, dj_releases rel, ns_namespaces ns, dj_deployment_states ds
 		where d.ns_id = ns.ns_id
-		  and ns.ns_path like #{dpmtNsLike}
+		  and ns.ns_path = #{dpmtNs}
 		  and d.release_id = rel.release_id
 		  and d.state_id = ds.state_id
-		  and (#{dpmtOffset}::bigint is null or d.deployment_id ${order.aboveOperator} #{dpmtOffset})
-		order by d.deployment_id ${order.sort}
-		limit coalesce(#{limit},10)
+		  <if test="dpmtOffset != null">
+		  	and d.deployment_id ${order.aboveOperator} #{dpmtOffset}
+		  </if>
+		order by d.created ${order.sort}
+		limit #{limit}
 	</select>
 
 	 <select id="getDeploymentsByFilter" parameterType="com.oneops.cms.util.TimelineQueryParam" useCache="false" resultType="com.oneops.cms.dj.domain.TimelineDeployment">
 		select d.deployment_id as deploymentId,
-			d.release_id as releaseId,
-			ns.ns_path as nsPath,
-			ds.state_name as deploymentState,
-			d.process_id as processId,
-			d.created_by as createdBy,
-			d.updated_by as updatedBy,
-			d.description,
-			d.comments,
-		    d.flags,
-			d.ops,
-			rel.parent_release_id as parentReleaseId,
-			d.created,
-			d.updated
+			   d.release_id as releaseId,
+			   ns.ns_path as nsPath,
+			   ds.state_name as deploymentState,
+			   d.process_id as processId,
+			   d.created_by as createdBy,
+			   d.updated_by as updatedBy,
+			   d.description,
+			   d.comments,
+			   d.flags,
+			   d.ops,
+			   rel.parent_release_id as parentReleaseId,
+			   d.created,
+			   d.updated
 		from dj_deployment d, dj_releases rel, ns_namespaces ns, dj_deployment_states ds
 		where d.deployment_id in (
-				select distinct dj.deployment_id
-				from dj_deployment_rfc dj, dj_rfc_ci rfc, md_classes md, ns_namespaces ns
-				where dj.rfc_id = rfc.rfc_id
-				  and rfc.ns_id = ns.ns_id
-				  and ns.ns_path like #{dpmtNsLike}
-				  and rfc.class_id = md.class_id
-				  and (
-				       (#{wildcardFilter}::varchar is null or rfc.ci_name like #{wildcardFilter})
-				       or
-				       (#{dpmtClassFilter}::varchar is null or (lower(md.class_name) like lower(#{dpmtClassFilter})))
-				       or
-				       (#{dpmtNsLikeWithFilter}::varchar is null or rfc.ns_id in (select ns_id from ns_namespaces where ns_path like #{dpmtNsLikeWithFilter}))
-				      )
-				  and (#{dpmtOffset}::bigint is null or dj.deployment_id ${order.aboveOperator} #{dpmtOffset})
-				order by dj.deployment_id ${order.sort}
-				limit coalesce(#{limit},10)
-		)
-		and d.release_id = rel.release_id
-		and d.ns_id = ns.ns_id
-		and d.state_id = ds.state_id
-		order by d.deployment_id ${order.sort}
+				select distinct d.deployment_id
+				  from dj_deployment d, dj_deployment_rfc dj, dj_rfc_ci rfc
+				 where d.deployment_id = dj.deployment_id
+		               and dj.rfc_id = rfc.rfc_id
+					   and d.ns_id = (select ns_id from ns_namespaces where ns_path = #{dpmtNs})
+					   and (rfc.ns_id in (select ns_id from ns_namespaces where ns_path ilike #{rfcNsFilter})
+					  		or rfc.class_id in (select class_id from md_classes where short_class_name ilike #{wildcardFilter})
+						 	or rfc.ci_name ilike #{wildcardFilter})
+					   <if test="dpmtOffset != null">
+						 and dj.deployment_id ${order.aboveOperator} #{dpmtOffset}
+					   </if>
+				 order by d.deployment_id ${order.sort}
+			  )
+			  and d.release_id = rel.release_id
+			  and d.ns_id = ns.ns_id
+			  and d.state_id = ds.state_id
+		order by d.created ${order.sort}
+		limit #{limit}
 	 </select>
 
 	<select id="getDeploymentRecordsCountByStates" parameterType="map" useCache="false" resultType="hashmap">

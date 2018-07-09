@@ -217,11 +217,11 @@ public interface DJMapper {
       @Param("relationName") String relationName,
       @Param("shortRelName") String shortRelName, @Param("rfcId") long rfcId);
 
-  List<TimelineRelease> getReleaseByFilter(TimelineQueryParam queryParam);
+  List<TimelineRelease> getReleasesByNsPath(TimelineQueryParam queryParam);
 
-  List<TimelineRelease> getReleaseWithOnlyRelationsByFilter(TimelineQueryParam queryParam);
+  List<TimelineRelease> getReleasesByCiFilter(TimelineQueryParam queryParam);
 
-  List<TimelineRelease> getReleaseByNsPath(TimelineQueryParam queryParam);
+  List<TimelineRelease> getReleasesByRelationFilter(TimelineQueryParam queryParam);
 
   List<CmsRfcCI> getRfcCIsAppliedBetweenTwoReleases(@Param("nsPath") String nsPath,
       @Param("fromReleaseId") Long fromReleaseId, @Param("toReleaseId") Long toReleaseId);
