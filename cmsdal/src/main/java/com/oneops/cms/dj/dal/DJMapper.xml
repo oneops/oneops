@@ -1714,9 +1714,8 @@
 				   from dj_releases r, dj_rfc_ci rfc
 				  where r.release_id = rfc.release_id
 		                and r.ns_id = (select ns_id from ns_namespaces where ns_path = #{releaseNs})
-						and (rfc.ns_id in (select ns_id from ns_namespaces where ns_path ilike #{rfcNsFilter})
-							 or rfc.class_id in (select class_id from md_classes where short_class_name ilike #{wildcardFilter})
-							 or rfc.ci_name ilike #{wildcardFilter})
+						and (rfc.ns_id in (select ns_id from ns_namespaces where ns_path like #{rfcNsFilter})
+							 or rfc.ci_name like #{wildcardFilter})
 						<if test="excludeReleaseList != null &amp;&amp; !excludeReleaseList.isEmpty()">
 							and rfc.release_id not in <foreach item="item" index="index" collection="excludeReleaseList" open="(" close=")" separator=", ">#{item}</foreach>
 						</if>
@@ -1757,8 +1756,7 @@
 				   from dj_releases r, dj_rfc_relation rfc
 				  where r.release_id = rfc.release_id
 						and r.ns_id = (select ns_id from ns_namespaces where ns_path = #{releaseNs})
-						and (rfc.ns_id in (select ns_id from ns_namespaces where ns_path ilike #{rfcNsFilter})
-							 or rfc.relation_id in (select relation_id from md_relations where short_relation_name ilike #{wildcardFilter}))
+						and (rfc.ns_id in (select ns_id from ns_namespaces where ns_path like #{rfcNsFilter}))
 						<if test="excludeReleaseList != null &amp;&amp; !excludeReleaseList.isEmpty()">
 							and rfc.release_id not in <foreach item="item" index="index" collection="excludeReleaseList" open="(" close=")" separator=", ">#{item}</foreach>
 						</if>
