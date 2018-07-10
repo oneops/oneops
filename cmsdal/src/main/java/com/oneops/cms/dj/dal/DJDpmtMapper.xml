@@ -685,9 +685,8 @@
 				 where d.deployment_id = dj.deployment_id
 		               and dj.rfc_id = rfc.rfc_id
 					   and d.ns_id = (select ns_id from ns_namespaces where ns_path = #{dpmtNs})
-					   and (rfc.ns_id in (select ns_id from ns_namespaces where ns_path ilike #{rfcNsFilter})
-					  		or rfc.class_id in (select class_id from md_classes where short_class_name ilike #{wildcardFilter})
-						 	or rfc.ci_name ilike #{wildcardFilter})
+					   and (rfc.ns_id in (select ns_id from ns_namespaces where ns_path like #{rfcNsFilter})
+						 	or rfc.ci_name like #{wildcardFilter})
 					   <if test="dpmtOffset != null">
 						 and dj.deployment_id ${order.aboveOperator} #{dpmtOffset}
 					   </if>
