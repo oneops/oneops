@@ -191,6 +191,7 @@
 		<property name="rfcProcessor" ref="cmsRfcProcessorIM" />
 		<property name="trUtil" ref="trUtil" />
 		<property name="cmsUtil" ref="cmsUtil" />
+		<property name="envManager" ref="envManager" />
 	</bean>
 
 	<bean id="cmsCmRfcMrgProcessorIM" class="com.oneops.cms.dj.service.CmsCmRfcMrgProcessor">
