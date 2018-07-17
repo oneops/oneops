@@ -10,6 +10,8 @@ import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.cms.util.domain.CmsVar;
 import org.apache.log4j.Logger;
+import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.*;
 import java.util.function.Function;
@@ -176,7 +178,13 @@ public class CapacityProcessor {
         Map<String, Integer> capacity = getCapacityForCi(rfcCi, cloudInfo, mappings);
 
         if (!capacity.isEmpty()) {
-            tektonClient.commitReservation(capacity, nsPath, cloudInfo.getSubscriptionId());
+            String subscriptionId = cloudInfo.getSubscriptionId();
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+                @Override
+                public void afterCommit() {
+                    tektonClient.commitReservation(capacity, nsPath, subscriptionId);
+                }
+            });
         }
     }
 
@@ -193,7 +201,13 @@ public class CapacityProcessor {
         Map<String, Integer> capacity = getCapacityForCi(rfcCi, cloudInfo, mappings);
 
         if (!capacity.isEmpty()) {
-            tektonClient.releaseResources(capacity, nsPath, cloudInfo.getSubscriptionId());
+            String subscriptionId = cloudInfo.getSubscriptionId();
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+                @Override
+                public void afterCommit() {
+                    tektonClient.releaseResources(capacity, nsPath, subscriptionId);
+                }
+            });
         }
     }
 
