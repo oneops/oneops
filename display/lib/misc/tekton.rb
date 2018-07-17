@@ -364,29 +364,14 @@ def execute(action, *args)
     required_arg('subscription', sub_name)
     required_arg('org', org_name)
 
-    sub_name = execute('sub:prompt', org_name) if sub_name == '?'
-
-    total = tt_request("quota/#{sub_name}/#{org_name}", 'Getting quota')
-    unless total.empty?
-      usage = tt_request("quota/usage/#{sub_name}/#{org_name}", 'Getting usage')
-      available = tt_request("quota/available/#{sub_name}/#{org_name}", 'Getting available')
-      full_quota("#{sub_name}/#{org_name}", total, usage, available)
-    end
-
-  elsif action == 'sub:prompt'
-    org_name = args[0]
-    total = tt_request("quota/entity/#{org_name}", 'Getting quotas')
-    if total.empty?
-      say "No existing quotas set up for this org '#{org_name}'".red
-      exit(1)
-    else
-      say "Choose subscription from existing quotas in this org:"
-      subs = total.keys
-      subs.each_with_index {|sub, i| say "  #{i+1}. #{sub}"}
-      blurt "Which subscription (1 - #{subs.size}): ".green
-      index = ask.to_i
-      result = subs[index -1] if index > 1 || index <= subs.size
-      exit if result.empty?
+    subs = execute('sub:prompt', sub_name, org_name)
+    subs.each do |s|
+      total = tt_request("quota/#{s}/#{org_name}", 'Getting quota')
+      unless total.empty?
+        usage = tt_request("quota/usage/#{s}/#{org_name}", 'Getting usage')
+        available = tt_request("quota/available/#{s}/#{org_name}", 'Getting available')
+        full_quota("#{s}/#{org_name}", total, usage, available)
+      end
     end
 
   elsif action == 'quota:set' || action == 'quota:usage:set' || action == 'usage:set'
@@ -395,24 +380,68 @@ def execute(action, *args)
     required_arg('org', org_name)
     required_arg('resources', resources)
 
-    sub_name = execute('sub:prompt', org_name) if sub_name == '?'
+    subs = execute('sub:prompt', sub_name, org_name)
+    subs.each do |s|
+      usage = resources.inject({}) do |h, r|
+        name, value = r.split(/[=:]/, 2)
+        value = value.to_i
+        h[name] = value if !name.empty? && value > 0
+        h
+      end
+      required_arg('resources', usage)
 
-    usage = resources.inject({}) do |h, r|
-      name, value = r.split(/[=:]/, 2)
-      value = value.to_i
-      h[name] = value if !name.empty? && value > 0
-      h
+      sub = tt_request("subscription/#{s}", "Fetching subscription '#{s}'")
+      execute!('sub:add', s) unless sub
+
+      org = tt_request("org/#{org_name}", "Fetching org '#{org_name}'")
+      execute!('org:add', org_name) unless org
+
+      tt_request("quota/#{"usage/" if action.include?('usage:set')}#{s}/#{org_name}", "Updating quota", usage)
+      execute('quota', s, org_name)
     end
-    required_arg('resources', usage)
 
-    sub = tt_request("subscription/#{sub_name}", "Fetching subscription '#{sub_name}'")
-    execute!('sub:add', sub_name) unless sub
+  elsif action == 'sub:prompt'
+    sub_name, org_name, _ = args
+    if sub_name[0] == '?'
+      total = tt_request("quota/entity/#{org_name}", 'Getting quotas')
+      if total.empty?
+        say "No existing quotas set up in org '#{org_name}'".red
+        exit(1)
+      else
+        subs = total.keys
+        sub_pattern = sub_name[1..-1]
+        unless sub_pattern.empty?
+          sub_regex = /#{sub_pattern}/i
+          subs = subs.select {|s| s =~ sub_regex}
+          if subs.empty?
+            say "No existing quotas in org '#{org_name}' have subscriptions matching '#{sub_pattern}'".yellow
+            exit(1)
+          end
+        end
 
-    org = tt_request("org/#{org_name}", "Fetching org '#{org_name}'")
-    execute!('org:add', org_name) unless org
-
-    tt_request("quota/#{"usage/" if action.include?('usage:set')}#{sub_name}/#{org_name}", "Updating quota", usage)
-    execute('quota', sub_name, org_name)
+        if subs.size == 1
+          result = subs
+        else
+          say "Choose subscription from existing quotas in this org:"
+          subs.each_with_index {|sub, i| say "  #{i + 1}. #{sub}"}
+          blurt "Which subscription (n|n,m...|*): ".green
+          p = ask
+          if p == '*'
+            result = subs
+          else
+            result = []
+            p.split(',').each do |t|
+              index = t.to_i
+              result << subs[index - 1] if index >= 1 && index <= subs.size
+            end
+          end
+          result = result.uniq
+          exit if result.empty?
+        end
+      end
+    else
+      result = sub_name.split(',').uniq
+    end
 
   elsif action == 'login'
     username, password, _ = args
@@ -483,11 +512,15 @@ USAGE
 
 @footer = <<-FOOTER
 Typical flow:
-1. Import resources to Tekton from OneOps based on existing provider mappings
+1. Login first (alternatively, you will need to provide auth on each subsequent command
+   with '--ta' option):
+     #{__FILE__} login my_username
+   
+2. Import resources to Tekton from OneOps based on existing provider mappings
    (done during initial seeding or when new resource types are added):
      #{__FILE__} oo:resources:transfer
 
-2. For a given org import existing subscription to Tekton from OneOps:
+3. For a given org import existing subscription to Tekton from OneOps:
      #{__FILE__} oo:subs:transfer some-org
    Or skip this step and go directly to creating quotas (orgs and subscription will be added
    on the fly) by transfering usage from OneOps with some buffer for max allowed quota
@@ -500,8 +533,12 @@ Typical flow:
      #{__FILE__} quota:set azure-southcentralus-wm:102e961b-18a2-4ff0-a03e-c58794d04d55 some-org vm=100 Dv2_vCPU=250
      #{__FILE__} quota:usage:set azure-southcentralus-wm:102e961b-18a2-4ff0-a03e-c58794d04d55 some-org vm=37 Dv2_vCPU=128
 
-3. List all exising quotas for a given org in Tekton:
+4. List all exising quotas for a given org in Tekton:
      #{__FILE__} org:quotas some-org
+
+5. Logout:
+     #{__FILE__} logout
+
 FOOTER
 
 
@@ -520,10 +557,6 @@ ONEOPS_HOSTS = {:local => 'http://localhost:8080/',
 ONEOPS_HOSTS[:default] = ONEOPS_HOSTS[:prod]
 
 @params = OpenStruct.new(:verbose => 0, :force => false, :only_missing => false, :transfer_buffer => 0)
-if File.exist?(SESSION_FILE_NAME)
-  cfg = JSON.parse(File.read(SESSION_FILE_NAME))
-  %w(tekton_host oneops_host tekton_auth).each {|key| @params[key.to_sym] = cfg[key] unless cfg[key].empty?}
-end
 
 @show_help = false
 @opt_parser = OptionParser.new do |opts|
@@ -573,6 +606,11 @@ unless @actions.include?(@action)
   end
 end
 action_help(@action) if @show_help
+
+if File.exist?(SESSION_FILE_NAME) && %w(tekton_host oneops_host tekton_auth).none? {|key| @params[key]}
+  cfg = JSON.parse(File.read(SESSION_FILE_NAME))
+  %w(tekton_host oneops_host tekton_auth).each {|key| @params[key.to_sym] = cfg[key] unless cfg[key].empty?}
+end
 
 if @params.tekton_auth.empty? && @action != 'login' && @action != 'help'
   say "Specify tekton auth with '--ta' option or use 'login' command.".red
