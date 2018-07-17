@@ -1,14 +1,10 @@
-<% if rfc_cis.present? || rfc_relations.present? %>
-  <% rfc_relations_map = rfc_relations.inject({}) do |m, r|
-      key = "#{r.ci_hash['toCiName']}***#{r.ci_hash['toCiClass']}"
-       m[key] ||= []
-       m[key] << r
-      key = "#{r.ci_hash['fromCiName']}***#{r.ci_hash['fromCiClass']}"
-       m[key] ||= []
-       m[key] << r
-       m
-     end %>
-  <div class="rfc-list accordion" id="<%= random_dom_id %>" data-log-url="<%= log_data_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) if @deployment && @deployment.persisted? %>">
+<% if rfc_cis.present? %>
+  <div class="rfc-list accordion" id="<%= random_dom_id %>"
+       <% if @deployment && @deployment.persisted? %>
+         data-changes-url="<%= wo_rfcs_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) %>"
+         data-log-url="<%= log_data_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) %>"
+       <% end %>
+  >
     <% rfc_cis.group_by(&:execOrder).sort.each do |exec_order, step_rfcs| %>
       <div class="step">
         <% step_duration = @time_stats && @time_stats[:steps] && @time_stats[:steps][exec_order] %>
@@ -76,14 +72,14 @@
                                 </strong>
                               </span>
                               <ul class="nav inline pull-right">
-                                <li><%= link_to_function('Changes', "toggle_rfc_tab(this, '#{rfc_id}', 'changes')") %></li>
+                                <li><a onclick="toggle_rfc_tab(this, '<%= rfc_id %>', 'changes')">Changes</a></li>
                                 <% unless deployment_record_state == 'pending' %>
-                                  <li class="log-tab-trigger"><%= link_to_function('Log', "toggle_rfc_tab(this, '#{rfc_id}', 'log')") %></li>
+                                  <li class="log-tab-trigger"><a onclick="toggle_rfc_tab(this, '<%= rfc_id %>', 'log')">Log</a></li>
                                 <% end %>
                                 <li></li>
                                 <li>
                                   <% if total_time %>
-                                    <small class="rfc-duration"><%= link_to_function(time_duration_in_words(total_time.to_f * 1000), "toggle_rfc_tab(this, '#{rfc_id}', 'stats')") %></small>
+                                    <small class="rfc-duration"><a onclick="toggle_rfc_tab(this, '<%= rfc_id %>', 'stats')"><%= time_duration_in_words(total_time.to_f * 1000) %></a></small>
                                   <% end %>
                                   <%= rfc_state_icon(deployment_record_state, 'fa-lg') %>
                                 </li>
@@ -91,33 +87,7 @@
                             </div>
                           </div>
                           <div class="accordion-inner" data-rfc-id="<%= rfc_id %>" style="display:none">
-                            <div class="tab-pane rfc-changes">
-                              <% rfc_ci_relations = rfc_relations_map["#{rfc_ci.ciName}***#{rfc_ci.ciClassName}"] %>
-                              <% if rfc_ci_relations %>
-                                <ul class="nav nav-tabs">
-                                  <li class="active"><a href="#rfc_<%= rfc_id %>_tab_changes_attributes" data-toggle="tab">Attributes</a></li>
-                                  <li><a href="#rfc_<%= rfc_id %>_tab_changes_relations" data-toggle="tab">Relations</a></li>
-                                </ul>
-                                <div class="tab-content">
-                                  <div class="tab-pane active" id="rfc_<%= rfc_id %>_tab_changes_attributes">
-                                    <%= rfc_properties(rfc_ci) %>
-                                    <%= rfc_attributes(rfc_ci) %>
-                                  </div>
-                                  <div class="tab-pane" id="rfc_<%= rfc_id %>_tab_changes_relations">
-                                    <% rfc_ci_relations.each do |r| %>
-                                      <div class="category">
-                                        <div class="name"><%= r.relationName.split('.').last %></div>
-                                        <%= rfc_properties(r) %>
-                                        <%= rfc_attributes(r) %>
-                                      </div>
-                                    <% end %>
-                                  </div>
-                                </div>
-                              <% else %>
-                                <%= rfc_properties(rfc_ci) %>
-                                <%= rfc_attributes(rfc_ci) %>
-                              <% end %>
-                            </div>
+                            <div class="tab-pane rfc-changes"></div>
                             <div class="tab-pane rfc-log"></div>
                             <div class="tab-pane rfc-stats"><%= hash_list(rfc_time_stats) if rfc_time_stats %></div>
                           </div>

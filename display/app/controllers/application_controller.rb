@@ -763,6 +763,14 @@ class ApplicationController < ActionController::Base
     end
   end
 
+  def render_json_cis_response(cis, errors = nil, status = nil)
+    if errors.blank? && cis
+      render :json => cis, :status => :ok
+    elsif
+      render :json => {:errors => (errors.present? && !errors.is_a?(Array) ? [errors] : errors)}, :status => status || :unprocessable_entity
+    end
+  end
+
   def default_url_options(options = {})
     (user_signed_in? && current_user.organization) ? {:org_name => current_user.organization.name} : {}
   end

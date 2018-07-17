@@ -9,7 +9,7 @@ class TimelineController < ApplicationController
 
       format.json do
         @timeline, error = fetch
-        render_json_ci_response(@timeline, @timeline, error)
+        render_json_cis_response(@timeline, error)
       end
     end
   end

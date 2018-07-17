@@ -1,0 +1,2 @@
+$j("li.rfc[data-bom-rfc-id=<%= @rfc_ci.rfcId %>] .tab-pane.rfc-changes")
+  .html("<%= escape_javascript(render('rfc_changes', :rfc_ci => @rfc_ci, :rfc_relations => @rfc_relations)) %>")

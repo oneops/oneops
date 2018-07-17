@@ -13,17 +13,13 @@ if (!window.toggle_rfc_tab) {
       contentDiv.find("> .tab-pane").hide();
       tab.show();
       contentDiv.show(300);
-      if (tabName == 'changes') {
-        if (!tab.hasClass('.calculated')) {
-          tab.find(".diff-container").prettyTextDiff({cleanup: true, diffContainer: ".changed"});
-          tab.addClass('.calculated')
-        }
-      }
-      else if (tabName == 'log' && !tab.html()) {
+      if (!tab.html()) {
         tab.html('<%= escape_javascript(loading_indicator) %>');
-        var url = source.parents("[data-log-url]").data('log-url');
-        if (url) {
-          $j.get(url, {rfcId: rfcId});
+        if (tabName == 'changes') {
+          $j.get(source.parents("[data-changes-url]").data('changes-url'), {rfcId: rfcId});
+        }
+        else if (tabName == 'log') {
+          $j.get(source.parents("[data-log-url]").data('log-url'), {rfcId: rfcId});
         }
       }
     }
