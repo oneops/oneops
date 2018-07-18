@@ -4,6 +4,7 @@ import com.oneops.cms.cm.domain.CmsAltNs;
 import com.oneops.cms.dj.dal.DJMapper;
 import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.util.TimelineQueryParam;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 import java.util.Set;
@@ -75,6 +76,10 @@ public class ThreadLocalDJMapper implements DJMapper{
     @Override
     public List<CmsRelease> getReleaseBy3(String nsPath, String releaseName, String releaseState) {
         return get().getReleaseBy3(nsPath, releaseName, releaseState);
+    }
+
+    public List<CmsRfcCI> getRfcCIByReleaseAndClass(long releaseId, String className) {
+        return get().getRfcCIByReleaseAndClass(releaseId, className);
     }
 
     @Override
@@ -308,6 +313,11 @@ public class ThreadLocalDJMapper implements DJMapper{
     }
 
     @Override
+    public List<CmsRfcRelation> getOpenRfcRelationByCiIds(String relationName, String shortRelName, List<Long> fromCiIds, List<Long> toCiIds) {
+        return get().getOpenRfcRelationByCiIds(relationName, shortRelName, fromCiIds, toCiIds);
+    }
+
+    @Override
     public List<CmsRfcRelation> getRfcRelationByReleaseAndClass(long releaseId, String relationName, String shortRelName) {
         return get().getRfcRelationByReleaseAndClass(releaseId, relationName, shortRelName);
     }
@@ -368,18 +378,18 @@ public class ThreadLocalDJMapper implements DJMapper{
     }
 
     @Override
-    public List<TimelineRelease> getReleaseByFilter(TimelineQueryParam queryParam) {
-        return get().getReleaseByFilter(queryParam);
+    public List<TimelineRelease> getReleasesByCiFilter(TimelineQueryParam queryParam) {
+        return get().getReleasesByCiFilter(queryParam);
     }
 
     @Override
-    public List<TimelineRelease> getReleaseWithOnlyRelationsByFilter(TimelineQueryParam queryParam) {
-        return get().getReleaseWithOnlyRelationsByFilter(queryParam);
+    public List<TimelineRelease> getReleasesByRelationFilter(TimelineQueryParam queryParam) {
+        return get().getReleasesByRelationFilter(queryParam);
     }
 
     @Override
-    public List<TimelineRelease> getReleaseByNsPath(TimelineQueryParam queryParam) {
-        return get().getReleaseByNsPath(queryParam);
+    public List<TimelineRelease> getReleasesByNsPath(TimelineQueryParam queryParam) {
+        return get().getReleasesByNsPath(queryParam);
     }
 
     @Override

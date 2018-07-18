@@ -47,7 +47,12 @@
       <%= section_panel('Plan',
                         :width                => 'full',
                         :collapseable_content => true) do %>
-        <ul class="execOrder" data-log-url="<%= log_data_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) if @deployment.persisted? %>">
+        <ul class="execOrder"
+            <% if @deployment.persisted? %>
+              data-changes-url="<%= wo_rfcs_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) %>"
+              data-log-url="<%= log_data_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) %>"
+            <% end %>
+        >
           <% @rfc_cis.group_by(&:execOrder).sort.each do |exec_order, order_rfcs| %>
             <li id="step_<%= exec_order %>" class="execOrder">
               <div class="stage">
@@ -162,13 +167,13 @@
                                       </strong>
                                     </span>
                                     <ul class="nav inline pull-right">
-                                      <li><%= link_to_function('Changes', "toggle_rfc_tab(this, '#{rfc_id}', 'changes')") %></li>
+                                      <li><a onclick="toggle_rfc_tab(this, '<%= rfc_id %>', 'changes')">Changes</a></li>
                                       <% if deployment_persisted %>
-                                        <li class="log-tab-trigger" style="display:none"><%= link_to_function('Log', "toggle_rfc_tab(this, '#{rfc_id}', 'log')") %></li>
+                                        <li class="log-tab-trigger" style="display:none"><a onclick="toggle_rfc_tab(this, '<%= rfc_id %>', 'log')">Log</a></li>
                                         <li></li>
                                       <% end %>
                                       <li>
-                                        <small class="rfc-duration"><%= link_to_function('', "toggle_rfc_tab(this, '#{rfc_id}', 'stats')") %></small>
+                                        <small class="rfc-duration"><a onclick="toggle_rfc_tab(this, '<%= rfc_id %>', 'stats')"></a></small>
                                         <span class="rfc-state"><%= rfc_state_icon(state, 'fa-lg') %></span>
                                       </li>
                                     </ul>
@@ -184,10 +189,7 @@
                                   <% end %>
                                 <% end %>
                                 <div class="accordion-inner" data-rfc-id="<%= rfc_id %>" style="display:none">
-                                  <div class="tab-pane rfc-changes">
-                                    <%= rfc_properties(rfc) %>
-                                    <%= rfc_attributes(rfc) %>
-                                  </div>
+                                  <div class="tab-pane rfc-changes"></div>
                                   <% if deployment_persisted %>
                                     <div class="tab-pane rfc-log" id="rfc_<%= rfc_id %>_tab_log"></div>
                                     <div class="tab-pane rfc-stats"></div>

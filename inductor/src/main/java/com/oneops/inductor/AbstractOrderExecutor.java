@@ -696,6 +696,22 @@ public abstract class AbstractOrderExecutor {
   }
 
   /**
+   * Check if the verify.mode is enabled for the work order
+   * The value of Environment attribute 'verify' if set trumps the config value
+   *
+   * @param wo {@code CmsWorkOrderSimple}
+   * @return <code>true</code> if the environment verify is selected, else return <code>false</code>
+   */
+  protected <T> boolean isVerifyEnabled(CmsWorkOrderSimpleBase<T> wo) {
+    if (wo.isPayloadEntryEqual(ENVIRONMENT, "verify", "default")) {
+        return config.isVerifyMode();
+    }
+    else {
+        return (wo.isPayloadEntryEqual(ENVIRONMENT, "verify", "true"));
+    }
+  }
+
+  /**
    * Check if the debug mode is enabled for the work order
    *
    * @param wo {@code CmsWorkOrderSimple}
@@ -1037,8 +1053,17 @@ public abstract class AbstractOrderExecutor {
   protected Map<String, String> runVerification(CmsWorkOrderSimpleBase wo,
       Map<String, String> responseMap) {
 
-    if (config.isVerifyMode()) {
       String logKey = getLogKey(wo) + " verify -> ";
+      Boolean VerifyEnabled = isVerifyEnabled(wo);
+
+      logger.info(
+          format("%sConfig.verify mode: '%s'", logKey, config.isVerifyMode()));
+      logger.info(
+          format("%sEnvironment.verify mode: '%s'", logKey, wo.getPayLoadAttribute(ENVIRONMENT, "verify")));
+      logger.info(
+          format("%sIsVerifyEnabled: '%s'", logKey, VerifyEnabled));
+
+    if (VerifyEnabled) {
       long start = System.currentTimeMillis();
 
       if (config.isCloudStubbed(wo)) {

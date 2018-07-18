@@ -1,0 +1,28 @@
+<% rfc_id = rfc_ci.rfcId %>
+<% if rfc_relations.present? %>
+  <ul class="nav nav-tabs">
+    <li class="active"><a href="#rfc_<%= rfc_id %>_tab_changes_attributes" data-toggle="tab">Attributes</a></li>
+    <li><a href="#rfc_<%= rfc_id %>_tab_changes_relations" data-toggle="tab">Relations</a></li>
+  </ul>
+  <div class="tab-content">
+    <div class="tab-pane active" id="rfc_<%= rfc_id %>_tab_changes_attributes">
+      <%= rfc_properties(rfc_ci) %>
+      <%= rfc_attributes(rfc_ci) %>
+    </div>
+    <div class="tab-pane" id="rfc_<%= rfc_id %>_tab_changes_relations">
+      <% rfc_relations.each do |r| %>
+        <div class="category">
+          <div class="name"><%= r.relationName.split('.').last %></div>
+          <%= rfc_properties(r) %>
+          <%= rfc_attributes(r) %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% else %>
+  <%= rfc_properties(rfc_ci) %>
+  <%= rfc_attributes(rfc_ci) %>
+<% end %>
+<script>
+  $j("#rfc_<%= rfc_id %>_tab_changes_attributes .diff-container").prettyTextDiff({cleanup: true, diffContainer: ".changed"});
+</script>

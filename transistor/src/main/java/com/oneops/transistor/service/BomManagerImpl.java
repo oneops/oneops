@@ -524,10 +524,11 @@ public class BomManagerImpl implements BomManager {
 
 		//if we have new manifest release - discard open bom release
 		if (manifestReleases.size() > 0) {
-			List<CmsRelease> bomReleases = manifestRfcProcessor.getReleaseBy3(bomNsPath, null, "open");
+			List<CmsRelease> bomReleases = bomRfcProcessor.getReleaseBy3(bomNsPath, null, "open");
 			for (CmsRelease bomRel : bomReleases) {
 				bomRel.setReleaseState("canceled");
-				manifestRfcProcessor.updateRelease(bomRel);
+				// Discard using
+				bomRfcProcessor.updateRelease(bomRel);
 			}
 		}
 	}

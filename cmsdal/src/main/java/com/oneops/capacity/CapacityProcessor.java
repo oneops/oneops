@@ -10,6 +10,8 @@ import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.cms.util.domain.CmsVar;
 import org.apache.log4j.Logger;
+import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.*;
 import java.util.function.Function;
@@ -50,6 +52,27 @@ public class CapacityProcessor {
             }
         }
         return false;
+    }
+
+    public Map<String, Map<String, Integer>> calculateCapacity(String nsPath, Collection<CmsCI> cis, Collection<CmsCIRelation> deployedToRels) {
+//        if (!isCapacityManagementEnabled(nsPath)) return null;
+
+        Map<String, Object> mappings = getCloudProviderMappings();
+        if (mappings == null) return null;
+
+        List<CmsRfcCI> rfcCis = cis.parallelStream()
+                .map(ci -> new CmsRfcCI(ci,
+                                        "oneops-system",
+                                        ci.getAttributes().entrySet().stream()
+                                                .collect(HashMap::new, (map, e) -> map.put(e.getKey(), e.getValue().getDfValue()), HashMap::putAll)))
+                .collect(toList());
+
+        List<CmsRfcRelation> rfcDeployedToRels = deployedToRels.parallelStream()
+                .map(ci -> new CmsRfcRelation(ci,"oneops-system"))
+                .collect(toList());
+        Map<Long, CloudInfo> deployedToCloudInfoMap = getDeployedToCloudInfoMap(rfcDeployedToRels);
+        Map<String, Map<String, Integer>> capacity = getCapacityForCis(rfcCis, rfcDeployedToRels, deployedToCloudInfoMap, mappings);
+        return capacity;
     }
 
     public CapacityEstimate estimateCapacity(String nsPath, Collection<CmsRfcCI> cis, Collection<CmsRfcRelation> deployedToRels) {
@@ -155,7 +178,13 @@ public class CapacityProcessor {
         Map<String, Integer> capacity = getCapacityForCi(rfcCi, cloudInfo, mappings);
 
         if (!capacity.isEmpty()) {
-            tektonClient.commitReservation(capacity, nsPath, cloudInfo.getSubscriptionId());
+            String subscriptionId = cloudInfo.getSubscriptionId();
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+                @Override
+                public void afterCommit() {
+                    tektonClient.commitReservation(capacity, nsPath, subscriptionId);
+                }
+            });
         }
     }
 
@@ -172,7 +201,13 @@ public class CapacityProcessor {
         Map<String, Integer> capacity = getCapacityForCi(rfcCi, cloudInfo, mappings);
 
         if (!capacity.isEmpty()) {
-            tektonClient.releaseResources(capacity, nsPath, cloudInfo.getSubscriptionId());
+            String subscriptionId = cloudInfo.getSubscriptionId();
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+                @Override
+                public void afterCommit() {
+                    tektonClient.releaseResources(capacity, nsPath, subscriptionId);
+                }
+            });
         }
     }
 

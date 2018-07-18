@@ -947,11 +947,21 @@ public class CmsDpmtProcessor {
   /**
    * Gets the deployment record cis.
    *
-   * @param list of dpt record ids
+   * @param deploymentRecordIds of deployment record ids
    * @return the deployment record cis
    */
-  public List<CmsDpmtRecord> getDeploymentRecordCis(long dpmtId, List<Long> list) {
-    return dpmtMapper.getDeploymentRecordCisByListOfIds(dpmtId, list);
+  public List<CmsDpmtRecord> getDeploymentRecordCis(long dpmtId, List<Long> deploymentRecordIds) {
+    return dpmtMapper.getDeploymentRecordCisByListOfIds(dpmtId, deploymentRecordIds);
+  }
+
+  /**
+   * Gets the deployment record cis.
+   *
+   * @param rfcIds of rfc ids
+   * @return the deployment record cis
+   */
+  public List<CmsDpmtRecord> getDeploymentRecordCisByRfcIds(long dpmtId, List<Long> rfcIds) {
+    return dpmtMapper.getDeploymentRecordCisByRfcIds(dpmtId, rfcIds);
   }
 
   /**
@@ -1025,25 +1035,17 @@ public class CmsDpmtProcessor {
   }
 
   public List<TimelineDeployment> getDeploymentsByFilter(TimelineQueryParam queryParam) {
-    String envNsPath = queryParam.getNsPath();
+    List<TimelineDeployment> deployments;
+
     String filter = queryParam.getWildcardFilter();
-    List<TimelineDeployment> deployments = null;
-    if (!StringUtils.isBlank(filter)) {
-      queryParam.setDpmtNsLike(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.BOM, null));
-      queryParam.setDpmtNsLikeWithFilter(
-          CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.BOM, filter));
-      queryParam.setDpmtClassFilter(CmsConstants.BOM + "." + filter);
-      deployments = dpmtMapper.getDeploymentsByFilter(queryParam);
+    if (StringUtils.isBlank(filter)) {
+      queryParam.setWildcardFilter(null);   // In case it was blank
+      deployments = dpmtMapper.getDeploymentsByNsPath(queryParam);
     } else {
-      deployments = getDeployments4NsPathLike(queryParam);
+      queryParam.setRfcNsFilter(CmsUtil.likefyNsPathWithFilter(queryParam.getNsPath(), CmsConstants.BOM, filter));
+      deployments = dpmtMapper.getDeploymentsByFilter(queryParam);
     }
     return deployments;
-  }
-
-  private List<TimelineDeployment> getDeployments4NsPathLike(TimelineQueryParam queryParam) {
-    queryParam.setDpmtNsLike(
-        CmsUtil.likefyNsPathWithTypeNoEndingSlash(queryParam.getNsPath(), CmsConstants.BOM));
-    return dpmtMapper.getDeploymentsByNsPath(queryParam);
   }
 
   public Map<String, Integer> getWorkordersCountByState(long deploymentId, int execOrder) {

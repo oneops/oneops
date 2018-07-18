@@ -88,6 +88,9 @@ public interface DJMapper {
   List<CmsRfcCI> getRfcCIBy3(@Param("releaseId") long releaseId,
       @Param("isActive") Boolean isActive, @Param("ciId") Long ciId);
 
+  List<CmsRfcCI> getRfcCIByReleaseAndClass(@Param("releaseId") long releaseId,
+                                                 @Param("className") String className);
+
   List<CmsRfcCI> getRfcCIByClazzAndName(@Param("nsPath") String nsPath,
       @Param("clazzName") String clazzName, @Param("ciName") String ciName,
       @Param("isActive") Boolean isActive, @Param("state") String state);
@@ -182,6 +185,11 @@ public interface DJMapper {
       @Param("nsLike") String nsLike, @Param("fromClazzName") String fromClazzName,
       @Param("toClazzName") String toClazzName);
 
+  List<CmsRfcRelation> getOpenRfcRelationByCiIds(@Param("relationName") String relationName,
+      @Param("shortRelName") String shortRelName,
+      @Param("fromCiIds") List<Long> fromCiIds,
+      @Param("toCiIds") List<Long> toCiIds);
+
   List<CmsRfcRelation> getRfcRelationByReleaseAndClass(@Param("releaseId") long releaseId,
       @Param("relationName") String relationName, @Param("shortRelName") String shortRelName);
 
@@ -200,20 +208,20 @@ public interface DJMapper {
   long countOpenRfcRelationsByNs(String nsPath);
 
   void rmRfcsByNs(String nsPath);
-  
+
   void rmToRelByNs(String nsPath);
-  
+
   void rmFromRelByNs(String nsPath);
 
   long countCiNotUpdatedByRfc(@Param("fromCiId") long fromCiId,
       @Param("relationName") String relationName,
       @Param("shortRelName") String shortRelName, @Param("rfcId") long rfcId);
 
-  List<TimelineRelease> getReleaseByFilter(TimelineQueryParam queryParam);
+  List<TimelineRelease> getReleasesByNsPath(TimelineQueryParam queryParam);
 
-  List<TimelineRelease> getReleaseWithOnlyRelationsByFilter(TimelineQueryParam queryParam);
+  List<TimelineRelease> getReleasesByCiFilter(TimelineQueryParam queryParam);
 
-  List<TimelineRelease> getReleaseByNsPath(TimelineQueryParam queryParam);
+  List<TimelineRelease> getReleasesByRelationFilter(TimelineQueryParam queryParam);
 
   List<CmsRfcCI> getRfcCIsAppliedBetweenTwoReleases(@Param("nsPath") String nsPath,
       @Param("fromReleaseId") Long fromReleaseId, @Param("toReleaseId") Long toReleaseId);
@@ -221,11 +229,11 @@ public interface DJMapper {
   List<CmsRfcRelation> getRfcRelationsAppliedBetweenTwoReleases(@Param("nsPath") String nsPath,
       @Param("fromReleaseId") Long fromReleaseId, @Param("toReleaseId") Long toReleaseId);
 
-  
+
   Long getTagId(@Param("tag")String tag);
-  
+
   void createTag(@Param("tag")String tag);
-  
+
   void createAltNs(@Param("nsId") long nsId, @Param("tagId") long tagId, @Param("rfcId") long rfcId);
 
   void deleteAltNs(@Param("nsId") long nsId, @Param("rfcId") long rfcId);

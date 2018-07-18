@@ -99,11 +99,25 @@
         <property name="cmsCrypto" ref="cmsCrypto"/>
     </bean>
 
+    <bean id="cmsDjValidator" class="com.oneops.cms.util.CmsDJValidator">
+        <property name="cmsMdProcessor" ref="cmsMdProcessor" />
+        <property name="cmsNsProcessor" ref="cmsNsProcessor" />
+        <property name="cmsCrypto" ref="cmsCrypto" />
+    </bean>
+
     <bean id="cmsCmProcessor" class="com.oneops.cms.cm.service.CmsCmProcessor">
         <property name="ciMapper" ref="ciMapper"/>
         <property name="cmValidator" ref="cmsCmValidator"/>
         <property name="cmsNsProcessor" ref="cmsNsProcessor"/>
         <property name="mdProcessor" ref="cmsMdProcessor"/>
+    </bean>
+
+    <bean id="cmsRfcProcessor" class="com.oneops.cms.dj.service.CmsRfcProcessor">
+        <property name="djMapper" ref="djMapper" />
+        <property name="djValidator" ref="cmsDjValidator" />
+        <property name="cmsNsProcessor" ref="cmsNsProcessor" />
+        <property name="ciMapper" ref="ciMapper" />
+        <property name="rfcUtil" ref="rfcUtil" />
     </bean>
 
     <bean id="cmsUtil" class="com.oneops.cms.util.CmsUtil">

@@ -4,6 +4,7 @@ require 'optparse'
 require 'ostruct'
 require 'base64'
 require 'net/http'
+require 'io/console'
 
 class NilClass
   def [] (_)
@@ -25,17 +26,19 @@ class String
   def start_with?(pattern)
     (self =~ /^#{pattern}/) == 0
   end
+
+  def end_with(string)
+    self[-string.size..-1] == string ? self : (self + string)
+  end
 end
 
 class Hash
   def method_missing(method, *args, &block)
-    method_s = method.to_s
-    if include?(method_s) || include?(method)
+    if include?(method)
       self[method_s]
-    elsif respond_to?(method_s)
-      super
     else
-      nil
+      method_s = method.to_s
+      include?(method_s) ? self[method_s] : (respond_to?(method) ? super : nil)
     end
   end
 end
@@ -46,6 +49,10 @@ end
 
 def blurt(*args)
   print *args unless @silent
+end
+
+def ask()
+  STDIN.gets[0...-1]
 end
 
 def oo_request(cmd, msg)
@@ -62,7 +69,7 @@ def tt_request(cmd, msg, body = nil)
   else
     req = Net::HTTP::Get.new(uri)
   end
-  req['Authorization'] = Base64.strict_encode64(@params.tekton_token)
+  req['Authorization'] = "#{'Basic ' if @params.tekton_auth.include?(':')}#{Base64.strict_encode64(@params.tekton_auth)}"
   request(uri, req, msg)
 end
 
@@ -87,9 +94,14 @@ def request(uri, req, msg)
         result = JSON.parse(body)
       end
     elsif response.is_a?(Net::HTTPNotFound)
+    elsif response.is_a?(Net::HTTPUnauthorized)
+      say 'Invalid credentials'.red
+      exit(1)
     else
       raise Exception.new('Bad response.')
     end
+  rescue SystemExit => e
+    exit(1)
   rescue Exception => e
     say "\nFailed to perform '#{msg}': #{uri.to_s.blue}".red
     say "RESPONSE #{response.code.red}: #{response.body}" if response
@@ -104,15 +116,28 @@ end
 def required_arg(name, value)
   if value.empty?
     say "Specify #{name}".red
-    bad_usage
+    action_help(@action)
   else
-    say "#{name}: #{value.blue}" if @params.verbose > 0
+    say "#{name}: #{value.to_s.blue}" if @params.verbose > 0
   end
 end
 
-def bad_usage
-  usage = @actions.find {|a| a[0][0...@action.size] == @action}
-  say "Usage:\n  #{usage[0]}" if usage
+def general_help
+  say "#{@opt_parser}\n#{@footer}"
+  exit
+end
+
+def actions_help
+  @actions.values.inject("  Actions:\n") {|s, a| s << "    #{a[0]}\n      #{a[1]}\n"}
+end
+
+def action_help(action = nil)
+  if action.empty?
+    say @usage
+  else
+    usage = @actions[action]
+    say "Usage:\n  #{usage[0]}" if usage
+  end
   exit(1)
 end
 
@@ -168,7 +193,7 @@ def execute(action, *args)
     resources.each_pair {|name, desc| execute('resource:add', name, desc)}
 
   elsif action == 'oo:subs'
-    org_name, cloud_name = args
+    org_name, cloud_name, _ = args
     required_arg('org', org_name)
     provides_rels = %w(Azure Openstack).inject([]) do |a, clazz|
       a += oo_request("relations?nsPath=/#{org_name}/_clouds&recursive=true&relationShortName=Provides&targetClassName=#{clazz}&includeFromCi=true&includeToCi=true", 'Getting clouds')
@@ -187,9 +212,10 @@ def execute(action, *args)
   elsif action == 'oo:subs:transfer'
     subs = execute!('oo:subs', *args)
     subs.each_pair {|name, provides_rel| execute('sub:add', name, name.split(':').first)}
+    execute('resources')
 
   elsif action == 'oo:usage'
-    org_name, cloud_name = args
+    org_name, cloud_name, _ = args
     required_arg('org', org_name)
 
     mappings = oo_request('CLOUD_PROVIDER_MAPPINGS/vars', "Getting mappings")
@@ -203,7 +229,7 @@ def execute(action, *args)
     result = {}
     subs = execute!('oo:subs', org_name, cloud_name)
     subs.each_pair do |sub, provides_rels|
-      say "Processing clouds for subscription '#{sub.blue}'"
+      say "Processing clouds for subscription '#{sub.blue}' (#{provides_rels.map {|r| r.fromCi.ciName}.join(', )')})" if @params.verbose > 0
       provider = provides_rels.first.toCi.ciClassName.split('.').last.downcase
       provider_mappings = mappings[provider]
       if provider_mappings.empty?
@@ -236,24 +262,31 @@ def execute(action, *args)
 
       unless sub_usage.empty?
         result[sub] = sub_usage
-        say "  #{sub}/#{org_name} =>"
+        say "  #{sub.blue}/#{org_name} =>"
         sub_usage.keys.sort.each {|n| say "    #{n.ljust(25)} | #{sub_usage[n].to_s.rjust(10)}"}
         say
       end
     end
 
   elsif action == 'oo:usage:transfer'
-    org_name, cloud_name = args
-    say 'Buffer % is not set, will set total quota to the same value as usage.'.yellow
+    org_name, cloud_name, _ = args
     required_arg('org', org_name)
 
     usage = execute!('oo:usage', org_name, cloud_name)
     usage.each_pair do |sub, sub_usage|
-      total = tt_request("api/v1/quota/#{sub}/#{org_name}", 'Getting quota')
+      total = tt_request("quota/#{sub}/#{org_name}", 'Getting quota')
       if total.empty? || @params.force
         if total.empty?
+          if @params.transfer_buffer < 0
+            say 'Invalid quota buffer %'.red
+            action_help(@action)
+            exit(1)
+          elsif @params.transfer_buffer == 0
+            say 'Buffer % is not set, will set total quota to the same value as usage.'.yellow
+          end
           execute!('quota:set', sub, org_name, *sub_usage.to_a.map {|r, v| "#{r}=#{(v + v * @params.transfer_buffer).to_i}"}) if @params.transfer_buffer > 0
         else
+          say "Quota for #{sub}/#{org_name} already exists, will set usage only, use #{"'quota:set'".blue} action to set total quota values.".yellow
           sub_usage.delete_if {|r| total[r]} if @params.only_missing
         end
         execute('quota:usage:set', sub, org_name, *sub_usage.to_a.map {|r, v| "#{r}=#{v}"})
@@ -264,99 +297,180 @@ def execute(action, *args)
     end
 
   elsif action == 'resources'
-    resources = tt_request('api/v1/resource', 'Fetching resources')
+    resources = tt_request('resource', 'Fetching resources')
     resources.sort_by(&:name).each do |r|
       say "#{r.name.blue} =>\n  #{r.description}"
     end
 
   elsif action == 'resource:add'
-    resource_name, desc = args
-    resource = tt_request("api/v1/resource/#{resource_name}", "Fetching resource '#{resource_name}'")
+    resource_name, desc, _ = args
+    resource = tt_request("resource/#{resource_name}", "Fetching resource '#{resource_name}'")
     if resource
       if @params.force
-        tt_request('api/v1/resource', "Resource #{resource_name} already exists, updating...", {:name => resource_name, :description => desc || resource_name})
+        tt_request('resource', "Resource #{resource_name} already exists, updating...", {:name => resource_name, :description => desc || resource_name})
       else
         say "Resource #{resource_name} already exists, use '-f' option to force update.".yellow
       end
     else
-      tt_request('api/v1/resource', "Resource #{resource_name} is missing, creating...", {:name => resource_name, :description => desc || resource_name})
+      tt_request('resource', "Resource #{resource_name} is missing, creating...", {:name => resource_name, :description => desc || resource_name})
     end
 
   elsif action == 'subs'
-    subs = tt_request('api/v1/subscription', 'Fetching subscriptions')
+    subs = tt_request('subscription', 'Fetching subscriptions')
     subs.sort_by(&:name).each do |s|
       say "#{s.name.blue} =>\n  #{s.description}"
     end
 
   elsif action == 'sub:add'
-    sub_name, desc = args
-    sub = tt_request("api/v1/subscription/#{sub_name}", "Fetching subscription '#{sub_name}'")
+    sub_name, desc, _ = args
+    sub = tt_request("subscription/#{sub_name}", "Fetching subscription '#{sub_name}'")
     if sub
       if @params.force
-        tt_request('api/v1/subscription', "Subscription #{sub_name} already exists, updating...", {:name => sub_name, :description => desc || sub_name})
+        tt_request('subscription', "Subscription #{sub_name} already exists, updating...", {:name => sub_name, :description => desc || sub_name})
       else
         say "Subscription #{sub_name} already exists, use '-f' option to force update.".yellow
       end
     else
-      tt_request('api/v1/subscription', "Subscription #{sub_name} is missing, creating...", {:name => sub_name, :description => desc || sub_name})
+      tt_request('subscription', "Subscription #{sub_name} is missing, creating...", {:name => sub_name, :description => desc || sub_name})
     end
 
   elsif action == 'orgs'
-    orgs = tt_request('api/v1/org', 'Fetching orgs')
-    orgs.sort_by(&:name).each {|o| say o.name}
+    result = tt_request('org', 'Fetching orgs')
+    result.sort_by(&:name).each {|o| say o.name}
 
   elsif action == 'org:add'
     org_name = args[0]
-    org = tt_request("api/v1/org/#{org_name}", "Fetching org '#{org_name}'")
-    tt_request('api/v1/org', "Org #{org_name} is missing, creating", {:name => org_name}) unless org
+    org = tt_request("org/#{org_name}", "Fetching org '#{org_name}'")
+    tt_request('org', "Org #{org_name} is missing, creating", {:name => org_name}) unless org
 
   elsif action == 'sub:quotas'
     sub_name = args[0]
     required_arg('subscription', sub_name)
-    total = tt_request("api/v1/quota/subscription/#{sub_name}", 'Getting quotas')
-    usage = tt_request("api/v1/quota/usage/subscription/#{sub_name}", 'Getting usages')
-    available = tt_request("api/v1/quota/available/subscription/#{sub_name}", 'Getting usages')
+    total = tt_request("quota/subscription/#{sub_name}", 'Getting quotas')
+    usage = tt_request("quota/usage/subscription/#{sub_name}", 'Getting usages')
+    available = tt_request("quota/available/subscription/#{sub_name}", 'Getting usages')
     total.keys.sort.each {|org| full_quota(org, total[org], usage[org], available[org])} unless total.empty?
 
   elsif action == 'org:quotas'
     org_name = args[0]
     required_arg('org', org_name)
-    total = tt_request("api/v1/quota/entity/#{org_name}", 'Getting quotas')
-    usage = tt_request("api/v1/quota/usage/entity/#{org_name}", 'Getting usages')
-    available = tt_request("api/v1/quota/available/entity/#{org_name}", 'Getting usages')
+    total = tt_request("quota/entity/#{org_name}", 'Getting quotas')
+    usage = tt_request("quota/usage/entity/#{org_name}", 'Getting usages')
+    available = tt_request("quota/available/entity/#{org_name}", 'Getting usages')
     total.keys.sort.each {|sub| full_quota(sub, total[sub], usage[sub], available[sub])} unless total.empty?
 
   elsif action == 'quota'
-    sub_name, org_name = args
+    sub_name, org_name, _ = args
     required_arg('subscription', sub_name)
     required_arg('org', org_name)
-    total = tt_request("api/v1/quota/#{sub_name}/#{org_name}", 'Getting quota')
-    usage = tt_request("api/v1/quota/usage/#{sub_name}/#{org_name}", 'Getting usage')
-    available = tt_request("api/v1/quota/available/#{sub_name}/#{org_name}", 'Getting available')
-    full_quota("#{sub_name}/#{org_name}", total, usage, available)
 
-  elsif action == 'quota:set' || action == 'quota:usage:set'
+    subs = execute('sub:prompt', sub_name, org_name)
+    subs.each do |s|
+      total = tt_request("quota/#{s}/#{org_name}", 'Getting quota')
+      unless total.empty?
+        usage = tt_request("quota/usage/#{s}/#{org_name}", 'Getting usage')
+        available = tt_request("quota/available/#{s}/#{org_name}", 'Getting available')
+        full_quota("#{s}/#{org_name}", total, usage, available)
+      end
+    end
+
+  elsif action == 'quota:set' || action == 'quota:usage:set' || action == 'usage:set'
     sub_name, org_name, *resources = args
     required_arg('subscription', sub_name)
     required_arg('org', org_name)
     required_arg('resources', resources)
 
-    usage = resources.inject({}) do |h, r|
-      name, value = r.split(/[=:]/, 2)
-      value = value.to_i
-      h[name] = value if !name.empty? && value > 0
-      h
+    subs = execute('sub:prompt', sub_name, org_name)
+    subs.each do |s|
+      usage = resources.inject({}) do |h, r|
+        name, value = r.split(/[=:]/, 2)
+        value = value.to_i
+        h[name] = value if !name.empty? && value > 0
+        h
+      end
+      required_arg('resources', usage)
+
+      sub = tt_request("subscription/#{s}", "Fetching subscription '#{s}'")
+      execute!('sub:add', s) unless sub
+
+      org = tt_request("org/#{org_name}", "Fetching org '#{org_name}'")
+      execute!('org:add', org_name) unless org
+
+      tt_request("quota/#{"usage/" if action.include?('usage:set')}#{s}/#{org_name}", "Updating quota", usage)
+      execute('quota', s, org_name)
     end
-    required_arg('resources', usage)
 
-    sub = tt_request("api/v1/subscription/#{sub_name}", "Fetching subscription '#{sub_name}'")
-    execute!('sub:add', sub_name) unless sub
+  elsif action == 'sub:prompt'
+    sub_name, org_name, _ = args
+    if sub_name[0] == '?'
+      total = tt_request("quota/entity/#{org_name}", 'Getting quotas')
+      if total.empty?
+        say "No existing quotas set up in org '#{org_name}'".red
+        exit(1)
+      else
+        subs = total.keys
+        sub_pattern = sub_name[1..-1]
+        unless sub_pattern.empty?
+          sub_regex = /#{sub_pattern}/i
+          subs = subs.select {|s| s =~ sub_regex}
+          if subs.empty?
+            say "No existing quotas in org '#{org_name}' have subscriptions matching '#{sub_pattern}'".yellow
+            exit(1)
+          end
+        end
 
-    org = tt_request("api/v1/org/#{org_name}", "Fetching org '#{org_name}'")
-    execute!('org:add', org_name) unless org
+        if subs.size == 1
+          result = subs
+        else
+          say "Choose subscription from existing quotas in this org:"
+          subs.each_with_index {|sub, i| say "  #{i + 1}. #{sub}"}
+          blurt "Which subscription (n|n,m...|*): ".green
+          p = ask
+          if p == '*'
+            result = subs
+          else
+            result = []
+            p.split(',').each do |t|
+              index = t.to_i
+              result << subs[index - 1] if index >= 1 && index <= subs.size
+            end
+          end
+          result = result.uniq
+          exit if result.empty?
+        end
+      end
+    else
+      result = sub_name.split(',').uniq
+    end
 
-    tt_request("api/v1/quota/#{"usage/" if action == 'quota:usage:set'}#{sub_name}/#{org_name}", "Updating quota", usage)
-    execute('quota', sub_name, org_name)
+  elsif action == 'login'
+    username, password, _ = args
+    if username.empty?
+      password = nil
+      print 'username: '
+      username = ask
+    end
+    if password.empty?
+      print 'password: '
+      STDIN.noecho {password = STDIN.gets[0...-1]}
+      puts
+    end
+
+    File.delete(SESSION_FILE_NAME) if File.exist?(SESSION_FILE_NAME)
+
+    @params.tekton_auth = "#{username}#{":#{password}" unless password.empty?}"
+    result = !tt_request('org', 'Checking credentials').empty?
+    if result
+      cfg = %w(tekton_host oneops_host tekton_auth).inject({}) {|h, key| h[key] = @params[key]; h}
+      File.write(SESSION_FILE_NAME, JSON.pretty_unparse(cfg))
+      say "Signed in - do not forget to logout when done!".green
+    end
+
+  elsif action == 'logout'
+    File.delete(SESSION_FILE_NAME) if File.exist?(SESSION_FILE_NAME)
+
+  elsif action == 'help'
+    general_help
 
   else
     say "Unknown action: #{action}".red
@@ -366,61 +480,86 @@ def execute(action, *args)
   return result
 end
 
-@actions = [
-  ['orgs', 'list orgs'],
-  ['org:add ORG', 'add org'],
-  ['resources', 'list resources'],
-  ['resource:add  [-f]', 'add resource'],
-  ['subs', 'list subsctiption'],
-  ['sub:add [-f] SUBSCRIPTION', 'add subscription'],
-  ['sub:quotas SUBSCRIPTION', 'list all quotas for subscription'],
-  ['org:quotas ORG', 'list all quotas for org'],
-  ['quota SUBSCRIPTION ORG', 'show quota'],
-  ['quota:set SUBSCRIPTION ORG RESOURCE=VALUE [RESOURCE=VALUE ...]', 'update quota totals'],
-  ['quota:usage:set SUBSCRIPTION ORG RESOURCE=VALUE [RESOURCE=VALUE ...]', 'update quota totals'],
-  ['oo:resources', 'list resource types in OneOps'],
-  ['oo:resources:transfer [-f]', 'transfer resources types in OneOps to Tekton'],
-  ['oo:subs ORG [CLOUD_REGEX]', 'list subsctiptions in OneOps'],
-  ['oo:subs:transfer  [-f] ORG [CLOUD_REGEX]', 'transfer subsctiptions in OneOps to Tekton'],
-  ['oo:usage ORG [CLOUD_REGEX]', 'list usage in OneOps'],
-  ['oo:usage:transfer [-f [--omr]] [-b BUFFER_%] ORG [CLOUD_REGEX]', 'convert usage in OneOps into quota in Tekton']
-]
+@actions = {
+  'help'                  => ['help', 'display help'],
+  'login'                 => ['login [-e ENV] [USERNAME [PASSWORD]]', 'log in for running Tekton commands, defaults to \'prod\' environment if not specified'],
+  'logout'                => ['logout [USERNAME [PASSWORD]]', 'log out after running Tekton commands'],
+  'orgs'                  => ['orgs', 'list orgs'],
+  'org:add'               => ['org:add ORG', 'add org'],
+  'resources'             => ['resources', 'list resources'],
+  'resource:add'          => ['resource:add  [-f]', 'add resource'],
+  'subs'                  => ['subs', 'list subsctiption'],
+  'sub:add'               => ['sub:add [-f] SUBSCRIPTION', 'add subscription'],
+  'sub:quotas'            => ['sub:quotas SUBSCRIPTION', 'list all quotas for subscription'],
+  'org:quotas'            => ['org:quotas ORG', 'list all quotas for org'],
+  'quota'                 => ['quota SUBSCRIPTION ORG', 'show quota'],
+  'quota:set'             => ['quota:set SUBSCRIPTION ORG RESOURCE=VALUE [RESOURCE=VALUE ...]', 'update quota totals'],
+  'quota:usage:set'       => ['quota:usage:set SUBSCRIPTION ORG RESOURCE=VALUE [RESOURCE=VALUE ...]', 'update quota totals'],
+  'oo:resources'          => ['oo:resources', 'list resource types in OneOps'],
+  'oo:resources:transfer' => ['oo:resources:transfer [-f]', 'transfer resources types in OneOps to Tekton'],
+  'oo:subs'               => ['oo:subs ORG [CLOUD_REGEX]', 'list subsctiptions in OneOps'],
+  'oo:subs:transfer'      => ['oo:subs:transfer  [-f] ORG [CLOUD_REGEX]', 'transfer subsctiptions in OneOps to Tekton'],
+  'oo:usage'              => ['oo:usage ORG [CLOUD_REGEX]', 'list usage in OneOps'],
+  'oo:usage:transfer'     => ['oo:usage:transfer [-f [--omr]] [-b BUFFER_%] ORG [CLOUD_REGEX]', 'convert current usage in OneOps into quota in Tekton or update usage for existing Tekton quota to the current ussage in OneOps']
+}
 
 @usage = <<-USAGE
   Usage:
     #{__FILE__} [OPTIONS] ACTION ARGUMENTS
-  
-  Actions:
-#{@actions.inject('') {|s, a| s << "    #{a[0]}\n      #{a[1]}\n"}}
+    
+#{actions_help}
 USAGE
 
 @footer = <<-FOOTER
 Typical flow:
-1. Import resources to Tekton from OneOps based existing provider mappings:
+1. Login first (alternatively, you will need to provide auth on each subsequent command
+   with '--ta' option):
+     #{__FILE__} login my_username
+   
+2. Import resources to Tekton from OneOps based on existing provider mappings
+   (done during initial seeding or when new resource types are added):
      #{__FILE__} oo:resources:transfer
 
-2. For a given org import existing subscription to Tekton from OneOps:
+3. For a given org import existing subscription to Tekton from OneOps:
      #{__FILE__} oo:subs:transfer some-org
-   Or skip this step and go directly to creating quotas (orgs and subscription will be add
-   on the fly) by transfering usage from OneOps with some buffer
-     #{__FILE__} oo:usage:transfer 50 some-org
+   Or skip this step and go directly to creating quotas (orgs and subscription will be added
+   on the fly) by transfering usage from OneOps with some buffer for max allowed quota
+     #{__FILE__} oo:usage:transfer some-org some-cloud -b 50
+   This will bootstrap a quota in Tekton with usage set to current usage numbers in OneOps
+   and max quota set to 50% above current usage.  If quota for that org and subscription already
+   exists it will only update the usage numbers without changing max allowed values.
+
    Alternatively, add/set quota manually:
      #{__FILE__} quota:set azure-southcentralus-wm:102e961b-18a2-4ff0-a03e-c58794d04d55 some-org vm=100 Dv2_vCPU=250
      #{__FILE__} quota:usage:set azure-southcentralus-wm:102e961b-18a2-4ff0-a03e-c58794d04d55 some-org vm=37 Dv2_vCPU=128
 
-3. List exising quotas for a given org in Tekton:
+4. List all exising quotas for a given org in Tekton:
      #{__FILE__} org:quotas some-org
+
+5. Logout:
+     #{__FILE__} logout
+
 FOOTER
 
 
 #------------------------------------------------------------------------------------------------
 # Start here.
 #------------------------------------------------------------------------------------------------
-TEKTON_HOST = 'http://localhost:9000'
-ONEOPS_HOST = 'http://cmsapi.prod-1312.core.oneops.prod.walmart.com:8080/'
+SESSION_FILE_NAME      = '.tekton'
+TEKTON_HOSTS           = {:local => 'http://localhost:9000',
+                :stg   => 'http://tekton-service.stg.tekton.oneops.cdcstg2.prod.walmart.com:9000',
+                :prod  => 'http://tekton.prod.walmart.com:9000'}
+TEKTON_HOSTS[:default] = TEKTON_HOSTS[:prod]
+
+ONEOPS_HOSTS = {:local => 'http://localhost:8080/',
+                :stg   => 'http://adapter.stg.core-1612.oneops.prod.walmart.com:8080/',
+                :prod  => 'http://cmsapi.prod-1312.core.oneops.prod.walmart.com:8080/'}
+ONEOPS_HOSTS[:default] = ONEOPS_HOSTS[:prod]
 
 @params = OpenStruct.new(:verbose => 0, :force => false, :only_missing => false, :transfer_buffer => 0)
-opt_parser = OptionParser.new do |opts|
+
+@show_help = false
+@opt_parser = OptionParser.new do |opts|
   opts.banner = <<-HELP
   Tool to query and to configure subscription, org and soft quota data in Tekton directly or based on current usage in OneOps.
   
@@ -429,54 +568,79 @@ opt_parser = OptionParser.new do |opts|
   Options:
   HELP
 
-  opts.on('--th', '--tekton-host HOST', "Tekton host, defaults to '#{TEKTON_HOST}' if not specified") {|host| @params.tekton_host = host}
-  opts.on('--tt', '--tekton-token TOKEN', 'Tekton auth token') {|token| @params.tekton_token = token}
-  opts.on('--oh', '--oneops-host HOST', "OneOps CMS host, defaults to '#{ONEOPS_HOST}' if not specified") {|host| @params.oneops_host = host}
+  opts.on('-e',   '--environment ENV', [:prod, :stg, :local], 'Environment to use: prod|stg|local') {|host| @params.tekton_host = host}
+  opts.on('--th', '--tekton-host HOST', "Tekton host, defaults to '#{TEKTON_HOSTS[:default]}' if no host or environment options are specified") {|host| @params.tekton_host = host}
+  opts.on('--ta', '--tekton-auth CREDENTIALS', "Tekton auth if not using 'login' command: <username<:<password>  or <token>") {|creds| @params.tekton_auth = creds}
+  opts.on('--oh', '--oneops-host HOST', "OneOps CMS host, defaults to '#{ONEOPS_HOSTS[:default]}' if no host or environment options are specified") {|host| @params.oneops_host = host}
 
-  opts.on('-b', '--buffer BUFFER_%', 'Buffer (as a percentage of usage) to add on top of usage number when setting total quota value for new quotas. Default value is 0 (no buffer) - usage and total are the same') do |buffer_pct|
-    buffer = buffer_pct.to_f / 100
-    unless buffer >= 0
-      say 'Invalid quota buffer %'.red
-      bad_usage
-      exit(1)
-    end
-    @params.transfer_buffer = 0
-  end
+  opts.on('-b', '--buffer BUFFER_%', 'Buffer (as a percentage of usage) to add on top of usage number when setting total quota value for new quotas. Default value is 0 (no buffer) - usage and total are the same') {|buffer_pct| @params.transfer_buffer = buffer_pct.to_f / 100}
 
   opts.on('-f', '--force', 'Force update if already exists') {@params.force = true}
-  opts.on('--omr', '--only-missing-resources', "Transfer usage only for resources missing quota (when already there is quota for at least one other resource; use with '-f' option") {@params.only_missing = true}
+  opts.on('--omr', '--only-missing-resources', "Transfer usage only for resources missing quota (when there is already quota set up for at least one other resource (for a given subscription and org); use with '-f' option") {@params.only_missing = true}
 
   opts.on('-v', '--verbose', 'Verbose') {@params.verbose = 1}
   opts.on('--vv', '--very-verbose', 'Very verbose') {@params.verbose = 2}
 
-  opts.on('-h', '--help', 'Show this message') do
-    say opts
-    say
-    say @footer
-    exit
+  opts.on('-h', '--help', 'Show this message') {@show_help = true}
+end
+
+@action, *@args = @opt_parser.parse(ARGV)
+
+if @action.empty?
+  general_help if @show_help
+
+  say "Specify ACTION!".red
+  say "#{actions_help}\nUse '-h' or 'help' action to see full help."
+  exit(1)
+end
+
+@action = @action.downcase.gsub('oneops', 'oo')
+unless @actions.include?(@action)
+  regex = /#{@action.gsub(/\W+/, '.*:')}\w*/
+  action = @actions.keys.find {|k| (regex =~ k) == 0}
+  if action.empty?
+    say "Unknown action: #{@action}".red
+    action_help
+  else
+    @action = action
   end
 end
+action_help(@action) if @show_help
 
-@action, *@args = opt_parser.parse(ARGV)
-
-@action = @action.downcase.gsub('oneops', 'oo').gsub('tekton', 'tt')
-
-@params.tekton_token = 'test'
-required_arg('tekton token', @params.tekton_token)
-
-if @params.oneops_host.empty?
-  @params.oneops_host = ONEOPS_HOST
-  say "OneOps host not specified, defaulting to #{@params.oneops_host.blue}".yellow if @params.verbose > 0
+if File.exist?(SESSION_FILE_NAME) && %w(tekton_host oneops_host tekton_auth).none? {|key| @params[key]}
+  cfg = JSON.parse(File.read(SESSION_FILE_NAME))
+  %w(tekton_host oneops_host tekton_auth).each {|key| @params[key.to_sym] = cfg[key] unless cfg[key].empty?}
 end
-@params.oneops_host = "https://#{@params.oneops_host}" unless @params.oneops_host.start_with?('http')
-@params.oneops_host = "#{@params.oneops_host}/" unless @params.oneops_host.end_with?('/')
-@params.oneops_host += 'adapter/rest/cm/simple/'
+
+if @params.tekton_auth.empty? && @action != 'login' && @action != 'help'
+  say "Specify tekton auth with '--ta' option or use 'login' command.".red
+  action_help('login')
+  exit(1)
+end
+
+@params.tekton_host = @params.oneops_host if @params.tekton_host.empty? && !@params.oneops_host.empty? && ONEOPS_HOSTS.include?(@params.oneops_host.downcase.to_sym)
+@params.oneops_host = @params.tekton_host if @params.oneops_host.empty? && !@params.tekton_host.empty? && TEKTON_HOSTS.include?(@params.tekton_host.downcase.to_sym)
 
 if @params.tekton_host.empty?
-  @params.tekton_host = TEKTON_HOST
+  @params.tekton_host = TEKTON_HOSTS[:default]
   say "Tekton host not specified, defaulting to #{@params.tekton_host.blue}".yellow if @params.verbose > 0
+else
+  host = @params.tekton_host.downcase.to_sym
+  @params.tekton_host = TEKTON_HOSTS[host] if TEKTON_HOSTS.include?(host)
 end
 @params.tekton_host = "https://#{@params.tekton_host}" unless @params.tekton_host.start_with?('http')
 @params.tekton_host = "#{@params.tekton_host}/" unless @params.tekton_host.end_with?('/')
+@params.tekton_host = @params.tekton_host.end_with('api/v1/')
+
+if @params.oneops_host.empty?
+  @params.oneops_host = ONEOPS_HOSTS[:default]
+  say "OneOps host not specified, defaulting to #{@params.oneops_host.blue}".yellow if @params.verbose > 0
+else
+  host = @params.oneops_host.downcase.to_sym
+  @params.oneops_host = ONEOPS_HOSTS[host] if ONEOPS_HOSTS.include?(host)
+end
+@params.oneops_host = "https://#{@params.oneops_host}" unless @params.oneops_host.start_with?('http')
+@params.oneops_host = "#{@params.oneops_host}/" unless @params.oneops_host.end_with?('/')
+@params.oneops_host = @params.oneops_host.end_with('adapter/rest/cm/simple/')
 
 execute(@action, *@args)

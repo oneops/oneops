@@ -913,6 +913,19 @@ public class CmsRfcProcessor {
 	}
 
 	/**
+	 * Gets the rfc cis by release id and ci class name (long or short).
+	 *
+	 * @param releaseId the release id
+	 * @param className the clazz name
+	 * @return the open rfc ci by clazz and name
+	 */
+	public List<CmsRfcCI> getRfcCIByReleaseAndClass(long releaseId, String className) {
+		List<CmsRfcCI> rfcList = djMapper.getRfcCIByReleaseAndClass(releaseId, className);
+		populateRfcCIAttributes(rfcList);
+		return rfcList;
+	}
+
+	/**
 	 * Gets the open rfc ci by clazz and name.
 	 *
 	 * @param nsPath the ns path
@@ -1527,7 +1540,20 @@ public class CmsRfcProcessor {
 		String nsLike = CmsUtil.likefyNsPath(nsPath);
 		return djMapper.getOpenRfcRelationsNsLike(relationName, shortRelName, nsPath, nsLike, fromClazzName, toClazzName);
 	}
-	
+
+	/**
+	 * Gets open rfc relations by from ci Ids
+	 *
+	 * @param relationName the relation name
+	 * @param shortRelName the short rel name
+	 * @param fromCiIds the to ci ids
+	 * @return the from ci relations by to ci ids naked
+	 */
+	public List<CmsRfcRelation> getOpenRfcRelationsByCiIdsNakedNoAttrs(String relationName,
+	String shortRelName, List<Long> fromCiIds, List<Long> toCiIds) {
+		return djMapper.getOpenRfcRelationByCiIds(relationName, shortRelName, fromCiIds, toCiIds);
+	}
+
 	/**
 	 * Update rfc relation.
 	 *
@@ -1841,80 +1867,37 @@ public class CmsRfcProcessor {
 	}
 
 	public List<TimelineRelease> getReleaseByFilter(TimelineQueryParam queryParam) {
-		String filter = queryParam.getWildcardFilter();
 		List<TimelineRelease> releases;
-		if (!StringUtils.isBlank(filter)) {
+		if (StringUtils.isBlank(queryParam.getWildcardFilter())) {
+			releases = djMapper.getReleasesByNsPath(queryParam);
+		} else {
 			releases = getReleaseByFilterInternal(queryParam);
-		}
-		else {
-			releases = getReleaseByNsPath(queryParam);
 		}
 		return releases;
 	}
 
 	private List<TimelineRelease> getReleaseByFilterInternal(TimelineQueryParam queryParam) {
-		addFilters(queryParam);
-		getMatchingNamespaces4Timeline(queryParam);
+		String filter = queryParam.getWildcardFilter();
+		queryParam.setRfcNsFilter(CmsUtil.appendToNs(queryParam.isDesignNamespace() ? queryParam.getNsPath() : queryParam.getReleaseNs(), filter));
 
-		List<TimelineRelease> releases = djMapper.getReleaseByFilter(queryParam);
-		Long endRelId;
-		if (QueryOrder.ASC.equals(queryParam.getOrder())) {
-			endRelId = releases.stream().map(TimelineRelease::getReleaseId).max(Long::compare).orElse(null);
-		}
-		else {
-			endRelId = releases.stream().map(TimelineRelease::getReleaseId).min(Long::compare).orElse(null);
-		}
-		queryParam.setEndRelId(endRelId);
-		queryParam.setExcludeReleaseList(releases.stream().map(TimelineRelease::getReleaseId).collect(Collectors.toList()));
+		List<TimelineRelease> releases = djMapper.getReleasesByCiFilter(queryParam);
 
-		List<TimelineRelease> releasesWithOnlyRelations = djMapper.getReleaseWithOnlyRelationsByFilter(queryParam);
+		if (!releases.isEmpty()) {
+			if (queryParam.getEndRelId() == null && releases.size() >= queryParam.getLimit()) {
+				Long endRelId;
+				if (QueryOrder.ASC.equals(queryParam.getOrder())) {
+					endRelId = releases.stream().map(TimelineRelease::getReleaseId).max(Long::compare).orElse(null);
+				} else {
+					endRelId = releases.stream().map(TimelineRelease::getReleaseId).min(Long::compare).orElse(null);
+				}
+				queryParam.setEndRelId(endRelId);
+			}
+			queryParam.setExcludeReleaseList(releases.stream().map(TimelineRelease::getReleaseId).collect(Collectors.toList()));
+		}
+
+		List<TimelineRelease> releasesWithOnlyRelations = djMapper.getReleasesByRelationFilter(queryParam);
 		releases.addAll(releasesWithOnlyRelations);
 		return releases;
-	}
-
-	private void getMatchingNamespaces4Timeline(TimelineQueryParam queryParam) {
-		List<CmsNamespace> releaseNamespaces = cmsNsProcessor.getNsLike(queryParam.getReleaseNsLike());
-		List<Long> releaseScopeNsIds = new ArrayList<Long>();
-		List<Long> matchedNsIds = new ArrayList<Long>();
-		releaseNamespaces.stream().forEach((namespace) -> {
-			releaseScopeNsIds.add(namespace.getNsId());
-			if (namespace.getNsPath().indexOf(queryParam.getFilter(), queryParam.getNsPath().length()) != -1) {
-				matchedNsIds.add(namespace.getNsId());
-			}
-		});
-		queryParam.setNsIdsMatchingFilter(matchedNsIds);
-		queryParam.setReleaseScopeNsIds(releaseScopeNsIds);
-	}
-
-	private void addFilters(TimelineQueryParam queryParam) {
-		String filter = queryParam.getWildcardFilter();
-		String nsPath = queryParam.getNsPath();
-
-		if (queryParam.isDesignNamespace()) {
-			queryParam.setReleaseNsLike(CmsUtil.likefyNsPath(nsPath));
-			queryParam.setReleaseClassFilter(CmsConstants.CATALOG + "." + filter);
-		}
-		else {
-			queryParam.setReleaseNsLike(CmsUtil.likefyNsPathWithFilter(nsPath, CmsConstants.MANIFEST, null));
-			queryParam.setReleaseClassFilter(CmsConstants.MANIFEST + "." + filter);
-		}
-	}
-
-	private List<TimelineRelease> getReleaseByNsPath(TimelineQueryParam queryParam) {
-		String nsPath = queryParam.getNsPath();
-		if (queryParam.isDesignNamespace()) {
-			String designSuffix = "/_design";
-			if (nsPath.endsWith("/")) {
-				designSuffix = "/_design/";
-			}
-			String nsPathTrimmed = nsPath.substring(0, (nsPath.length() - designSuffix.length()));
-			queryParam.setReleaseNsLike(null);
-			queryParam.setReleaseNs(nsPathTrimmed);
-		}
-		else {
-			queryParam.setReleaseNsLike(CmsUtil.likefyNsPathWithTypeNoEndingSlash(nsPath, CmsConstants.MANIFEST));
-		}
-		return djMapper.getReleaseByNsPath(queryParam);
 	}
 
 	public List<CmsRfcCI> getRfcCIsAppliedBetweenTwoReleases(String nsPath, Long fromReleaseId, Long toReleaseId) {

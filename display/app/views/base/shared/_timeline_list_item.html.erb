@@ -7,7 +7,7 @@
       <%= builder[:target] %>
     <% else %>
       <% url = is_release ? (@environment ? assembly_transition_environment_timeline_release_path(@assembly, @environment, item) : assembly_design_timeline_release_path(@assembly, item)) : assembly_transition_environment_timeline_deployment_path(@assembly, @environment, item) %>
-      <%= link_to('', url, :remote => true) %>
+      <%= link_to('', url, :remote => true, :onclick => %($j("#timeline_details").html("#{escape_javascript(loading_indicator)}"))) %>
     <% end %>
   </div>
 	<div class="status">
