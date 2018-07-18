@@ -1090,7 +1090,7 @@ public class CmsCmProcessor {
 	 */
 	public List<CmsCIRelation> getCIRelationsByFromCiIdsNakedNoAttrs(String relationName,
 			String shortRelName, List<Long> fromCiIds) {
-
+		if (fromCiIds==null || fromCiIds.size()==0) return new ArrayList<>();
 		return ciMapper.getCIRelationsByFromCiIDs(relationName, shortRelName, fromCiIds);
 	}
 
