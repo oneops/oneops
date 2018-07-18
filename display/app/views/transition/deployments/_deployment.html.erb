@@ -189,7 +189,12 @@
                                   <% end %>
                                 <% end %>
                                 <div class="accordion-inner" data-rfc-id="<%= rfc_id %>" style="display:none">
-                                  <div class="tab-pane rfc-changes"></div>
+                                  <div class="tab-pane rfc-changes">
+                                    <% unless deployment_persisted %>
+                                      <%= rfc_properties(rfc) %>
+                                      <%= rfc_attributes(rfc) %>
+                                    <% end %>
+                                  </div>
                                   <% if deployment_persisted %>
                                     <div class="tab-pane rfc-log" id="rfc_<%= rfc_id %>_tab_log"></div>
                                     <div class="tab-pane rfc-stats"></div>
