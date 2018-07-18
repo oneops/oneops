@@ -139,39 +139,47 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 	}
 
 
-	@Override
 	public Map<String, List<CostData>> getEnvCostData(long envId, boolean includeEstimated, BomData bomData) {
 		CmsCI env = cmProcessor.getCiById(envId);
 		String manifestNsPath = getNs(env) + "/manifest";
 
+		long t = System.currentTimeMillis();
 		Set<Long> cloudIds = cmProcessor.getCountCIRelationsGroupByToCiId(BASE_CONSUMES, null, null, manifestNsPath).keySet();
 		Map<Long, CmsCI> cloudMap = cmProcessor.getCiByIdList(new ArrayList<>(cloudIds)).stream()
 				.collect(toMap(CmsCI::getCiId, Function.identity()));
+		logger.info("CloudMap: " + (System.currentTimeMillis() - t));
+		t = System.currentTimeMillis();
 		Map<String, Map<String, List<CmsCI>>> offeringsByNs = getOfferingsForClouds(cloudMap.values());
 		Set<String> servicesWithOfferings = offeringsByNs.values().stream()
 				.flatMap(m -> m.keySet().stream())
 				.distinct()
 				.collect(toSet());
+		logger.info("getOfferingsForClouds: " + (System.currentTimeMillis() - t));
+		t = System.currentTimeMillis();
 		List<CmsCIRelation> requiresRels = cmProcessor.getCIRelationsNsLikeNaked(manifestNsPath, "manifest.Requires", null, null, null);
 		Map<Long, List<String>> manifestIdToServicesMap = requiresRels.stream()
 				.collect(HashMap::new,
-						 (map, r) -> {
-							 CmsCIRelationAttribute servicesAttr = r.getAttribute("services");
-							 if (servicesAttr != null) {
-								 String services = servicesAttr.getDjValue();
-								 if (services != null && services.length() > 0) {
-									 map.put(r.getToCiId(),
-											 Arrays.stream(services.split(",\\**"))
-													 .filter(servicesWithOfferings::contains)
-													 .collect(toList()));
-								 }
-							 }
-						 },
-						 HashMap::putAll);
+						(map, r) -> {
+							CmsCIRelationAttribute servicesAttr = r.getAttribute("services");
+							if (servicesAttr != null) {
+								String services = servicesAttr.getDjValue();
+								if (services != null && services.length() > 0) {
+									map.put(r.getToCiId(),
+											Arrays.stream(services.split(",\\**"))
+													.filter(servicesWithOfferings::contains)
+													.collect(toList()));
+								}
+							}
+						},
+						HashMap::putAll);
 
+		logger.info("requiresRels (" + manifestNsPath + "):" + (System.currentTimeMillis() - t));
+		t = System.currentTimeMillis();
 		List<Long> manifestCiIds = new ArrayList<>(manifestIdToServicesMap.keySet());
 		Map<Long, Long> bomIdToManifestIdMap = cmProcessor.getCIRelationsByFromCiIdsNakedNoAttrs(BASE_REALIZED_AS, null, manifestCiIds).stream()
 				.collect(toMap(CmsCIRelation::getToCiId, CmsCIRelation::getFromCiId));
+		logger.info("cmProcessor - realizedAz (" + manifestCiIds.size() + "):" + (System.currentTimeMillis() - t));
+		t = System.currentTimeMillis();
 		if (includeEstimated) {
 			if (bomData == null) {
 				rfcProcessor.getOpenRfcRelationsByCiIdsNakedNoAttrs(BASE_REALIZED_AS, null, manifestCiIds,null)
@@ -182,12 +190,16 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 						.forEach(r -> bomIdToManifestIdMap.put(r.getToCiId(), r.getFromCiId()));
 			}
 		}
+		logger.info("rfcProcessor - realizedAz (" + manifestCiIds.size() + "):" + (System.currentTimeMillis() - t));
+		t = System.currentTimeMillis();
 
 		List<Long> bomCiIds = new ArrayList<>(bomIdToManifestIdMap.keySet());
 		Map<Long, CmsCI> bomCiIdToCloudMap = cmProcessor.getCIRelationsByFromCiIdsNakedNoAttrs(BASE_DEPLOYED_TO, null, bomCiIds).stream()
 				.collect(toMap(CmsCIRelation::getFromCiId, r -> cloudMap.get(r.getToCiId())));
 		Map<Long, CmsCI> bomCis = cmProcessor.getCiByIdList(bomCiIds).stream()
 				.collect(toMap(CmsCI::getCiId, Function.identity()));
+		logger.info("cmProcessor - deployedTo + boms (" + bomCiIds.size() + "):" + (System.currentTimeMillis() - t));
+		t = System.currentTimeMillis();
 
 		Map<Long, CmsRfcCI> bomRfcs;
 		if (includeEstimated) {
@@ -206,6 +218,8 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 		} else {
 			bomRfcs = new HashMap<>();
 		}
+		logger.info("rfcProcessor - deployedTo + boms (" + bomCiIds.size() + "):" + (System.currentTimeMillis() - t));
+		t = System.currentTimeMillis();
 
 		Map<String, Expression> expressionCache = new HashMap<>();
 		List<CostData> actual = new ArrayList<>();
@@ -246,8 +260,10 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 		if (includeEstimated) {
 			result.put("estimated", estimated);
 		}
+		logger.info("expression running (" + bomCiIds.size() + "):" + (System.currentTimeMillis() - t));
 		return result;
 	}
+
 
 
 	@Override
