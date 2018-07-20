@@ -346,8 +346,6 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
       @pending_approvals = Cms::DeploymentApproval.all(:params => {:deploymentId => @deployment.deploymentId}).select {|a| a.state == 'pending'}
     end
 
-    @cost, _ = Transistor.environment_cost(@environment, true, false) if @bom_release
-
     @platforms = load_platforms
     @diagram   = prepare_platform_diagram(@platforms)
 

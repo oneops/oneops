@@ -122,8 +122,6 @@ class Transition::DeploymentsController < ApplicationController
     @release = Cms::ReleaseBom.find(@deployment.releaseId)
     release_rfc_cis = @release.rfc_cis.inject({}) {|h, c| h.update(c.rfcId => c)}
     @rfc_cis = @deployment.rfc_cis.collect { |rfc| release_rfc_cis[rfc.rfcId].deployment = rfc; release_rfc_cis[rfc.rfcId] }
-    release_rfc_relations = @release.rfc_relations.inject({}) {|h, c| h.update(c.rfcId => c) }
-    @rfc_relations = @deployment.rfc_relations.collect { |rfc| release_rfc_relations[rfc.rfcId].deployment = rfc; release_rfc_relations[rfc.rfcId] }
 
     respond_to do |format|
       format.js do
@@ -138,6 +136,8 @@ class Transition::DeploymentsController < ApplicationController
       end
 
       format.json do
+        release_rfc_relations = @release.rfc_relations.inject({}) {|h, c| h.update(c.rfcId => c) }
+        @rfc_relations = @deployment.rfc_relations.collect { |rfc| release_rfc_relations[rfc.rfcId].deployment = rfc; release_rfc_relations[rfc.rfcId] }
         render :json => {:rfc_cis => @rfc_cis, :rfc_relations => @rfc_relations}
       end
     end
@@ -351,6 +351,19 @@ class Transition::DeploymentsController < ApplicationController
       format.js
       format.json { render :json => raw_data}
       format.text { render :text => @log_data.map {|m| m['message']}.join("\n")}
+    end
+  end
+
+  def wo_rfcs
+    rfc_id = params[:rfcId].to_i
+    @rfc_ci = Cms::RfcCi.find(rfc_id)
+    if @rfc_ci
+      @rfc_relations = Cms::RfcRelation.all(:params => {:releaseId => @rfc_ci.releaseId, :fromCiId => @rfc_ci.ciId}) +
+                       Cms::RfcRelation.all(:params => {:releaseId => @rfc_ci.releaseId, :toCiId => @rfc_ci.ciId})
+    end
+    respond_to do |format|
+      format.js
+      format.json { render :json => {:ci => @rfc_ci, :relations => @rfc_relations}}
     end
   end
 

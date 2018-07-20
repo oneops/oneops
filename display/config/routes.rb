@@ -490,6 +490,7 @@ Display::Application.routes.draw do
             get  'status',         :on => :member
             post 'status',         :on => :member
             get  'log_data',       :on => :member
+            get  'wo_rfcs',       :on => :member
 
             resources :approvals, :only => [:index] do
               put 'settle', :on => :collection
