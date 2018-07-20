@@ -23,10 +23,7 @@ import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.cm.service.CmsCmProcessor;
-import com.oneops.cms.dj.domain.CmsRfcAttribute;
-import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsRfcRelation;
-import com.oneops.cms.dj.domain.RfcHint;
+import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.exceptions.CIValidationException;
@@ -148,7 +145,6 @@ public class BomRfcBulkProcessor {
 			ExistingRelations existingRels = new ExistingRelations(pc);
 			String userId = ec.getUserId();
 			long releaseId = ec.getReleaseId();
-
 			long bomCreationStartTime = System.currentTimeMillis();
 			logger.info(bomNsPath + " >>> Processing components...");
 			maxExecOrder = createBomRfcsAndRels(pc, bindingRel, existingCIs, existingRfcCIs, existingRels, bomRfcs, isPartial, nsId, startExecOrder, userId, releaseId);
@@ -1353,6 +1349,13 @@ public class BomRfcBulkProcessor {
 		return nsParts[nsParts.length - 2] + "(" + nsParts[nsParts.length - 1] + ")";
 	}
 
+	public CmsDeployment scaleDown(long platformId, int scaleDownBy, boolean ensureEvenScale, String userId) {
+		CmsCI platformCi = cmProcessor.getCiById(platformId);
+		List<CmsCIRelation> rels = cmProcessor.getToCIRelations(platformId, "manifest.ComposedOf", null);
+		CmsCI envCi = rels.get(0).getFromCi();
+		return scaleDown(platformCi, envCi, scaleDownBy, ensureEvenScale, userId);
+	}
+
 	private class BomRfc  {
 		long manifestCiId;
 		CmsCI mfstCi;
@@ -1445,14 +1448,20 @@ public class BomRfcBulkProcessor {
 		}
 	}
 
-	private boolean scaleDown(CmsCI platformCi, CmsCI env, int scaleDownBy, boolean ensureEvenScale, String user) {
+	private CmsDeployment scaleDown(CmsCI platformCi, CmsCI env, int scaleDownBy, boolean ensureEvenScale, String user) {
+		long startTimeMillis = System.currentTimeMillis();
 		Map<String, List<CmsCI>> computesWithClouds = getComputesWithClouds(platformCi);
 
 		if (ensureEvenScale && ! isEvenScale(computesWithClouds, platformCi)) {
-			return false;
+			logger.info("scale is not even currently, rejecting scale down");
+			return null;
 		}
+		String bomNsPath = env.getNsPath() + "/" + env.getCiName() + "/bom";
+		//TODO: cancel failed deployment
 		envManager.discardEnvBom(env.getCiId());
-		Map<Long, Integer> deploymentOrder = getDeploymentOrder(platformCi);
+		long releaseId = rfcProcessor.createRelease(bomNsPath, null, user);
+
+		Map<Long, Integer> deploymentOrder = getScaleDownDeploymentOrder(platformCi);
 		Map<Long, Long> bomToManifestMap = getBomToManifestMap(platformCi);
 
 		List<CmsCI> cisInRfcs = new ArrayList<>();
@@ -1464,29 +1473,72 @@ public class BomRfcBulkProcessor {
 					List<CmsCI> cisOnCompute = findCisOnCompute(compute.getCiId());
 
 					for (CmsCI ci : cisOnCompute) {
-						createDeleteRfc(ci, getExecOrder(ci, deploymentOrder, bomToManifestMap), user, 0);
+						createDeleteRfc(ci, getExecOrder(ci, deploymentOrder, bomToManifestMap), user, releaseId);
 						cisInRfcs.add(ci);
 					}
 				}
 
 				for (CmsCI compute : computesToBeDeleted) {
-					createDeleteRfc(compute, getExecOrder(compute, deploymentOrder, bomToManifestMap), user, 0);
+					createDeleteRfc(compute, getExecOrder(compute, deploymentOrder, bomToManifestMap), user, releaseId);
 					cisInRfcs.add(compute);
 				}
 			}
 		}
 
 		List<Long> processedPropagations = new ArrayList<>();
-		Map<Long, List<Long>> propagationsMap = mapPropagations(platformCi);
-		for (CmsCI ci : cisInRfcs) {
-			propagateUpdate(ci, deploymentOrder, bomToManifestMap, processedPropagations, propagationsMap, user);
+		List<CmsCIRelation> dependsOnRelations = cmProcessor.getCIRelations(platformCi.getNsPath(),
+				"manifest.DependsOn", null, null, null);
+
+		Map<Long, List<Long>> propagationMap = mapPropagations(platformCi, dependsOnRelations);
+
+		int maxDeploymentOrder = 0;
+
+		for (Integer order : deploymentOrder.values()) {
+			if (order > maxDeploymentOrder) {
+				maxDeploymentOrder = order;
+			}
 		}
-		return true;
+
+		for (CmsCI ci : cisInRfcs) {
+			propagateUpdate(ci, maxDeploymentOrder, bomToManifestMap, processedPropagations, propagationMap, releaseId, user);
+		}
+		reduceScaleNumber(platformCi, dependsOnRelations, scaleDownBy);
+		CmsDeployment deployment = new CmsDeployment();
+		deployment.setNsPath(bomNsPath);
+		deployment.setReleaseId(releaseId);
+		deployment.setCreatedBy(user);
+
+		long endTimeMillis = System.currentTimeMillis();
+		logger.info(platformCi.getCiId() + " : platform id. Time taken to generate the scale down deployment, seconds: "
+				+ (endTimeMillis - startTimeMillis)/1000);
+		return deployment;
 	}
 
-	private void propagateUpdate(CmsCI ci, Map<Long, Integer> deploymentOrder,
+	private void reduceScaleNumber(CmsCI platformCi, List<CmsCIRelation> dependsOnRelations, int scaleDownBy) {
+		boolean scaleNumberUpdated = false;
+		for (CmsCIRelation rel : dependsOnRelations) {
+			CmsCIRelationAttribute flexAttribute = rel.getAttribute("flex");
+			if (flexAttribute != null && flexAttribute.getDfValue().equalsIgnoreCase("true")) {
+				CmsCIRelationAttribute currentScale = rel.getAttribute("current");
+				if (currentScale != null) {
+					int currentValue = Integer.valueOf(currentScale.getDfValue());
+					if (currentValue > 2) {
+						int newValue = currentValue - 1;
+						currentScale.setDfValue(newValue + "");
+						cmProcessor.updateRelation(rel);
+						scaleNumberUpdated = true;
+					}
+				}
+			}
+		}
+		if (! scaleNumberUpdated) {
+			throw new TransistorException(CmsError.TRANSISTOR_EXCEPTION, "no scaling relation found");
+		}
+	}
+
+	private void propagateUpdate(CmsCI ci, int maxDeploymentOrder,
 								 Map<Long, Long> bomToManifestMap, List<Long> bomCisProcessed,
-								 Map<Long, List<Long>> propagationsMap, String user) {
+								 Map<Long, List<Long>> propagationsMap, long releaseId, String user) {
 		long bomCiId = ci.getCiId();
 		if (bomCisProcessed.contains(bomCiId)) {
 			return;
@@ -1519,17 +1571,16 @@ public class BomRfcBulkProcessor {
 		for (CmsCI dependentCi : allDependsOnCis) {
 			long manifestOfDependent = bomToManifestMap.get(dependentCi.getCiId());
 			if (propagationsDirections.contains(manifestOfDependent)) {
-				createDummyUpdateRfc(dependentCi, 0L, getExecOrder(dependentCi, deploymentOrder, bomToManifestMap), user);
-				propagateUpdate(dependentCi, deploymentOrder, bomToManifestMap, bomCisProcessed, propagationsMap, user);
+				createDummyUpdateRfc(dependentCi, releaseId, maxDeploymentOrder + 1, user);
+				propagateUpdate(dependentCi, maxDeploymentOrder + 1, bomToManifestMap,
+						bomCisProcessed, propagationsMap, releaseId, user);
 			}
 		}
 	}
 
-	private Map<Long,List<Long>> mapPropagations(CmsCI platformCi) {
+	private Map<Long,List<Long>> mapPropagations(CmsCI platformCi, List<CmsCIRelation> dependsOnRelations) {
 		Map<Long,List<Long>> propagationMap = new HashMap<>();
 
-		List<CmsCIRelation> dependsOnRelations = cmProcessor.getCIRelations(platformCi.getNsPath(),
-				"manifest.DependsOn", null, null, null);
 		for (CmsCIRelation rel : dependsOnRelations) {
 			CmsCIRelationAttribute attribute = rel.getAttribute("propagate_to");
 			if (attribute != null) {
@@ -1613,7 +1664,7 @@ public class BomRfcBulkProcessor {
 		return bomToManifestMap;
 	}
 
-	private Map<Long,Integer> getDeploymentOrder(CmsCI platformCi) {
+	private Map<Long,Integer> getScaleDownDeploymentOrder(CmsCI platformCi) {
 		Map<Long, Integer> deploymentOrder = new HashMap<>();
 		List<CmsCIRelation> dependsOnRelations = cmProcessor.getCIRelations(platformCi.getNsPath(),
 				"manifest.DependsOn", null, null, null);
@@ -1625,7 +1676,34 @@ public class BomRfcBulkProcessor {
 				break;
 			}
 		}
-		return deploymentOrder;
+		//return deploymentOrder;
+		return reverseOrder(deploymentOrder);
+	}
+
+	private Map<Long,Integer> reverseOrder(Map<Long, Integer> deploymentOrder) {
+		LinkedHashMap<Long, Integer> reversedMap = deploymentOrder.entrySet().stream()
+				.sorted(Map.Entry.<Long, Integer>comparingByValue().reversed())
+				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+						(e1, e2) -> e1, LinkedHashMap::new));
+		Set entries = reversedMap.entrySet();
+		if (entries.size() > 0) {
+			int newOrder = 1;
+			Iterator<Map.Entry> iterator = entries.iterator();
+			Map.Entry<Long, Integer> entry = iterator.next();
+			Integer oldOrder = entry.getValue();
+			entry.setValue(newOrder);
+			while (iterator.hasNext()) {
+				entry = iterator.next();
+				if (entry.getValue() == oldOrder) {
+					entry.setValue(newOrder);
+					continue;
+				}
+				oldOrder = entry.getValue();
+				newOrder++;
+				entry.setValue(newOrder);
+			}
+		}
+		return reversedMap;
 	}
 
 	private Map<Long,Integer> getDeploymentOrder(Map<Long, Integer> deploymentOrder,
