@@ -1066,25 +1066,6 @@ public class TransistorRestController extends AbstractRestController {
 		return dManager.createComponent(platId, relSimple, userId, scope);
 	}
 
-	@RequestMapping(value = "platforms/{platformId}/deployments/scaledown", method = RequestMethod.POST)
-	@ResponseBody
-	public CmsDeployment scaleDown(
-			@PathVariable long platformId,
-			@RequestParam int scaleDownBy,
-			@RequestParam (required = false) boolean ensureEvenScale,
-			@RequestBody Map<String, String> paramMap,
-			@RequestHeader(value = "X-Cms-User", required = false) String userId) {
-		try {
-			if (userId == null) userId = "oneops-system";
-
-			CmsDeployment deployment =  baProcessor.scaleDown(platformId, scaleDownBy, ensureEvenScale, userId);
-			return deployment;
-		} catch (Exception te) {
-			logger.error("Error while submitting scale-down deployment: ", te);
-			throw te;
-		}
-	}
-
 	private Map<String,Long> toReleaseMap(long releaseId) {
 		return Collections.singletonMap(RELEASE_ID,releaseId);
 	}

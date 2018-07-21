@@ -32,7 +32,5 @@ public interface BomManager {
 
     long submitDeployment(long releaseId, String userId, String desc);
 
-    CmsDeployment scaleDown(long platformId, int scaleDownBy, boolean ensureEvenScale, String userId);
-
     void check4openDeployment(String nsPath);
 }

@@ -126,8 +126,4 @@ public class BomAsyncProcessor {
     private String getThreadName(String prefix, long envId) {
         return prefix + String.valueOf(envId);
     }
-
-    public CmsDeployment scaleDown(long platformId, int scaleDownBy, boolean ensureEvenScale, String userId) {
-        return bomManager.scaleDown(platformId, scaleDownBy, ensureEvenScale, userId);
-    }
 }

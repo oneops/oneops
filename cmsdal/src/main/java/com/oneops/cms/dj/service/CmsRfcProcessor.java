@@ -1947,23 +1947,6 @@ public class CmsRfcProcessor {
 		djMapper.deleteAltNs(nsId, rfcId);
 	}
 
-	public long createRelease(String nsPath, String releaseType, String createdBy) {
-		List<CmsRelease> existingReleases = getReleaseBy3(nsPath, null, "open");
-		if (existingReleases.size() > 0) {
-			String errorMsg = "There is an open release with release_id = " + existingReleases.get(0).getReleaseId();
-			logger.error(errorMsg);
-			throw new DJException(CmsError.DJ_OPEN_RELEASE_WRONG_TYPE_ERROR, errorMsg);
-		} else {
-			CmsRelease release = new CmsRelease();
-			release.setCreatedBy(createdBy);
-			release.setNsPath(nsPath);
-			release.setReleaseState("open");
-			release.setRevision(1);
-			release.setReleaseType(releaseType);
-			return createRelease(release).getReleaseId();
-		}
-	}
-
 	public long discardReleaseForPlatform(CmsRfcCI platformRfc, String user) {
 		String nsPath = platformRfc.getNsPath()+"/_design/"+platformRfc.getCiName();
 		CmsRelease release = getCurrentOpenRelease(platformRfc.getReleaseNsPath());
