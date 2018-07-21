@@ -283,6 +283,14 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 		return capacityProcessor.estimateCapacity(bomData.getRelease().getNsPath(), bomData.getCis(), deployedToRelations);
 	}
 
+	@Override
+	public CmsDeployment scaleDown(long platformId, int scaleDownBy, boolean ensureEvenScale,  String userId) {
+		CmsDeployment deployment = bomGenerationProcessor.scaleDown(platformId, scaleDownBy, ensureEvenScale, userId);
+		if (deployment != null) {
+			return dpmtProcessor.deployRelease(deployment);
+		}
+		return null;
+	}
 
 	private CmsCISimple matchOfferings(CmsRfcCI rfcCi, String service, Map<String, List<CmsCI>> offeringsByService, Map<String, Expression> expressionCache) {
 		if (rfcCi == null) return null;
