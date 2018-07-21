@@ -17,14 +17,19 @@
  *******************************************************************************/
 package com.oneops.cms.cm.service;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
 
 import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.ops.dal.OpsMapper;
 import com.oneops.cms.cm.ops.domain.CmsOpsAction;
@@ -40,6 +45,7 @@ import com.oneops.cms.util.CmsError;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.mockito.ArgumentMatcher;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
@@ -204,5 +210,167 @@ public class OpsProcedureProcessorTest {
 		assertTrue(CmsConstants.PLATFORM_COMMON_ACTION.equals(opsAction.getExtraInfo()));
 		assertTrue("migrate".equals(opsAction.getActionName()));
 	}
+
+	@Test
+	public void testFqdnMigratePlatformProcedure() {
+		procProcessor.setGslbMigrationEnabled(true);
+		OpsMapper opsMapper = mock(OpsMapper.class);
+		procProcessor.setOpsMapper(opsMapper);
+		CmsOpsProcedure procedure = new CmsOpsProcedure();
+		procedure.setCiId(300);
+		procedure.setArglist("{\"migrate\":\"torbit\"}");
+		procedure.setProcedureName("gslb-migration");
+		procedure.setProcedureState(OpsProcedureState.complete);
+		procedure.setProcedureId(1600);
+
+		List<CmsOpsAction> actions = new ArrayList<>();
+		CmsOpsAction action1 = new CmsOpsAction();
+		action1.setCiId(1005);
+		action1.setActionName("migrate");
+		action1.setProcedureId(1000);
+		actions.add(action1);
+
+		CmsOpsAction action2 = new CmsOpsAction();
+		action2.setCiId(1010);
+		action2.setActionName("migrate");
+		action2.setProcedureId(1000);
+		actions.add(action2);
+
+		when(opsMapper.getCmsOpsActions(1600)).thenReturn(actions);
+
+		CmsCI ci = new CmsCI();
+		ci.setCiId(1005);
+		ci.setCiClassName("bom.Fqdn");
+		CmsCIAttribute attr = new CmsCIAttribute();
+		attr.setAttributeName("service_type");
+		attr.setDfValue("torbit");
+		attr.setDjValue("torbit");
+		ci.addAttribute(attr);
+		when(cmProcessor.getCiById(1005)).thenReturn(ci);
+
+		List<CmsCIRelation> realizedAsRelations = new ArrayList<>();
+		CmsCIRelation realizedAs1 = new CmsCIRelation();
+		realizedAs1.setToCiId(500);
+		CmsCI manifestCi = new CmsCI();
+		manifestCi.setCiId(500);
+		manifestCi.setCiClassName("manifest.Fqdn");
+		CmsCIAttribute attr1 = new CmsCIAttribute();
+		attr1.setAttributeName("service_type");
+		attr1.setDfValue("netscaler");
+		attr1.setDjValue("netscaler");
+		manifestCi.addAttribute(attr1);
+		realizedAs1.setFromCi(manifestCi);
+		realizedAsRelations.add(realizedAs1);
+		when(cmProcessor.getToCIRelations(1005, "base.RealizedAs", null, null)).thenReturn(realizedAsRelations);
+
+		procProcessor.updateOpsProcedure(procedure);
+		verify(cmProcessor).updateCI(argThat(new CiArgumentMatcher<>(manifestCi)));
+	}
+
+	@Test
+	public void shouldNotExecuteCustomUpdateForOtherProcs() {
+		procProcessor.setGslbMigrationEnabled(true);
+		OpsMapper opsMapper = mock(OpsMapper.class);
+		procProcessor.setOpsMapper(opsMapper);
+		CmsOpsProcedure procedure = new CmsOpsProcedure();
+		procedure.setCiId(300);
+		procedure.setProcedureName("restart");
+		procedure.setProcedureState(OpsProcedureState.complete);
+		procedure.setProcedureId(1500);
+
+		List<CmsOpsAction> actions = new ArrayList<>();
+		CmsOpsAction action1 = new CmsOpsAction();
+		action1.setCiId(1005);
+		action1.setActionName("migrate");
+		action1.setProcedureId(1000);
+		actions.add(action1);
+
+		when(opsMapper.getCmsOpsActions(1500)).thenReturn(actions);
+		mockCi();
+		procProcessor.updateOpsProcedure(procedure);
+		verify(cmProcessor, never()).updateCI(any());
+	}
+
+	private void mockCi() {
+		CmsCI ci = new CmsCI();
+		ci.setCiId(1005);
+		ci.setCiClassName("bom.Fqdn");
+		CmsCIAttribute attr = new CmsCIAttribute();
+		attr.setAttributeName("service_type");
+		attr.setDfValue("torbit");
+		attr.setDjValue("torbit");
+		ci.addAttribute(attr);
+		when(cmProcessor.getCiById(1005)).thenReturn(ci);
+
+		List<CmsCIRelation> realizedAsRelations = new ArrayList<>();
+		CmsCIRelation realizedAs1 = new CmsCIRelation();
+		realizedAs1.setToCiId(500);
+		CmsCI manifestCi = new CmsCI();
+		manifestCi.setCiId(500);
+		manifestCi.setCiClassName("manifest.Fqdn");
+		CmsCIAttribute attr1 = new CmsCIAttribute();
+		attr1.setAttributeName("service_type");
+		attr1.setDfValue("netscaler");
+		attr1.setDjValue("netscaler");
+		manifestCi.addAttribute(attr1);
+		realizedAs1.setFromCi(manifestCi);
+		realizedAsRelations.add(realizedAs1);
+		when(cmProcessor.getToCIRelations(1005, "base.RealizedAs", null, null)).thenReturn(realizedAsRelations);
+	}
+
+	@Test
+	public void shouldNotExecuteCustomIfArgMissing() {
+		procProcessor.setGslbMigrationEnabled(true);
+		OpsMapper opsMapper = mock(OpsMapper.class);
+		procProcessor.setOpsMapper(opsMapper);
+		CmsOpsProcedure procedure = new CmsOpsProcedure();
+		procedure.setCiId(300);
+		procedure.setArglist(null);
+		procedure.setProcedureName("gslb-migration");
+		procedure.setProcedureState(OpsProcedureState.complete);
+		procedure.setProcedureId(1500);
+
+		List<CmsOpsAction> actions = new ArrayList<>();
+		CmsOpsAction action1 = new CmsOpsAction();
+		action1.setCiId(1005);
+		action1.setActionName("migrate");
+		action1.setProcedureId(1000);
+		actions.add(action1);
+
+		CmsOpsAction action2 = new CmsOpsAction();
+		action2.setCiId(1010);
+		action2.setActionName("migrate");
+		action2.setProcedureId(1000);
+		actions.add(action2);
+
+		when(opsMapper.getCmsOpsActions(1500)).thenReturn(actions);
+		mockCi();
+		procProcessor.updateOpsProcedure(procedure);
+		verify(cmProcessor, never()).updateCI(any());
+	}
+
+	private class CiArgumentMatcher<T> extends ArgumentMatcher<T> {
+		T thisObject;
+
+		public CiArgumentMatcher(T thisObject) {
+			this.thisObject = thisObject;
+		}
+
+		@Override
+		public boolean matches(Object argument) {
+			if (argument instanceof CmsCI) {
+				CmsCI arg = (CmsCI) argument;
+				CmsCI ci = (CmsCI) thisObject;
+
+				CmsCIAttribute attr = ci.getAttribute("service_type");
+				return ci.getCiId() == arg.getCiId() && ci.getCiClassName().equals(arg.getCiClassName())
+						&&  attr != null
+						&& attr.getDjValue().equals("torbit")
+						&& attr.getOwner().equals("manifest");
+			}
+			return false;
+		}
+	}
+
 
 }
