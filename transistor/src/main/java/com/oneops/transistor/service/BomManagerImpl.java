@@ -448,6 +448,15 @@ public class BomManagerImpl implements BomManager {
 		return newDpmt.getDeploymentId();
 	}
 
+	@Override
+	public CmsDeployment scaleDown(long platformId, int scaleDownBy, boolean ensureEvenScale,  String userId) {
+		CmsDeployment deployment = bomGenerationProcessor.scaleDown(platformId, scaleDownBy, ensureEvenScale, userId);
+		if (deployment != null) {
+			return dpmtProcessor.deployRelease(deployment);
+		}
+		return null;
+	}
+
 	private CmsRelease updateParentReleaseId(String nsPath, String manifestNsPath, String bomReleaseState) {
 		List<CmsRelease> releases = bomRfcProcessor.getLatestRelease(nsPath, bomReleaseState);
 		if (releases.size() == 0) return null;
