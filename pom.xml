@@ -92,8 +92,10 @@
     <autovalue-gson.version>0.4.5</autovalue-gson.version>
     <jsr305.version>3.0.2</jsr305.version>
     <qpid-jms-client.version>0.28.0</qpid-jms-client.version>
-
+    <snakeyaml.version>1.19</snakeyaml.version>
+    <torbit.gslb.version>1.1.2</torbit.gslb.version>
   </properties>
+
   <modules>
     <module>adapter</module>
     <module>amq-plugin</module>
