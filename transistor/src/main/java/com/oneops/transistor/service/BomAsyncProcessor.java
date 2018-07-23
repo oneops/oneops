@@ -19,6 +19,7 @@ package com.oneops.transistor.service;
 
 import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsRelease;
@@ -29,6 +30,7 @@ import org.apache.log4j.Logger;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -125,5 +127,33 @@ public class BomAsyncProcessor {
 
     private String getThreadName(String prefix, long envId) {
         return prefix + String.valueOf(envId);
+    }
+
+    public CmsDeployment scaleDown(long platformId, int scaleDownBy, boolean ensureEvenScale, String userId) {
+        CmsCI platformCi = cmProcessor.getCiById(platformId);
+        List<CmsCIRelation> rels = cmProcessor.getToCIRelations(platformId, "manifest.ComposedOf", null);
+        CmsCI envCi = rels.get(0).getFromCi();
+        String envMsg = null;
+
+        final String processId = UUID.randomUUID().toString();
+        envSemaphore.lockEnv(envCi.getCiId(), EnvSemaphore.LOCKED_STATE, processId);
+        CmsDeployment deployment = null;
+        try {
+            Map<String, Object> bomGenerationInfo = bomManager.scaleDown(platformCi, envCi, scaleDownBy, ensureEvenScale, userId);
+            bomGenerationInfo.put("createdBy", userId);
+            bomGenerationInfo.put("mode", "persistent");
+            bomGenerationInfo.put("autoDeploy", true);
+            envMsg = EnvSemaphore.SUCCESS_PREFIX + " Generation time taken: "
+                    + ((Long) bomGenerationInfo.get("generationTime") / 1000.0)
+                    + " seconds. bomGenerationInfo=" + gson.toJson(bomGenerationInfo);
+        } catch (Exception e) {
+            logger.error("Exception in scale down ", e);
+            envMsg = EnvSemaphore.BOM_ERROR + e.getMessage();
+            throw new TransistorException(CmsError.TRANSISTOR_BOM_GENERATION_FAILED, envMsg);
+        } finally {
+            envSemaphore.unlockEnv(envCi.getCiId(), envMsg, processId);
+        }
+
+        return deployment;
     }
 }
