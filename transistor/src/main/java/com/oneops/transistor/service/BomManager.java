@@ -20,8 +20,8 @@ package com.oneops.transistor.service;
 import java.util.Map;
 import java.util.Set;
 
+import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.dj.domain.CmsDeployment;
-import com.oneops.cms.dj.domain.CmsRelease;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
@@ -32,7 +32,7 @@ public interface BomManager {
 
     long submitDeployment(long releaseId, String userId, String desc);
 
-    CmsDeployment scaleDown(long platformId, int scaleDownBy, boolean ensureEvenScale, String userId);
+    Map<String, Object> scaleDown(CmsCI platformCi, CmsCI envCi, int scaleDownBy, boolean ensureEvenScale, String userId);
 
     void check4openDeployment(String nsPath);
 }

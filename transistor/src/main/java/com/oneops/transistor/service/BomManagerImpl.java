@@ -449,12 +449,27 @@ public class BomManagerImpl implements BomManager {
 	}
 
 	@Override
-	public CmsDeployment scaleDown(long platformId, int scaleDownBy, boolean ensureEvenScale,  String userId) {
-		CmsDeployment deployment = bomGenerationProcessor.scaleDown(platformId, scaleDownBy, ensureEvenScale, userId);
+	public Map<String, Object> scaleDown(CmsCI platformCi, CmsCI envCi, int scaleDownBy, boolean ensureEvenScale,  String userId) {
+		long startTime = System.currentTimeMillis();
+		CmsDeployment deployment = bomGenerationProcessor.scaleDown(platformCi, envCi, scaleDownBy, ensureEvenScale, userId);
+		long endTime = System.currentTimeMillis();
+		Map<String, Object> bomInfo = new HashMap<>();
 		if (deployment != null) {
-			return dpmtProcessor.deployRelease(deployment);
+			long releaseId = deployment.getReleaseId();
+			if (releaseId != 0) {
+				bomInfo.put("releaseId", releaseId);
+				bomInfo.put("rfcCiCount", bomRfcProcessor.getRfcCiCount(releaseId));
+				bomInfo.put("rfcRelationCount", bomRfcProcessor.getRfcRelationCount(releaseId));
+				bomInfo.put("manifestCommit", false);
+				bomInfo.put("generationTime", endTime - startTime);
+			}
 		}
-		return null;
+
+		if (deployment != null) {
+			deployment = dpmtProcessor.deployRelease(deployment);
+			bomInfo.put("deploymentId", deployment.getDeploymentId());
+		}
+		return bomInfo;
 	}
 
 	private CmsRelease updateParentReleaseId(String nsPath, String manifestNsPath, String bomReleaseState) {

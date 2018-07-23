@@ -18,6 +18,7 @@
 package com.oneops.transistor.service;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
@@ -1349,13 +1350,6 @@ public class BomRfcBulkProcessor {
 		return nsParts[nsParts.length - 2] + "(" + nsParts[nsParts.length - 1] + ")";
 	}
 
-	public CmsDeployment scaleDown(long platformId, int scaleDownBy, boolean ensureEvenScale, String userId) {
-		CmsCI platformCi = cmProcessor.getCiById(platformId);
-		List<CmsCIRelation> rels = cmProcessor.getToCIRelations(platformId, "manifest.ComposedOf", null);
-		CmsCI envCi = rels.get(0).getFromCi();
-		return scaleDown(platformCi, envCi, scaleDownBy, ensureEvenScale, userId);
-	}
-
 	private class BomRfc  {
 		long manifestCiId;
 		CmsCI mfstCi;
@@ -1448,11 +1442,11 @@ public class BomRfcBulkProcessor {
 		}
 	}
 
-	private CmsDeployment scaleDown(CmsCI platformCi, CmsCI env, int scaleDownBy, boolean ensureEvenScale, String user) {
+	public CmsDeployment scaleDown(CmsCI platformCi, CmsCI env, int scaleDownBy, boolean ensureEvenScale, String user) {
 		long startTimeMillis = System.currentTimeMillis();
-		Map<String, List<CmsCI>> computesWithClouds = getComputesWithClouds(platformCi);
+		Map<String, List<CmsCI>> cloudToComputesMap = getComputesWithClouds(platformCi);
 
-		if (ensureEvenScale && ! isEvenScale(computesWithClouds, platformCi)) {
+		if (ensureEvenScale && ! isEvenScale(cloudToComputesMap, platformCi)) {
 			logger.info("scale is not even currently, rejecting scale down");
 			return null;
 		}
@@ -1463,12 +1457,18 @@ public class BomRfcBulkProcessor {
 
 		Map<Long, Integer> deploymentOrder = getScaleDownDeploymentOrder(platformCi);
 		Map<Long, Long> bomToManifestMap = getBomToManifestMap(platformCi);
+		Comparator<CmsCI> bomCiComparatorByName = Comparator.comparing(bomCi
+				-> bomCi.getCiName().replaceAll("[^0-9]", ""));
 
 		List<CmsCI> cisInRfcs = new ArrayList<>();
-		for (String cloud : computesWithClouds.keySet()) {
-			List<CmsCI> computes = computesWithClouds.get(cloud);
+		for (String cloud : cloudToComputesMap.keySet()) {
+			List<CmsCI> computes = cloudToComputesMap.get(cloud);
+			Collections.sort(computes, bomCiComparatorByName);
 			if (computes.size() >= scaleDownBy) {
-				List<CmsCI> computesToBeDeleted = computes.subList(computes.size() - scaleDownBy - 1, computes.size() - 1);
+				List<CmsCI> computesToBeDeleted = computes.subList(computes.size() - scaleDownBy, computes.size());
+				if (computesToBeDeleted.size() == 0) {
+					throw new TransistorException(CmsError.TRANSISTOR_EXCEPTION, "can not scale down, no computes found to be deleted");
+				}
 				for (CmsCI compute : computesToBeDeleted) {
 					List<CmsCI> cisOnCompute = findCisOnCompute(compute.getCiId());
 
@@ -1511,6 +1511,7 @@ public class BomRfcBulkProcessor {
 		long endTimeMillis = System.currentTimeMillis();
 		logger.info(platformCi.getCiId() + " : platform id. Time taken to generate the scale down deployment, seconds: "
 				+ (endTimeMillis - startTimeMillis)/1000);
+
 		return deployment;
 	}
 
@@ -1525,14 +1526,17 @@ public class BomRfcBulkProcessor {
 					if (currentValue > 2) {
 						int newValue = currentValue - 1;
 						currentScale.setDfValue(newValue + "");
+						currentScale.setDjValue(newValue + "");
 						cmProcessor.updateRelation(rel);
 						scaleNumberUpdated = true;
+					} else {
+						logger.info("current scale is less than 3, can not scale down platform " + platformCi.getCiId());
 					}
 				}
 			}
 		}
 		if (! scaleNumberUpdated) {
-			throw new TransistorException(CmsError.TRANSISTOR_EXCEPTION, "no scaling relation found");
+			throw new TransistorException(CmsError.TRANSISTOR_EXCEPTION, "could not change the scale number");
 		}
 	}
 
