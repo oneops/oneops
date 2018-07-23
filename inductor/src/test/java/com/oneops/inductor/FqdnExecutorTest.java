@@ -31,6 +31,7 @@ import com.oneops.gslb.domain.ProvisionedGslb;
 import com.oneops.gslb.domain.TorbitConfig;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -296,13 +297,13 @@ public class FqdnExecutorTest {
     verify(mock).create(argument.capture());
 
     Gslb request = argument.getValue();
-    Set<String> cnames = request.cnames().stream().collect(Collectors.toSet());
+    Set<String> cnames = new HashSet<>(request.cnames());
     assertThat(cnames.size(), is(3));
     assertTrue(cnames.contains("plt.stg.coll.org.stg.cloud.xyz.com"));
     assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
     assertTrue(cnames.contains("p1.stg.coll.org.stg.cloud.xyz.com"));
 
-    Set<String> obsoleteCnames = request.obsoleteCnames().stream().collect(Collectors.toSet());
+    Set<String> obsoleteCnames = new HashSet<>(request.obsoleteCnames());
     System.out.println(obsoleteCnames);
     assertThat(obsoleteCnames.size(), is(2));
     assertTrue(obsoleteCnames.contains("oldfa1.xyz.com"));
@@ -370,7 +371,7 @@ public class FqdnExecutorTest {
     assertThat(healthCheck.port(), is(80));
     assertThat(healthCheck.path(), is("/"));
 
-    Set<String> cnames = request.cnames().stream().collect(Collectors.toSet());
+    Set<String> cnames = new HashSet<>(request.cnames());
     assertThat(cnames.size(), is(3));
     assertTrue(cnames.contains("plt.stg.coll.org.stg.cloud.xyz.com"));
     assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
@@ -584,7 +585,7 @@ public class FqdnExecutorTest {
     assertThat(healthCheck.port(), is(80));
     assertThat(healthCheck.path(), is("/"));
 
-    Set<String> cnames = request.cnames().stream().collect(Collectors.toSet());
+    Set<String> cnames = new HashSet<>(request.cnames());
     assertThat(cnames.size(), is(3));
     assertTrue(cnames.contains("plt.stg.coll.org.stg.cloud.xyz.com"));
     assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
@@ -637,7 +638,7 @@ public class FqdnExecutorTest {
     assertThat(healthCheck.port(), is(80));
     assertThat(healthCheck.path(), is("/"));
 
-    Set<String> cnames = request.cnames().stream().collect(Collectors.toSet());
+    Set<String> cnames = new HashSet<>(request.cnames());
     assertThat(cnames.size(), is(3));
     assertTrue(cnames.contains("plt.stg.coll.org.stg.cloud.xyz.com"));
     assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
@@ -668,7 +669,7 @@ public class FqdnExecutorTest {
     CmsActionOrderSimple aoBase = new CmsActionOrderSimple();
     aoBase.setActionName("gslbstatus");
     CmsCISimple ci = new CmsCISimple();
-    ci.setCiId(4001l);
+    ci.setCiId(4001L);
     ci.setCiName("test-gslb");
     ci.setCiClassName(classMap.get(BOM_FQDN));
     ci.addCiAttribute("aliases", "[p1]");
@@ -740,7 +741,7 @@ public class FqdnExecutorTest {
   private void addDependsOn(CmsActionOrderSimple wo, Map<String, String> classMap) {
     CmsCISimple bomLb = new CmsCISimple();
     bomLb.setCiClassName(classMap.get(BOM_LB));
-    bomLb.setCiId(650l);
+    bomLb.setCiId(650L);
     bomLb.addCiAttribute("listeners", "['http 80 http 80']");
     bomLb.addCiAttribute("ecv_map", "{'80':'GET /'}");
     wo.addPayLoadEntry("DependsOn", bomLb);
