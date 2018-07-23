@@ -33,6 +33,7 @@ import com.oneops.gslb.domain.ProvisionedGslb;
 import com.oneops.gslb.domain.TorbitConfig;
 import com.oneops.infoblox.InfobloxClient;
 import com.oneops.infoblox.model.cname.CNAME;
+import com.oneops.infoblox.model.zone.Delegate;
 import com.oneops.infoblox.model.zone.ZoneDelegate;
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -248,30 +249,35 @@ public class FqdnExecutor implements ComponentWoExecutor {
       boolean torbitMigrate = isTorbitMigrate(ao, logKey);
       boolean stickiness = isStickinessEnabled(ao);
       boolean primaryCloud = hasPrimaryCloud(ao);
+      boolean ptrEnabled = isPTREnabled(ao);
 
       TorbitConfig tc = getTorbitConfig(ao, logKey);
       InfobloxConfig ic = getInfobloxConfig(ao);
-      Context context = migrationContext(ao, ic);
-      String gslb = platformGslbDomain(context, baseDomain);
-
-      String delegationConfig =
-          new String(Files.readAllBytes(Paths.get(DELEGATION_CONFIG_PATH)), UTF_8);
-      boolean migratableGslb = isValidDomain(gslb, baseDomain, delegationConfig, logKey);
-
-      logger.info(logKey + "GDNS base domain:  " + baseDomain + ", GSLB fqdn: " + gslb);
-      logger.info(logKey + "GDNS enabled:  " + gdnsEnabled + ", Primary cloud: " + primaryCloud);
-      logger.info(logKey + "Migratable GSLB fqdn:  " + migratableGslb);
-
       if (tc == null || ic == null) {
         throw new IllegalStateException(
             "Torbit/Infoblox config could not be obtained, Please check cloud service configuration.");
       }
 
-      // Infoblox clients for zone delegation and platform cname operations.
-      InfobloxClient zdClient = initZoneDelegationClient(delegationConfig);
-      InfobloxClient cloudDNSClient = getCloudDNSClient(ic);
+      Context context = migrationContext(ao, ic);
+      String gslb = platformGslbDomain(context, baseDomain);
 
-      if (gdnsEnabled && torbitMigrate && !stickiness && migratableGslb) {
+      String delegationConfig =
+          new String(Files.readAllBytes(Paths.get(DELEGATION_CONFIG_PATH)), UTF_8);
+      boolean migratableGslb = isValidDomain(gslb, delegationConfig, logKey);
+
+      String gslbInfo =
+          String.format(
+              "GSLB fqdn: %s, Migratable GSLB: %s, GSLB base domain: %s, GSLB enabled: %s, Primary Cloud: %s, PTR Enabled: %s",
+              gslb, migratableGslb, baseDomain, gdnsEnabled, primaryCloud, ptrEnabled);
+      logger.info(logKey + gslbInfo);
+
+      /* Zone delegation infoblox client is used for removing zone delegation records and creating gslb -> torbit alias.*/
+      InfobloxClient zoneDelegIbaClient = initZoneDelegationClient(delegationConfig);
+      /* Cloud dns infoblox client is used for platform cname operations. */
+      InfobloxClient cloudDnsIbaClient = getCloudDNSClient(ic);
+
+      if (gdnsEnabled && torbitMigrate && !stickiness && !ptrEnabled && migratableGslb) {
+
         logger.info(logKey + "Starting to migrate netscalar gslb to torbit.");
         Map<String, String> fqdnAttrs = ao.getCi().getCiAttributes();
         List<String> aliases = new ArrayList<>(getAliasesWithDefault(context, fqdnAttrs));
@@ -290,37 +296,44 @@ public class FqdnExecutor implements ComponentWoExecutor {
           woHelper.failWo(ao, logKey, res.getFailureMessage(), null);
           return woHelper.formResponse(ao, logKey);
         }
-        logger.info(logKey + "Created Torbit MTD base: " + torbitGslb);
+        logger.info(logKey + "Created Torbit MTD base, " + res);
 
         if (primaryCloud) {
-          // Removing zone delegation record.
           try {
+            logger.info(
+                logKey + "Modifying full, short and platform cname to torbit gslb: " + gslb);
+            for (String alias : aliases) {
+              createOrModifyCName(alias, torbitGslb, cloudDnsIbaClient, logKey);
+              dnsEntries.put(alias, torbitGslb);
+            }
+
+            // Removing zone delegation record.
             logger.info(logKey + "Deleting zone delegation record for " + gslb);
-            List<ZoneDelegate> currDZones = zdClient.getDelegatedZones(gslb);
-            logger.info(logKey + "Zone delegation responseL " + currDZones);
+            List<ZoneDelegate> currDZones = zoneDelegIbaClient.getDelegatedZones(gslb);
+            logger.info(logKey + "Zone delegation response " + currDZones);
 
             if (!currDZones.isEmpty()) {
-              List<String> zdDelRes = zdClient.deleteDelegatedZone(gslb);
-              logger.info(logKey + "Zone delegation delete response " + zdDelRes);
+              // Check for valid zone delegation records.
+              if (hasValidDelegationRecords(currDZones.get(0), delegationConfig, logKey)) {
+                List<String> zdDelRes = zoneDelegIbaClient.deleteDelegatedZone(gslb);
+                logger.info(logKey + "Zone delegation delete response " + zdDelRes);
+              } else {
+                throw new IllegalStateException(
+                    "Found invalid zone delegation records for " + gslb);
+              }
             }
             logger.info(logKey + "Zone delegation records deleted for " + gslb);
 
           } catch (IOException ioe) {
             logger.error(logKey + "Zone delegation operation error for " + gslb, ioe);
             woHelper.failWo(ao, logKey, "Zone delegation operation error for  " + gslb, ioe);
-            // Add rollback here
             return woHelper.formResponse(ao, logKey);
           }
 
           // Adding cname record for gslb to torbit
-          createOrModifyCName(gslb, torbitGslb, zdClient, logKey);
+          createOrModifyCName(gslb, torbitGslb, zoneDelegIbaClient, logKey);
           dnsEntries.put(gslb, torbitGslb);
 
-          // Modifying full alias, short alias and platform cname to torbit gslb.
-          for (String alias : aliases) {
-            createOrModifyCName(alias, torbitGslb, cloudDNSClient, logKey);
-            dnsEntries.put(alias, torbitGslb);
-          }
         } else {
           logger.info(
               logKey + "Not a primary cloud. Skipping zone delegation and cname operations.");
@@ -328,23 +341,59 @@ public class FqdnExecutor implements ComponentWoExecutor {
 
         // Now update the action order response.
         updateGslbMigrateResult(ao, gslb, dnsEntries, primaryCloud, res, logKey);
+        logger.info(logKey + "GSLB Migration completed successfully!!");
         return woHelper.formResponse(ao, logKey);
 
       } else {
         // Unsupported gslb domain.
-        woHelper.failWo(
-            ao,
-            logKey,
-            String.format(
-                "Doesn't meet the GSLB migration prerequisites, GSLB=%s, Torbit Migrate=%s, LB Stickiness=%s, Migratable GSLB = %s",
-                gdnsEnabled, torbitMigrate, stickiness, migratableGslb),
-            null);
+        String errMsg = "Doesn't meet the GSLB migration prerequisites, " + gslbInfo;
+        logger.error(logKey + errMsg);
+        woHelper.failWo(ao, logKey, errMsg, null);
         return woHelper.formResponse(ao, logKey);
       }
     } catch (Exception ex) {
-      woHelper.failWo(ao, logKey, "GSLB migration failed due to an error.", ex);
+      logger.error(logKey + "GSLB migration failed!", ex);
+      woHelper.failWo(ao, logKey, "GSLB migration failed!.", ex);
       return woHelper.formResponse(ao, logKey);
     }
+  }
+
+  /**
+   * Checks if the zone delegate records has valid , allowed <b>delegatesTo</b> record for the base
+   * domain.
+   *
+   * @param zd {@link ZoneDelegate}
+   * @param delegationConfig delegation config
+   * @param logKey inductor log key
+   * @return <code>true</code> if the zone delegation records are valid.
+   */
+  private boolean hasValidDelegationRecords(
+      ZoneDelegate zd, String delegationConfig, String logKey) {
+
+    boolean validDelegations = true;
+    JsonObject jo = (JsonObject) gson.fromJson(delegationConfig, JsonElement.class);
+    JsonObject configObject = jo.getAsJsonArray("delegation").get(0).getAsJsonObject();
+
+    List<Delegate> actualDelegates = zd.delegateTo();
+    List<Delegate> allowedDelegates = new ArrayList<>();
+    JsonArray asJsonArray = configObject.getAsJsonArray("delegate_to");
+    for (JsonElement jsonElement : asJsonArray) {
+      JsonObject dto = jsonElement.getAsJsonObject();
+      String address = dto.get("address").getAsString();
+      String name = dto.get("name").getAsString();
+      allowedDelegates.add(Delegate.of(address, name));
+    }
+
+    logger.info(logKey + "Allowed zone delegates are, " + allowedDelegates);
+    logger.info(logKey + "Actual zone delegates are, " + actualDelegates);
+
+    for (Delegate ad : actualDelegates) {
+      if (!allowedDelegates.contains(ad)) {
+        validDelegations = false;
+        break;
+      }
+    }
+    return validDelegations;
   }
 
   /**
@@ -371,23 +420,28 @@ public class FqdnExecutor implements ComponentWoExecutor {
         mtdMap.put("deploy_id", res.getMtdDeploymentId());
         mtdMap.put("glb", res.getGlb());
 
-        Map<String, String> resultAttrs = ao.resultCi.getCiAttributes();
+        Map<String, String> ciAtrrs = ao.getCiAttributes();
+        Map<String, String> resultAttrs = woHelper.getResultCiAttributes(ao);
+
+        // Copy all ci attributes to result ci attributes as we need to
+        // preserve most of the attributes after migration.
+        resultAttrs.putAll(ciAtrrs);
+
         // Make a copy of entries first as legacy entries
         Type type = new TypeToken<Map<String, Object>>() {}.getType();
-        Map<String, Object> legacy_entries = gson.fromJson(resultAttrs.get("entries"), type);
+        Map<String, Object> newEntries = gson.fromJson(ciAtrrs.get("entries"), type);
 
         // New entries should be the union of legacy_entries and new aliases.
-        // Don't change the entries of it deployed to secondary clouds.
-        Map<String, Object> updatedEntries = new HashMap<>(legacy_entries);
+        // Don't change the entries it's deployed to secondary clouds.
         if (primaryCloud) {
-          updatedEntries.putAll(dnsEntries);
+          newEntries.putAll(dnsEntries);
         }
 
         resultAttrs.put("gslb_map", gson.toJson(mtdMap));
-        resultAttrs.put("entries", gson.toJson(updatedEntries));
-        resultAttrs.put("legacy_gslb", gslb);
-        resultAttrs.put("legacy_entries", gson.toJson(legacy_entries));
+        resultAttrs.put("entries", gson.toJson(newEntries));
         resultAttrs.put("service_type", "torbit");
+        resultAttrs.put("legacy_gslb", gslb);
+        resultAttrs.put("legacy_entries", ciAtrrs.get("entries"));
         logger.info(logKey + "Migration result ci attributes: " + resultAttrs);
 
       } else {
@@ -398,7 +452,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
 
   /**
    * A helper method to create or modify the cname from alias to canonical name using the given
-   * infoblox client.
+   * infoblox client. This method would do the required checks to make sure it create/update the
+   * cname record only when it's necessary.
    *
    * @param aliasName alias name
    * @param canonicalName canonical name
@@ -418,9 +473,14 @@ public class FqdnExecutor implements ComponentWoExecutor {
       CNAME cNameRec = client.createCNameRec(aliasName, canonicalName);
       logger.info(logKey + "Created cname : " + cNameRec);
     } else {
-      logger.info(logKey + "CNAME already exists for " + aliasName + ". Modifying it");
-      List<CNAME> modCNamd = client.modifyCNameCanonicalRec(aliasName, canonicalName);
-      logger.info(logKey + "Modified cname: " + modCNamd);
+      String currCanonicalName = cname.get(0).canonical();
+      if (canonicalName.equalsIgnoreCase(currCanonicalName)) {
+        logger.info(logKey + "CNAME already exists for " + aliasName + ". Skipping.");
+      } else {
+        logger.info(logKey + "Modifying the CNAME for " + aliasName);
+        List<CNAME> modCNamd = client.modifyCNameCanonicalRec(aliasName, canonicalName);
+        logger.info(logKey + "Modified cname: " + modCNamd);
+      }
     }
   }
 
@@ -436,13 +496,11 @@ public class FqdnExecutor implements ComponentWoExecutor {
    * <p>4. Shouldn't ends with any of the nested base domains.
    *
    * @param gslbDomain gslb fqdn
-   * @param baseDomain gslb base domain
    * @param delegationConfig delegation config json
    * @param logKey inductor log key
    * @return <code>true</code> if it's a migratable gslb domain.
    */
-  private boolean isValidDomain(
-      String gslbDomain, String baseDomain, String delegationConfig, String logKey) {
+  protected boolean isValidDomain(String gslbDomain, String delegationConfig, String logKey) {
 
     JsonObject jo = (JsonObject) gson.fromJson(delegationConfig, JsonElement.class);
     JsonObject configObject = jo.getAsJsonArray("delegation").get(0).getAsJsonObject();
@@ -532,6 +590,22 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return "1".equals(cloud.priority)
         && (CLOUD_STATUS_ACTIVE.equals(cloud.adminStatus)
             || CLOUD_STATUS_INACTIVE.equals(cloud.adminStatus));
+  }
+
+  /**
+   * Checks if the PTR record is enabled for GSLB.
+   *
+   * @param ao action order object
+   * @return <code>true</code> if the pointer record is enabled.
+   */
+  private boolean isPTREnabled(CmsActionOrderSimple ao) {
+    boolean ptrEnabled = false;
+    Map<String, String> fqdnAttrs = ao.getCi().getCiAttributes();
+    String ptrAttr = fqdnAttrs.get("ptr_enabled");
+    if ("true".equalsIgnoreCase(ptrAttr)) {
+      ptrEnabled = true;
+    }
+    return ptrEnabled;
   }
 
   /**

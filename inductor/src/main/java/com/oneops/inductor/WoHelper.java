@@ -29,8 +29,7 @@ public class WoHelper {
 
   private static final Logger logger = Logger.getLogger(WoHelper.class);
 
-  @Autowired
-  Gson gson;
+  @Autowired Gson gson;
 
   public CmsRfcCISimple getRealizedAs(CmsWorkOrderSimple wo) {
     if (wo.getPayLoad().containsKey(REALIZED_AS)) {
@@ -50,13 +49,12 @@ public class WoHelper {
   public void failWo(CmsWorkOrderSimpleBase wo, String logKey, String message, Exception e) {
     String logMsg = (e != null) ? logKey + message + " : " + e.getMessage() : logKey + message;
     logger.error(logMsg, e);
-    if (wo instanceof  CmsWorkOrderSimple) {
-      ((CmsWorkOrderSimple)wo).setDpmtRecordState(FAILED);
+    if (wo instanceof CmsWorkOrderSimple) {
+      ((CmsWorkOrderSimple) wo).setDpmtRecordState(FAILED);
+    } else {
+      ((CmsActionOrderSimple) wo).setActionState(OpsActionState.failed);
     }
-    else {
-      ((CmsActionOrderSimple)wo).setActionState(OpsActionState.failed);
-    }
-    wo.setComments(message +  (e != null ? " caused by - " + e.getMessage() : ""));
+    wo.setComments(message + (e != null ? " caused by - " + e.getMessage() : ""));
   }
 
   public boolean isFailed(CmsWorkOrderSimple wo) {
@@ -71,9 +69,9 @@ public class WoHelper {
       logger.warn(logKey + "FAIL: " + wo.getDpmtRecordId() + " state:" + wo.getDpmtRecordState());
       response.setResult(Result.FAILED);
       responseCode = "500";
-    }
-    else {
-      mergeRfcWithResult(wo.getRfcCi(), wo.getResultCi() != null ? wo.getResultCi() : new CmsCISimple());
+    } else {
+      mergeRfcWithResult(
+          wo.getRfcCi(), wo.getResultCi() != null ? wo.getResultCi() : new CmsCISimple());
       logger.info(logKey + "Workorder execution successful");
       response.setResult(Result.SUCCESS);
     }
@@ -92,8 +90,7 @@ public class WoHelper {
       logger.warn(logKey + "FAIL: " + ao.getProcedureId() + " state:" + ao.getActionState());
       response.setResult(Result.FAILED);
       responseCode = "500";
-    }
-    else {
+    } else {
       logger.info(logKey + "Actionorder execution successful");
       response.setResult(Result.SUCCESS);
     }
@@ -131,6 +128,25 @@ public class WoHelper {
     return wo.resultCi.getCiAttributes();
   }
 
+  /**
+   * Returns the result ci attribute for action order. If result ci is <code>null</code>, it will
+   * create a new result ci with same cid, name and class.
+   *
+   * @param ao action order.
+   * @return result ci attributes map.
+   */
+  public Map<String, String> getResultCiAttributes(CmsActionOrderSimple ao) {
+    if (ao.resultCi == null) {
+      CmsCISimple ci = new CmsCISimple();
+      CmsCISimple reqCi = ao.getCi();
+      ci.setCiId(reqCi.getCiId());
+      ci.setCiName(reqCi.getCiName());
+      ci.setCiClassName(reqCi.getCiClassName());
+      ao.setResultCi(ci);
+    }
+    return ao.resultCi.getCiAttributes();
+  }
+
   public Instance getLbFromDependsOn(CmsWorkOrderSimple wo) {
     return getLb(wo.getPayLoad().get("DependsOn"));
   }
@@ -141,9 +157,8 @@ public class WoHelper {
 
   private Instance getLb(List<? extends Instance> dependsOn) {
     if (dependsOn != null) {
-      Optional<? extends Instance> opt = dependsOn.stream()
-          .filter(rfc -> rfc.getCiClassName().matches(LB_CLASS))
-          .findFirst();
+      Optional<? extends Instance> opt =
+          dependsOn.stream().filter(rfc -> rfc.getCiClassName().matches(LB_CLASS)).findFirst();
       if (opt.isPresent()) {
         return opt.get();
       }
@@ -154,5 +169,4 @@ public class WoHelper {
   public boolean isDeleteAction(CmsWorkOrderSimple wo) {
     return DELETE.equals(wo.getAction());
   }
-
 }
