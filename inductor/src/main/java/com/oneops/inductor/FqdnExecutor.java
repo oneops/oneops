@@ -21,6 +21,7 @@ import com.oneops.cms.simple.domain.Instance;
 import com.oneops.gslb.GslbProvider;
 import com.oneops.gslb.Status;
 import com.oneops.gslb.domain.CloudARecord;
+import com.oneops.gslb.domain.DcARecord;
 import com.oneops.gslb.domain.Distribution;
 import com.oneops.gslb.domain.Gslb;
 import com.oneops.gslb.domain.GslbProvisionResponse;
@@ -62,6 +63,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
   private static String BASE_FQDN_CLASS = "bom.Fqdn";
   private static final String SERVICE_TYPE_TORBIT = "torbit";
   private static final String SERVICE_TYPE_GDNS = "gdns";
+  private static final String SERVICE_TYPE_DNS = "dns";
   private static final String ATTRIBUTE_USER = "user_name";
   private static final String ATTRIBUTE_ENDPOINT = "endpoint";
   private static final String ATTRIBUTE_AUTH_KEY = "auth_key";
@@ -174,9 +176,10 @@ public class FqdnExecutor implements ComponentWoExecutor {
       InfobloxConfig infobloxConfig,
       String logKey) {
     Context context = context(wo, infobloxConfig);
-    List<String> aliases =
-        new ArrayList<>(getAliasesWithDefault(context, wo.getRfcCi().getCiAttributes()));
-    List<CloudARecord> cloudEntries = getCloudDnsEntry(context, wo.getCloud());
+    List<String> aliases = new ArrayList<>(getAliasesWithDefault(context));
+    List<CloudARecord> cloudEntries = getCloudDnsEntries(context, wo);
+    List<DcARecord> dcARecords = getDcDnsEntries(context, wo, logKey);
+
     return ProvisionedGslb.builder()
         .torbitConfig(torbitConfig)
         .infobloxConfig(infobloxConfig)
@@ -184,6 +187,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
         .subdomain(context.subdomain)
         .cnames(aliases)
         .cloudARecords(cloudEntries)
+        .dcARecords(dcARecords)
         .logContextId(logKey)
         .build();
   }
@@ -279,8 +283,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
       if (gdnsEnabled && torbitMigrate && !stickiness && !ptrEnabled && migratableGslb) {
 
         logger.info(logKey + "Starting to migrate netscalar gslb to torbit.");
-        Map<String, String> fqdnAttrs = ao.getCi().getCiAttributes();
-        List<String> aliases = new ArrayList<>(getAliasesWithDefault(context, fqdnAttrs));
+        List<String> aliases = new ArrayList<>(getAliasesWithDefault(context));
 
         // Holds all newly updated entries.
         Map<String, String> dnsEntries = new HashMap<>();
@@ -757,6 +760,9 @@ public class FqdnExecutor implements ComponentWoExecutor {
     CmsCISimple env = payload.get("Environment").get(0);
     context.subdomain = env.getCiAttributes().get("subdomain");
     context.lb = woHelper.getLbFromDependsOn(ao);
+    Map<String, String> fqdnAttrs = ao.getCi().getCiAttributes();
+    context.shortAliases = getShortAliases(fqdnAttrs);
+    context.fullAliases = getFullAliases(fqdnAttrs);
     return context;
   }
 
@@ -855,8 +861,11 @@ public class FqdnExecutor implements ComponentWoExecutor {
     Map<String, String> fqdnAttrs = wo.getRfcCi().getCiAttributes();
     Map<String, String> fqdnBaseAttrs = wo.getRfcCi().getCiBaseAttributes();
 
-    Set<String> aliases = getAliasesWithDefault(context, fqdnAttrs);
-    List<CloudARecord> cloudEntries = getCloudDnsEntry(context, wo.getCloud());
+    Set<String> aliases = getAliasesWithDefault(context);
+    List<CloudARecord> cloudEntries = getCloudDnsEntries(context, wo);
+    List<DcARecord> dcARecords = getDcDnsEntries(context, wo, logKey);
+    //TODO: also create cloud-level cnames (using short alias) to the cloud dns entry
+
     List<String> oldAliases =
         getAliases(context, fqdnBaseAttrs)
             .stream()
@@ -866,25 +875,26 @@ public class FqdnExecutor implements ComponentWoExecutor {
     List<CloudARecord> obsoleteEntries = null;
     if (woHelper.isDeleteAction(wo)) {
       obsoleteEntries = cloudEntries;
+      //TODO: check if dc entry needs to be deleted
     } else {
       newEntries = cloudEntries;
     }
 
-    Gslb gslb =
-        Gslb.builder()
-            .app(context.platform)
-            .subdomain(context.subdomain)
-            .distribution(distribution(fqdnAttrs))
-            .torbitConfig(torbitConfig)
-            .infobloxConfig(infobloxConfig)
-            .logContextId(logKey)
-            .lbs(lbTargets(wo, context))
-            .healthChecks(healthChecks(context, logKey))
-            .cnames(new ArrayList<>(aliases))
-            .cloudARecords(newEntries)
-            .obsoleteCnames(oldAliases)
-            .obsoleteCloudARecords(obsoleteEntries)
-            .build();
+    Gslb gslb = Gslb.builder()
+        .app(context.platform)
+        .subdomain(context.subdomain)
+        .distribution(distribution(fqdnAttrs))
+        .torbitConfig(torbitConfig)
+        .infobloxConfig(infobloxConfig)
+        .logContextId(logKey)
+        .lbs(lbTargets(wo, context))
+        .healthChecks(healthChecks(context, logKey))
+        .cnames(new ArrayList<>(aliases))
+        .cloudARecords(newEntries)
+        .dcARecords(dcARecords)
+        .obsoleteCnames(oldAliases)
+        .obsoleteCloudARecords(obsoleteEntries)
+        .build();
     return gslb;
   }
 
@@ -896,8 +906,9 @@ public class FqdnExecutor implements ComponentWoExecutor {
     Context context = context(ao, infobloxConfig);
     Map<String, String> fqdnAttrs = ao.getCi().getCiAttributes();
 
-    List<String> aliases = new ArrayList<>(getAliasesWithDefault(context, fqdnAttrs));
-    List<CloudARecord> cloudEntries = getCloudDnsEntry(context, ao.getCloud());
+    List<String> aliases = new ArrayList<>(getAliasesWithDefault(context));
+    List<CloudARecord> cloudEntries = getCloudDnsEntries(context, ao);
+    List<DcARecord> dcARecords = getDcDnsEntries(context, ao, logKey);
 
     return Gslb.builder()
         .app(context.platform)
@@ -910,15 +921,25 @@ public class FqdnExecutor implements ComponentWoExecutor {
         .healthChecks(healthChecks(context, logKey))
         .cnames(aliases)
         .cloudARecords(cloudEntries)
+        .dcARecords(dcARecords)
         .build();
   }
 
-  private Set<String> getAliasesWithDefault(Context context, Map<String, String> fqdnAttrs) {
+  private Set<String> getAliasesWithDefault(Context context) {
     Set<String> currentAliases = new HashSet<>();
     String defaultAlias = getFullAlias(context.platform, context);
     currentAliases.add(defaultAlias);
-    addAliases(context, fqdnAttrs, currentAliases);
+    addAliases(context, currentAliases);
     return currentAliases;
+  }
+
+  private void addAliases(Context context, Set<String> currentAliases) {
+    for(String alias : context.shortAliases) {
+      currentAliases.add(getFullAlias(alias, context));
+    }
+    for(String alias : context.fullAliases) {
+      currentAliases.add(alias);
+    }
   }
 
   private Set<String> getAliases(Context context, Map<String, String> fqdnAttrs) {
@@ -935,10 +956,6 @@ public class FqdnExecutor implements ComponentWoExecutor {
     addAlias(fullAliases, currentAliases, Function.identity());
   }
 
-  private String getFullAlias(String alias, Context context) {
-    return String.join(".", alias, context.subdomain, context.infobloxConfig.zone());
-  }
-
   private void addAlias(String attrValue, Set<String> aliases, Function<String, String> mapper) {
     if (isNotBlank(attrValue)) {
       JsonArray aliasArray = (JsonArray) jsonParser.parse(attrValue);
@@ -948,18 +965,68 @@ public class FqdnExecutor implements ComponentWoExecutor {
     }
   }
 
-  private List<CloudARecord> getCloudDnsEntry(Context context, CmsCISimple cloud) {
-    CloudARecord cloudARecord =
-        CloudARecord.create(
-            cloud.getCiName(),
-            String.join(
-                    ".",
-                    context.platform,
-                    context.subdomain,
-                    cloud.getCiName(),
-                    context.infobloxConfig.zone())
-                .toLowerCase());
-    return Collections.singletonList(cloudARecord);
+  private String getFullAlias(String alias, Context context) {
+    return String.join(".", alias, context.subdomain, context.infobloxConfig.zone());
+  }
+
+  private List<CloudARecord> getCloudDnsEntries(Context context, CmsWorkOrderSimpleBase wo) {
+    CmsCISimple dnsService = dnsService(wo);
+    List<CloudARecord> list = new ArrayList<>();
+    if (dnsService != null) {
+      Map<String, String> attributes = dnsService.getCiAttributes();
+      if (attributes.containsKey("cloud_dns_id")) {
+        String cloudDnsId = attributes.get("cloud_dns_id");
+        list.add(cloudARecord(context, wo.getCloud(), context.platform, cloudDnsId));
+      }
+    }
+    return list;
+  }
+
+  private List<DcARecord> getDcDnsEntries(Context context, CmsWorkOrderSimpleBase wo, String logKey) {
+    List<DcARecord> dcARecords = new ArrayList<>();
+    CmsCISimple gdnsService = gdnsService(wo);
+    //the gslb_site_dns_id is available only in the netscaler gdns service
+    //create dc-level dns entry only if the netscaler gdns service is available for now,
+    if (gdnsService != null) {
+      Map<String, String> attributes = gdnsService.getCiAttributes();
+      if (attributes.containsKey("gslb_site_dns_id")) {
+        String datacenter = attributes.get("gslb_site_dns_id");
+        Instance lb = context.lb;
+        if (lb == null) {
+          throw new RuntimeException("DependsOn Lb is empty");
+        }
+
+        String vnames = lb.getCiAttributes().get("vnames");
+        if (isNotBlank(vnames)) {
+          Map<String, String> vnameMap = gson.fromJson(vnames, Map.class);
+          String dcDnsEntry = String.join(
+              ".",
+              context.platform,
+              context.subdomain,
+              datacenter,
+              context.infobloxConfig.zone()).toLowerCase();
+          String lbVnamePrefix = dcDnsEntry + "-";
+          logger.info(logKey + "DC Level dns entry - dcDnsEntry : " + dcDnsEntry + ", lbVnamePrefix: " + lbVnamePrefix);
+          for (Entry<String, String> vname : vnameMap.entrySet()) {
+            if (vname.getKey().startsWith(lbVnamePrefix)) {
+              dcARecords.add(DcARecord.create(vname.getValue(), dcDnsEntry));
+              break;
+            }
+          }
+        }
+      }
+    }
+    return dcARecords;
+  }
+
+  private CloudARecord cloudARecord(Context context, CmsCISimple cloud, String prefix, String cloudDnsId) {
+    return CloudARecord.create(cloud.getCiName(),
+        String.join(
+            ".",
+            prefix,
+            context.subdomain,
+            cloudDnsId,
+            context.infobloxConfig.zone()).toLowerCase());
   }
 
   private List<Lb> lbTargets(CmsWorkOrderSimple wo, Context context) {
@@ -1012,7 +1079,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
   }
 
   private InfobloxConfig getInfobloxConfig(CmsWorkOrderSimpleBase wo) {
-    Map<String, CmsCISimple> dnsServices = (Map<String, CmsCISimple>) wo.getServices().get("dns");
+    Map<String, CmsCISimple> dnsServices = (Map<String, CmsCISimple>) wo.getServices().get(SERVICE_TYPE_DNS);
     if (dnsServices != null) {
       CmsCISimple dns = dnsServices.get(wo.getCloud().getCiName());
       if (dns != null) {
@@ -1210,6 +1277,46 @@ public class FqdnExecutor implements ComponentWoExecutor {
     } else return distributionMap.get("proximity");
   }
 
+  private CmsCISimple service(CmsWorkOrderSimpleBase wo, String serviceType) {
+    CmsCISimple service = null;
+    Map<String, CmsCISimple> services = (Map<String, CmsCISimple>) wo.getServices().get(serviceType);
+    if (services != null) {
+      service = services.get(wo.getCloud().getCiName());
+    }
+    return service;
+  }
+
+  private CmsCISimple dnsService(CmsWorkOrderSimpleBase wo) {
+    return service(wo, SERVICE_TYPE_DNS);
+  }
+
+  private CmsCISimple gdnsService(CmsWorkOrderSimpleBase wo) {
+    return service(wo, SERVICE_TYPE_GDNS);
+  }
+
+  private List<String> getShortAliases(Map<String, String> fqdnAttrs) {
+    List<String> list = new ArrayList<>();
+    String aliases = fqdnAttrs.get(ATTRIBUTE_ALIAS);
+    parseAndAdd(aliases, list);
+    return list;
+  }
+
+  private void parseAndAdd(String aliases, List<String> list) {
+    if (isNotBlank(aliases)) {
+      JsonArray aliasArray = (JsonArray) jsonParser.parse(aliases);
+      for (JsonElement alias : aliasArray) {
+        list.add(alias.getAsString());
+      }
+    }
+  }
+
+  private List<String> getFullAliases(Map<String, String> fqdnAttrs) {
+    List<String> list = new ArrayList<>();
+    String aliases = fqdnAttrs.get(ATTRIBUTE_FULL_ALIAS);
+    parseAndAdd(aliases, list);
+    return list;
+  }
+
   private Context context(CmsWorkOrderSimple wo, InfobloxConfig infobloxConfig) {
     Context context = baseContext(wo);
     context.infobloxConfig = infobloxConfig;
@@ -1223,6 +1330,9 @@ public class FqdnExecutor implements ComponentWoExecutor {
             ? customSubDomain
             : String.join(".", env.getCiName(), assembly, org);
     context.lb = woHelper.getLbFromDependsOn(wo);
+    Map<String, String> fqdnAttrs = wo.getRfcCi().getCiAttributes();
+    context.shortAliases = getShortAliases(fqdnAttrs);
+    context.fullAliases = getFullAliases(fqdnAttrs);
     return context;
   }
 
@@ -1247,7 +1357,11 @@ public class FqdnExecutor implements ComponentWoExecutor {
               ? customSubDomain
               : String.join(".", env.getCiName(), assembly, org);
       context.lb = woHelper.getLbFromDependsOn(ao);
-    } else {
+      Map<String, String> fqdnAttrs = ao.getCi().getCiAttributes();
+      context.shortAliases = getShortAliases(fqdnAttrs);
+      context.fullAliases = getFullAliases(fqdnAttrs);
+    }
+    else {
       throw new RuntimeException("glb value could not be obtained from gslb_map attribute");
     }
     return context;
@@ -1264,6 +1378,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
     String subdomain;
     InfobloxConfig infobloxConfig;
     Instance lb;
+    List<String> shortAliases = new ArrayList<>();
+    List<String> fullAliases = new ArrayList<>();
   }
 
   class Cloud {

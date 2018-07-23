@@ -20,6 +20,7 @@ import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.gslb.GslbProvider;
 import com.oneops.gslb.Status;
 import com.oneops.gslb.domain.CloudARecord;
+import com.oneops.gslb.domain.DcARecord;
 import com.oneops.gslb.domain.Distribution;
 import com.oneops.gslb.domain.Gslb;
 import com.oneops.gslb.domain.GslbProvisionResponse;
@@ -146,7 +147,57 @@ public class FqdnExecutorTest {
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
     assertThat(cloudARecord.cloud(), is("cl1"));
-    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cl1.stg.cloud.xyz.com"));
+    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
+  }
+
+  @Test
+  public void dcEntryWithNetscalerGdns() {
+    CmsWorkOrderSimple wo = woWith2Clouds();
+    wo.getRfcCi().setRfcAction("add");
+    addGdnsService(wo);
+    addLbVnames(wo, "10.100.100.101");
+    fqdnExecutor.execute(wo, "/tmp");
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
+
+    Gslb request = argument.getValue();
+
+    Set<String> cnames = request.cnames().stream().collect(Collectors.toSet());
+    assertThat(cnames.size(), is(3));
+    assertTrue(cnames.contains("plt.stg.coll.org.stg.cloud.xyz.com"));
+    assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
+    assertTrue(cnames.contains("p1.stg.coll.org.stg.cloud.xyz.com"));
+
+    List<CloudARecord> cloudARecords = request.cloudARecords();
+    assertThat(cloudARecords.size(), is(1));
+    CloudARecord cloudARecord = cloudARecords.get(0);
+    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
+
+    List<DcARecord> dcARecords = request.dcARecords();
+    assertThat(dcARecords.size(), is(1));
+    DcARecord dcARecord = dcARecords.get(0);
+    assertThat(dcARecord.aRecord(), is("plt.stg.coll.org.c1.stg.cloud.xyz.com"));
+    assertThat(dcARecord.vip(), is("10.100.100.101"));
+  }
+
+  private void addLbVnames(CmsWorkOrderSimple wo, String dcVip) {
+    Map<String, String> attributes = wo.getPayLoadEntry("DependsOn").get(0).getCiAttributes();
+    String attribute = "{\"plt.stg.coll.org.c1.stg.cloud.xyz.com-HTTP_80tcp-123214-lb\":\"" + dcVip + "\"}";
+    attributes.put("vnames", attribute);
+  }
+
+  private void addGdnsService(CmsWorkOrderSimpleBase wo) {
+    Map<String, Map<String, CmsCISimple>> services = wo.getServices();
+    wo.setServices(services);
+    Map<String, CmsCISimple> gdnsService = new HashMap<>();
+    CmsCISimple gdns = new CmsCISimple();
+    gdns.setCiClassName("cloud.service.Netscaler");
+    gdns.setCiId(1100l);
+    gdns.addCiAttribute("gslb_site_dns_id", "c1");
+    gdns.setCiName("gdns");
+    gdnsService.put("cl1", gdns);
+    services.put("gdns", gdnsService);
   }
 
   @Test
@@ -225,7 +276,7 @@ public class FqdnExecutorTest {
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
     assertThat(cloudARecord.cloud(), is("cl1"));
-    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cl1.stg.cloud.xyz.com"));
+    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
   @Test
@@ -270,7 +321,7 @@ public class FqdnExecutorTest {
   }
 
   @Test
-  public void failForMissingGdnsConfig() {
+  public void failForMissingTorbitConfig() {
     CmsWorkOrderSimple wo = woWith2Clouds();
     wo.getRfcCi().setRfcAction("update");
     wo.services.remove("torbit");
@@ -313,7 +364,7 @@ public class FqdnExecutorTest {
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
     assertThat(cloudARecord.cloud(), is("cl1"));
-    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cl1.stg.cloud.xyz.com"));
+    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
   @Test
@@ -381,7 +432,7 @@ public class FqdnExecutorTest {
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
     assertThat(cloudARecord.cloud(), is("cl1"));
-    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cl1.stg.cloud.xyz.com"));
+    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
   private GslbProvisionResponse successProvisionResponse() {
@@ -496,18 +547,18 @@ public class FqdnExecutorTest {
   private void addCloudService(CmsWorkOrderSimpleBase wo) {
     Map<String, Map<String, CmsCISimple>> services = new HashMap<>();
     wo.setServices(services);
-    Map<String, CmsCISimple> gdnsService = new HashMap<>();
-    CmsCISimple gdns = new CmsCISimple();
-    gdns.setCiClassName("cloud.service.oneops.1.Torbit");
-    gdns.setCiId(102l);
-    gdns.addCiAttribute("endpoint", "https://localhost:8443");
-    gdns.addCiAttribute("auth_key", "test_auth");
-    gdns.addCiAttribute("group_id", "101");
-    gdns.addCiAttribute("user_name", "test-oo");
-    gdns.addCiAttribute("gslb_base_domain", "xyz.com");
-    gdns.setCiName("torbit");
-    gdnsService.put("cl1", gdns);
-    services.put("torbit", gdnsService);
+    Map<String, CmsCISimple> torbitService = new HashMap<>();
+    CmsCISimple torbit = new CmsCISimple();
+    torbit.setCiClassName("cloud.service.oneops.1.Torbit");
+    torbit.setCiId(102l);
+    torbit.addCiAttribute("endpoint", "https://localhost:8443");
+    torbit.addCiAttribute("auth_key", "test_auth");
+    torbit.addCiAttribute("group_id", "101");
+    torbit.addCiAttribute("user_name", "test-oo");
+    torbit.addCiAttribute("gslb_base_domain", "xyz.com");
+    torbit.setCiName("torbit");
+    torbitService.put("cl1", torbit);
+    services.put("torbit", torbitService);
 
     Map<String, CmsCISimple> dnsService = new HashMap<>();
     CmsCISimple dns = new CmsCISimple();
@@ -516,6 +567,7 @@ public class FqdnExecutorTest {
     dns.addCiAttribute("username", "test-usr");
     dns.addCiAttribute("password", "pwd1");
     dns.addCiAttribute("zone", "stg.cloud.xyz.com");
+    dns.addCiAttribute("cloud_dns_id", "cloud1");
     dnsService.put("cl1", dns);
     services.put("dns", dnsService);
   }
@@ -530,7 +582,7 @@ public class FqdnExecutorTest {
 
 
   @Test
-  public void failAoForMissingGdnsService() {
+  public void failAoForMissingTorbitService() {
     CmsActionOrderSimple ao = ao();
     ao.getServices().remove("torbit");
     Response response = fqdnExecutor.execute(ao, "/tmp");
@@ -595,7 +647,7 @@ public class FqdnExecutorTest {
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
     assertThat(cloudARecord.cloud(), is("cl1"));
-    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cl1.stg.cloud.xyz.com"));
+    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
   @Test
@@ -648,7 +700,7 @@ public class FqdnExecutorTest {
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
     assertThat(cloudARecord.cloud(), is("cl1"));
-    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cl1.stg.cloud.xyz.com"));
+    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
   private CmsActionOrderSimple ao() {
