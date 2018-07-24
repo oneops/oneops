@@ -59,9 +59,11 @@ import org.apache.log4j.Logger;
 public class OpsProcedureProcessor {
 
   private static final String WITH_PROCEDURE_ACTION_NAME = " with procedure/action name ";
+
   private OpsMapper opsMapper;
   private CmsCmProcessor cmProcessor;
   private Gson gson = new Gson();
+
   private static final Logger logger = Logger.getLogger(OpsProcedureProcessor.class);
   private static final String ALREADY_HAS_ACTIVE_OPS_PROCEDURE = " already has active ops procedure: ";
   private static final String GIVEN_CI = "Given ci ";
@@ -74,6 +76,7 @@ public class OpsProcedureProcessor {
   private static final String ACTION_ONE_FOR_ALL_EXEC = "one-for-all";
   private static final String SERVICE_TYPE_ATTR = "service_type";
   private static final String GSLB_MIGRATION = "gslb-migration";
+  private static final String GSLB_MIGRATION_ENABLED = "GSLB_MIGRATION_ENABLED";
 
   private boolean gslbMigrationEnabled;
 
@@ -125,7 +128,6 @@ public class OpsProcedureProcessor {
    * @return the cms ops procedure
    */
   public CmsOpsProcedure processProcedureRequest(CmsOpsProcedure proc) {
-    System.out.println("TESTING :::::: " + proc);
     OpsProcedureDefinition procDef = null;
     if (proc.getProcedureCiId() > 0) {
       CmsCI procCi = cmProcessor.getCiById(proc.getProcedureCiId());
@@ -430,7 +432,7 @@ public class OpsProcedureProcessor {
       }
     }
     if (!isProcedureEnabled(proc)) {
-      String error = "procedure " + proc.getProcedureName() + " is currently not available";
+      String error = "procedure " + proc.getProcedureName() + " is not enabled";
       logger.warn(error);
       throw new OpsException(CmsError.OPS_ACTION_NOT_ENABLED, error);
     }
@@ -448,7 +450,22 @@ public class OpsProcedureProcessor {
   }
 
   private boolean isProcedureEnabled(CmsOpsProcedure proc) {
-    return GSLB_MIGRATION.equals(proc.getProcedureName()) ? gslbMigrationEnabled : true;
+    return GSLB_MIGRATION.equals(proc.getProcedureName()) ? gslbMigrationEnabled && isEnabledForNs(proc) : true;
+  }
+
+  private boolean isEnabledForNs(CmsOpsProcedure proc) {
+    logger.info("checking if gslb-migration is enabled for ns " + proc.getNsPath());
+    String nsPath = proc.getNsPath();
+    if (StringUtils.isBlank(nsPath)) {
+      //gslb-migration is called on a platform ci, get the nsPath from platform ci
+      long ciId = proc.getCiId();
+      CmsCI platformCi = cmProcessor.getCiById(ciId);
+      if (platformCi == null) {
+        return false;
+      }
+      nsPath = platformCi.getNsPath();
+    }
+    return cmProcessor.getVarByMatchingCriteriaBoolean(GSLB_MIGRATION_ENABLED, nsPath);
   }
 
   /**

@@ -157,6 +157,7 @@ public class OpsProcedureProcessorTest {
 	@Test
 	public void processProcedureRequestTest() {
 		procProcessor.setGslbMigrationEnabled(true);
+		when(cmProcessor.getVarByMatchingCriteriaBoolean(any(), any())).thenReturn(true);
 		CmsOpsProcedure procedure = new CmsOpsProcedure();
 		procedure.setCiId(300);
 		procedure.setArglist("{\"migrate\":\"true\"}");
@@ -198,6 +199,8 @@ public class OpsProcedureProcessorTest {
 		realizedAsRelations.add(realizedAs2);
 		when(cmProcessor.getFromCIRelationsNaked(400, "base.RealizedAs", null, "bom.oneops.1.Fqdn")).thenReturn(realizedAsRelations);
 		procProcessor.setOpsMapper(new MockOpsMapper());
+		when(cmProcessor.getCiById(300)).thenReturn(new CmsCI());
+
 
 		CmsOpsProcedure opsProcedure = procProcessor.processProcedureRequest(procedure, procDefn);
 		assertNotNull(opsProcedure);
@@ -216,6 +219,7 @@ public class OpsProcedureProcessorTest {
 		procProcessor.setGslbMigrationEnabled(true);
 		OpsMapper opsMapper = mock(OpsMapper.class);
 		procProcessor.setOpsMapper(opsMapper);
+		when(cmProcessor.getVarByMatchingCriteriaBoolean(any(), any())).thenReturn(true);
 		CmsOpsProcedure procedure = new CmsOpsProcedure();
 		procedure.setCiId(300);
 		procedure.setArglist("{\"migrate\":\"torbit\"}");
@@ -247,6 +251,7 @@ public class OpsProcedureProcessorTest {
 		attr.setDjValue("torbit");
 		ci.addAttribute(attr);
 		when(cmProcessor.getCiById(1005)).thenReturn(ci);
+		when(cmProcessor.getCiById(300)).thenReturn(new CmsCI());
 
 		List<CmsCIRelation> realizedAsRelations = new ArrayList<>();
 		CmsCIRelation realizedAs1 = new CmsCIRelation();
