@@ -284,6 +284,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
 
         logger.info(logKey + "Starting to migrate netscalar gslb to torbit.");
         List<String> aliases = new ArrayList<>(getAliasesWithDefault(context));
+        validateAliases(aliases, gslb);
 
         // Holds all newly updated entries.
         Map<String, String> dnsEntries = new HashMap<>();
@@ -300,6 +301,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
           return woHelper.formResponse(ao, logKey);
         }
         logger.info(logKey + "Created Torbit MTD base, " + res);
+        validateTorbitMtdBase(res, logKey);
 
         if (primaryCloud) {
           try {
@@ -361,6 +363,21 @@ public class FqdnExecutor implements ComponentWoExecutor {
     }
   }
 
+  /** Torbit MTD host health check validation. */
+  private void validateTorbitMtdBase(GslbProvisionResponse aliases, String logKey) {
+    // ToDo - Add Mtd health check status once torbit provides the API.
+    logger.warn(logKey + "MTD base health status check is not supported!");
+  }
+
+  /** GSLB migration validation for aliases. */
+  private void validateAliases(List<String> aliases, String gslb) {
+    if (aliases == null || aliases.size() < 1) {
+      throw new IllegalStateException(
+          "The current GSLB config for this platform seems wrong. Can't find any GSLB aliases for "
+              + gslb);
+    }
+  }
+
   /**
    * Checks if the zone delegate records has valid , allowed <b>delegatesTo</b> record for the base
    * domain.
@@ -390,8 +407,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
     logger.info(logKey + "Allowed zone delegates are, " + allowedDelegates);
     logger.info(logKey + "Actual zone delegates are, " + actualDelegates);
 
-    for (Delegate ad : actualDelegates) {
-      if (!allowedDelegates.contains(ad)) {
+    for (Delegate ad : allowedDelegates) {
+      if (!actualDelegates.contains(ad)) {
         validDelegations = false;
         break;
       }
@@ -484,6 +501,13 @@ public class FqdnExecutor implements ComponentWoExecutor {
         List<CNAME> modCNamd = client.modifyCNameCanonicalRec(aliasName, canonicalName);
         logger.info(logKey + "Modified cname: " + modCNamd);
       }
+    }
+
+    // Before returning assert there exists a cname from aliasName -> canonicalName
+    List<CNAME> cNameRec = client.getCNameRec(aliasName);
+    if (cNameRec.isEmpty() || !canonicalName.equalsIgnoreCase(cNameRec.get(0).canonical())) {
+      throw new IllegalStateException(
+          "Can't create CNAME from " + aliasName + " -> " + canonicalName);
     }
   }
 
@@ -679,14 +703,14 @@ public class FqdnExecutor implements ComponentWoExecutor {
   }
 
   /**
-   * Returns the platform gslb domain.
+   * Returns the platform gslb domain. Gslb fqdn is all lower case by default.
    *
    * @param ctx fqdn executor contenxt
    * @param gdnsBaseDomain gdns base domain.
    * @return platform gslb fqdn.
    */
   private String platformGslbDomain(Context ctx, String gdnsBaseDomain) {
-    return String.join(".", ctx.platform, ctx.subdomain, gdnsBaseDomain);
+    return String.join(".", ctx.platform, ctx.subdomain, gdnsBaseDomain).toLowerCase();
   }
   /**
    * Returns the netscalar gdns base domain.
@@ -697,15 +721,11 @@ public class FqdnExecutor implements ComponentWoExecutor {
    */
   private String gdnsBaseDomain(CmsActionOrderSimple ao, String logKey) {
     String domain = null;
-    Map<String, Map<String, CmsCISimple>> services = ao.getServices();
-    if (services != null && services.containsKey(SERVICE_TYPE_GDNS)) {
-      Map<String, CmsCISimple> gdnsService = services.get(SERVICE_TYPE_GDNS);
-      CmsCISimple gdns;
-      if ((gdns = gdnsService.get(ao.getCloud().getCiName())) != null) {
-        if (NETSCALAR_SERVICE_CLASS.equals(gdns.getCiClassName())) {
-          Map<String, String> attributes = gdns.getCiAttributes();
-          domain = attributes.get(ATTRIBUTE_GSLB_BASE_DOMAIN);
-        }
+    CmsCISimple gdns = gdnsService(ao);
+    if (gdns != null) {
+      if (NETSCALAR_SERVICE_CLASS.equals(gdns.getCiClassName())) {
+        Map<String, String> attributes = gdns.getCiAttributes();
+        domain = attributes.get(ATTRIBUTE_GSLB_BASE_DOMAIN);
       }
     } else {
       logger.info(logKey + "Gdns service not found in action order!");
@@ -864,7 +884,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     Set<String> aliases = getAliasesWithDefault(context);
     List<CloudARecord> cloudEntries = getCloudDnsEntries(context, wo);
     List<DcARecord> dcARecords = getDcDnsEntries(context, wo, logKey);
-    //TODO: also create cloud-level cnames (using short alias) to the cloud dns entry
+    // TODO: also create cloud-level cnames (using short alias) to the cloud dns entry
 
     List<String> oldAliases =
         getAliases(context, fqdnBaseAttrs)
@@ -875,12 +895,12 @@ public class FqdnExecutor implements ComponentWoExecutor {
     List<CloudARecord> obsoleteEntries = null;
     if (woHelper.isDeleteAction(wo)) {
       obsoleteEntries = cloudEntries;
-      //TODO: check if dc entry needs to be deleted
+      // TODO: check if dc entry needs to be deleted
     } else {
       newEntries = cloudEntries;
     }
 
-    Gslb gslb = Gslb.builder()
+    return Gslb.builder()
         .app(context.platform)
         .subdomain(context.subdomain)
         .distribution(distribution(fqdnAttrs))
@@ -895,7 +915,6 @@ public class FqdnExecutor implements ComponentWoExecutor {
         .obsoleteCnames(oldAliases)
         .obsoleteCloudARecords(obsoleteEntries)
         .build();
-    return gslb;
   }
 
   private Gslb getGslbRequestFromAo(
@@ -934,12 +953,10 @@ public class FqdnExecutor implements ComponentWoExecutor {
   }
 
   private void addAliases(Context context, Set<String> currentAliases) {
-    for(String alias : context.shortAliases) {
+    for (String alias : context.shortAliases) {
       currentAliases.add(getFullAlias(alias, context));
     }
-    for(String alias : context.fullAliases) {
-      currentAliases.add(alias);
-    }
+    currentAliases.addAll(context.fullAliases);
   }
 
   private Set<String> getAliases(Context context, Map<String, String> fqdnAttrs) {
@@ -982,11 +999,12 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return list;
   }
 
-  private List<DcARecord> getDcDnsEntries(Context context, CmsWorkOrderSimpleBase wo, String logKey) {
+  private List<DcARecord> getDcDnsEntries(
+      Context context, CmsWorkOrderSimpleBase wo, String logKey) {
     List<DcARecord> dcARecords = new ArrayList<>();
     CmsCISimple gdnsService = gdnsService(wo);
-    //the gslb_site_dns_id is available only in the netscaler gdns service
-    //create dc-level dns entry only if the netscaler gdns service is available for now,
+    // the gslb_site_dns_id is available only in the netscaler gdns service
+    // create dc-level dns entry only if the netscaler gdns service is available for now,
     if (gdnsService != null) {
       Map<String, String> attributes = gdnsService.getCiAttributes();
       if (attributes.containsKey("gslb_site_dns_id")) {
@@ -999,14 +1017,21 @@ public class FqdnExecutor implements ComponentWoExecutor {
         String vnames = lb.getCiAttributes().get("vnames");
         if (isNotBlank(vnames)) {
           Map<String, String> vnameMap = gson.fromJson(vnames, Map.class);
-          String dcDnsEntry = String.join(
-              ".",
-              context.platform,
-              context.subdomain,
-              datacenter,
-              context.infobloxConfig.zone()).toLowerCase();
+          String dcDnsEntry =
+              String.join(
+                      ".",
+                      context.platform,
+                      context.subdomain,
+                      datacenter,
+                      context.infobloxConfig.zone())
+                  .toLowerCase();
           String lbVnamePrefix = dcDnsEntry + "-";
-          logger.info(logKey + "DC Level dns entry - dcDnsEntry : " + dcDnsEntry + ", lbVnamePrefix: " + lbVnamePrefix);
+          logger.info(
+              logKey
+                  + "DC Level dns entry - dcDnsEntry : "
+                  + dcDnsEntry
+                  + ", lbVnamePrefix: "
+                  + lbVnamePrefix);
           for (Entry<String, String> vname : vnameMap.entrySet()) {
             if (vname.getKey().startsWith(lbVnamePrefix)) {
               dcARecords.add(DcARecord.create(vname.getValue(), dcDnsEntry));
@@ -1019,14 +1044,12 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return dcARecords;
   }
 
-  private CloudARecord cloudARecord(Context context, CmsCISimple cloud, String prefix, String cloudDnsId) {
-    return CloudARecord.create(cloud.getCiName(),
-        String.join(
-            ".",
-            prefix,
-            context.subdomain,
-            cloudDnsId,
-            context.infobloxConfig.zone()).toLowerCase());
+  private CloudARecord cloudARecord(
+      Context context, CmsCISimple cloud, String prefix, String cloudDnsId) {
+    return CloudARecord.create(
+        cloud.getCiName(),
+        String.join(".", prefix, context.subdomain, cloudDnsId, context.infobloxConfig.zone())
+            .toLowerCase());
   }
 
   private List<Lb> lbTargets(CmsWorkOrderSimple wo, Context context) {
@@ -1078,19 +1101,53 @@ public class FqdnExecutor implements ComponentWoExecutor {
             || CLOUD_STATUS_INACTIVE.equals(cloud.adminStatus));
   }
 
-  private InfobloxConfig getInfobloxConfig(CmsWorkOrderSimpleBase wo) {
-    Map<String, CmsCISimple> dnsServices = (Map<String, CmsCISimple>) wo.getServices().get(SERVICE_TYPE_DNS);
-    if (dnsServices != null) {
-      CmsCISimple dns = dnsServices.get(wo.getCloud().getCiName());
-      if (dns != null) {
-        Map<String, String> attributes = dns.getCiAttributes();
-        String host = attributes.get(ATTRIBUTE_DNS_HOST);
-        String user = attributes.get(ATTRIBUTE_DNS_USER_NAME);
-        String pwd = attributes.get(ATTRIBUTE_DNS_PASSWORD);
-        String zone = attributes.get(ATTRIBUTE_DNS_ZONE);
-        if (isNotBlank(host) && isNotBlank(user)) {
-          return InfobloxConfig.create(host, user, pwd, zone);
+  /**
+   * Returns the torbit cloud service config from the work/action order.
+   *
+   * @param wo wo action order/ work order object
+   * @param logKey inductor log key
+   * @return torbit config.
+   */
+  private TorbitConfig getTorbitConfig(CmsWorkOrderSimpleBase wo, String logKey) {
+    CmsCISimple torbit = service(wo, SERVICE_TYPE_TORBIT);
+    if (torbit != null) {
+      if (TORBIT_SERVICE_CLASS.equals(torbit.getCiClassName())) {
+        Map<String, String> attributes = torbit.getCiAttributes();
+        if (attributes.containsKey(ATTRIBUTE_ENDPOINT)
+            && attributes.containsKey(ATTRIBUTE_AUTH_KEY)
+            && attributes.containsKey(ATTRIBUTE_USER)) {
+          return TorbitConfig.create(
+              attributes.get(ATTRIBUTE_ENDPOINT),
+              attributes.get(ATTRIBUTE_USER),
+              attributes.get(ATTRIBUTE_AUTH_KEY),
+              Integer.parseInt(attributes.get(ATTRIBUTE_GROUP_ID)),
+              attributes.get(ATTRIBUTE_GSLB_BASE_DOMAIN));
         }
+      }
+      logger.info(
+          logKey + "Work/action order does not have required elements for torbit gdns service!");
+    } else {
+      logger.info(logKey + "Torbit service not found in work/action order!");
+    }
+    return null;
+  }
+
+  /**
+   * Returns the dns cloud service config from the work/action order.
+   *
+   * @param wo wo action order/ work order object
+   * @return dns config.
+   */
+  private InfobloxConfig getInfobloxConfig(CmsWorkOrderSimpleBase wo) {
+    CmsCISimple dns = dnsService(wo);
+    if (dns != null) {
+      Map<String, String> attributes = dns.getCiAttributes();
+      String host = attributes.get(ATTRIBUTE_DNS_HOST);
+      String user = attributes.get(ATTRIBUTE_DNS_USER_NAME);
+      String pwd = attributes.get(ATTRIBUTE_DNS_PASSWORD);
+      String zone = attributes.get(ATTRIBUTE_DNS_ZONE);
+      if (isNotBlank(host) && isNotBlank(user)) {
+        return InfobloxConfig.create(host, user, pwd, zone);
       }
     }
     return null;
@@ -1139,7 +1196,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
                 int ecvPort = Integer.parseInt(config[config.length - 1]);
                 String healthConfig = ecvMap.get(ecvPort);
                 if (healthConfig != null) {
-                  if ((protocol.equals("http"))) {
+                  if ("http".equalsIgnoreCase(protocol)) {
                     String path = healthConfig.substring(healthConfig.indexOf(" ") + 1);
                     logger.info(
                         logKey
@@ -1226,33 +1283,6 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return false;
   }
 
-  private TorbitConfig getTorbitConfig(CmsWorkOrderSimpleBase wo, String logKey) {
-    Map<String, Map<String, CmsCISimple>> services = wo.getServices();
-    if (services != null && services.containsKey(SERVICE_TYPE_TORBIT)) {
-      Map<String, CmsCISimple> gdnsService = services.get(SERVICE_TYPE_TORBIT);
-      CmsCISimple gdns;
-      if ((gdns = gdnsService.get(wo.getCloud().getCiName())) != null) {
-        if (TORBIT_SERVICE_CLASS.equals(gdns.getCiClassName())) {
-          Map<String, String> attributes = gdns.getCiAttributes();
-          if (attributes.containsKey(ATTRIBUTE_ENDPOINT)
-              && attributes.containsKey(ATTRIBUTE_AUTH_KEY)
-              && attributes.containsKey(ATTRIBUTE_USER)) {
-            return TorbitConfig.create(
-                attributes.get(ATTRIBUTE_ENDPOINT),
-                attributes.get(ATTRIBUTE_USER),
-                attributes.get(ATTRIBUTE_AUTH_KEY),
-                Integer.parseInt(attributes.get(ATTRIBUTE_GROUP_ID)),
-                attributes.get(ATTRIBUTE_GSLB_BASE_DOMAIN));
-          }
-        }
-      }
-      logger.info(logKey + "workorder does not have required elements - torbit gdns service");
-    } else {
-      logger.info(logKey + "torbit service not found in workorder");
-    }
-    return null;
-  }
-
   /**
    * Checks if the action order is torbit GSLB type.
    *
@@ -1277,19 +1307,40 @@ public class FqdnExecutor implements ComponentWoExecutor {
     } else return distributionMap.get("proximity");
   }
 
+  /**
+   * Returns the cloud service object of the given type.
+   *
+   * @param wo action order/ work order object
+   * @param serviceType cloud service type.
+   * @return {@link CmsCISimple}
+   */
+  @SuppressWarnings("unchecked")
   private CmsCISimple service(CmsWorkOrderSimpleBase wo, String serviceType) {
     CmsCISimple service = null;
-    Map<String, CmsCISimple> services = (Map<String, CmsCISimple>) wo.getServices().get(serviceType);
+    Map<String, CmsCISimple> services =
+        (Map<String, CmsCISimple>) wo.getServices().get(serviceType);
     if (services != null) {
       service = services.get(wo.getCloud().getCiName());
     }
     return service;
   }
 
+  /**
+   * Returns the <b>dns</b> cloud service.
+   *
+   * @param wo action order/ work order object
+   * @return {@link CmsCISimple}
+   */
   private CmsCISimple dnsService(CmsWorkOrderSimpleBase wo) {
     return service(wo, SERVICE_TYPE_DNS);
   }
 
+  /**
+   * Returns the <b>gdns</b> cloud service.
+   *
+   * @param wo action order/ work order object
+   * @return {@link CmsCISimple}
+   */
   private CmsCISimple gdnsService(CmsWorkOrderSimpleBase wo) {
     return service(wo, SERVICE_TYPE_GDNS);
   }
@@ -1360,8 +1411,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
       Map<String, String> fqdnAttrs = ao.getCi().getCiAttributes();
       context.shortAliases = getShortAliases(fqdnAttrs);
       context.fullAliases = getFullAliases(fqdnAttrs);
-    }
-    else {
+    } else {
       throw new RuntimeException("glb value could not be obtained from gslb_map attribute");
     }
     return context;
