@@ -66,6 +66,11 @@ public class BomRfcBulkProcessor {
 	private Gson gson = new Gson();
 	private BomEnvManager envManager;
 
+	//Compares bom cis by the numbers in their ci_name. Essentially sorts them by "edge numbers" like *-1, *-2 etc
+	public static Comparator<CmsCI> bomCiComparatorByName = Comparator.comparing(bomCi
+			-> Long.valueOf(bomCi.getCiName().replaceAll("[^0-9]", "")));
+
+
 	public void setCmsUtil(CmsUtil cmsUtil) {
 		this.cmsUtil = cmsUtil;
 	}
@@ -1457,8 +1462,6 @@ public class BomRfcBulkProcessor {
 
 		Map<Long, Integer> deploymentOrder = getScaleDownDeploymentOrder(platformCi);
 		Map<Long, Long> bomToManifestMap = getBomToManifestMap(platformCi);
-		Comparator<CmsCI> bomCiComparatorByName = Comparator.comparing(bomCi
-				-> bomCi.getCiName().replaceAll("[^0-9]", ""));
 
 		List<CmsCI> cisInRfcs = new ArrayList<>();
 		for (String cloud : cloudToComputesMap.keySet()) {

@@ -9,6 +9,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 
 import static org.testng.Assert.*;
@@ -72,6 +73,42 @@ public class BomRfcBulkProcessorTest {
         } catch (Exception e){
             fail(); // fail if any other exception thrown
         }
+    }
+
+    @Test
+    public void testBomCiOrderComparator() {
+        ArrayList<CmsCI> bomCis = new ArrayList<>();
+        CmsCI ci_1 = new CmsCI();
+        CmsCI ci_2 = new CmsCI();
+        CmsCI ci_3 = new CmsCI();
+        CmsCI ci_4 = new CmsCI();
+        CmsCI ci_5 = new CmsCI();
+        CmsCI ci_6 = new CmsCI();
+        CmsCI ci_7 = new CmsCI();
+        ci_7.setCiName("compute-125389672-1");//order 0
+        ci_6.setCiName("compute-125389672-8");//order 1
+        ci_5.setCiName("compute-125389672-9");//order 2
+        ci_3.setCiName("compute-125389672-11");//order 3
+        ci_4.setCiName("compute-125389672-101");//order 5
+        ci_2.setCiName("compute-125389672-501");//order 6
+        ci_1.setCiName("compute-125389672-50");//order 4
+
+        bomCis.add(ci_1);
+        bomCis.add(ci_2);
+        bomCis.add(ci_3);
+        bomCis.add(ci_4);
+        bomCis.add(ci_5);
+        bomCis.add(ci_6);
+        bomCis.add(ci_7);
+        Collections.sort(bomCis, BomRfcBulkProcessor.bomCiComparatorByName);
+
+        assertEquals(bomCis.get(0).getCiName(), ci_7.getCiName());
+        assertEquals(bomCis.get(1).getCiName(), ci_6.getCiName());
+        assertEquals(bomCis.get(2).getCiName(), ci_5.getCiName());
+        assertEquals(bomCis.get(3).getCiName(), ci_3.getCiName());
+        assertEquals(bomCis.get(4).getCiName(), ci_1.getCiName());
+        assertEquals(bomCis.get(5).getCiName(), ci_4.getCiName());
+        assertEquals(bomCis.get(6).getCiName(), ci_2.getCiName());
     }
 
 }
