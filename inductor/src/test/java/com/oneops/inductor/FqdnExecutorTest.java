@@ -799,4 +799,18 @@ public class FqdnExecutorTest {
     wo.addPayLoadEntry("DependsOn", bomLb);
   }
 
+  @Test
+  public void failDeploymentWhenPTREnabled() {
+    CmsWorkOrderSimple wo = woWith2Clouds();
+    wo.getRfcCi().addCiAttribute("ptr_enabled", "true");
+    wo.getRfcCi().setRfcAction("add");
+    Response response = fqdnExecutor.execute(wo, "/tmp");
+    assertThat(response.getResult(), is(Result.FAILED));
+
+    wo = woWith2Clouds();
+    wo.getRfcCi().getCiAttributes().put("ptr_enabled", "false");
+    response = fqdnExecutor.execute(wo, "/tmp");
+    assertThat(response.getResult(), is(Result.SUCCESS));
+  }
+
 }

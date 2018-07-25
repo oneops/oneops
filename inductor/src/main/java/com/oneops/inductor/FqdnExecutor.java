@@ -137,6 +137,10 @@ public class FqdnExecutor implements ComponentWoExecutor {
   public Response execute(CmsWorkOrderSimple wo, String dataDir) {
     String logKey = woHelper.getLogKey(wo);
     if (isFqdnInstance(wo) && isLocalWo(wo) && isGdnsEnabled(wo) && isTorbitServiceType(wo)) {
+      if (isPTREnabled(wo)) {
+        woHelper.failWo(wo, logKey, "Fqdn with PTR is not currently supported for Torbit service_type", null);
+        return woHelper.formResponse(wo, logKey);
+      }
       executeInternal(
           wo,
           logKey,
@@ -625,9 +629,9 @@ public class FqdnExecutor implements ComponentWoExecutor {
    * @param ao action order object
    * @return <code>true</code> if the pointer record is enabled.
    */
-  private boolean isPTREnabled(CmsActionOrderSimple ao) {
+  private boolean isPTREnabled(CmsWorkOrderSimpleBase ao) {
     boolean ptrEnabled = false;
-    Map<String, String> fqdnAttrs = ao.getCi().getCiAttributes();
+    Map<String, String> fqdnAttrs = ao.getCiAttributes();
     String ptrAttr = fqdnAttrs.get("ptr_enabled");
     if ("true".equalsIgnoreCase(ptrAttr)) {
       ptrEnabled = true;
