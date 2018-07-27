@@ -1242,7 +1242,7 @@ CREATE UNIQUE INDEX cm_proc_exec_idx
 
 
 CREATE INDEX dj_release_state_id_idx
-  ON dj_releases
+  ON kloopzcm.dj_releases
   USING btree
   (release_state_id)
   WHERE release_state_id = 100;
