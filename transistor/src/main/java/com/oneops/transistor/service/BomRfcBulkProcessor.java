@@ -18,7 +18,6 @@
 package com.oneops.transistor.service;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
@@ -42,7 +41,7 @@ import java.util.stream.Collectors;
 import static com.oneops.cms.util.CmsConstants.*;
 
 public class BomRfcBulkProcessor {
-	private static final int MIN_COMPUTES_BEFORE_AUTO_SCALE_DOWN = 2;
+	static final int MIN_COMPUTES_SCALE = 2;
 	private static Logger logger = Logger.getLogger(BomRfcBulkProcessor.class);
 
     private static final Map<String, Integer> priorityMap = new HashMap<>();
@@ -1526,10 +1525,10 @@ public class BomRfcBulkProcessor {
 		return deployment;
 	}
 
-	private boolean hasSufficientComputes(Map<String, List<CmsCI>> computesWithClouds, int scaleDownBy) {
+	boolean hasSufficientComputes(Map<String, List<CmsCI>> computesWithClouds, int scaleDownBy) {
 		for (String cloud : computesWithClouds.keySet()) {
 			List<CmsCI> computes = computesWithClouds.get(cloud);
-			if (computes.size() - scaleDownBy < MIN_COMPUTES_BEFORE_AUTO_SCALE_DOWN) {
+			if (computes.size() - scaleDownBy < MIN_COMPUTES_SCALE) {
 				return false;
 			}
 		}
@@ -1544,7 +1543,7 @@ public class BomRfcBulkProcessor {
 				CmsCIRelationAttribute currentScale = rel.getAttribute("current");
 				if (currentScale != null) {
 					int currentValue = Integer.valueOf(currentScale.getDfValue());
-					if (currentValue > MIN_COMPUTES_BEFORE_AUTO_SCALE_DOWN) {
+					if (currentValue - scaleDownBy >= MIN_COMPUTES_SCALE) {
 						int newValue = currentValue - scaleDownBy;
 						currentScale.setDfValue(newValue + "");
 						currentScale.setDjValue(newValue + "");

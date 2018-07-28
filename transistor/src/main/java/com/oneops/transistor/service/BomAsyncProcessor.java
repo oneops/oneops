@@ -152,7 +152,8 @@ public class BomAsyncProcessor {
                     + " seconds. bomGenerationInfo=" + gson.toJson(bomGenerationInfo);
         } catch (Exception e) {
             logger.error("Exception in scale down ", e);
-            envMsg = EnvSemaphore.BOM_ERROR + e.getMessage();
+            //not setting error message as comment for next time it should not block user from doing regular deployment
+            envMsg = envCi.getComments();
             throw new TransistorException(CmsError.TRANSISTOR_BOM_GENERATION_FAILED, envMsg);
         } finally {
             envSemaphore.unlockEnv(envCi.getCiId(), envMsg, processId);
