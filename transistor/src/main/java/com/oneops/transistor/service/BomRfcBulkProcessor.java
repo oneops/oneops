@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 import static com.oneops.cms.util.CmsConstants.*;
 
 public class BomRfcBulkProcessor {
+	private static final int MIN_COMPUTES_IN_CLOUD = 2;
 	private static Logger logger = Logger.getLogger(BomRfcBulkProcessor.class);
 
     private static final Map<String, Integer> priorityMap = new HashMap<>();
@@ -1455,6 +1456,9 @@ public class BomRfcBulkProcessor {
 			logger.info("scale is not even currently, rejecting scale down");
 			return null;
 		}
+		if (! hasSufficientComputes(cloudToComputesMap)) {
+			logger.info("1 or more clouds has less than minimum computes, rejecting scale down");
+		}
 		String bomNsPath = env.getNsPath() + "/" + env.getCiName() + "/bom";
 		//TODO: cancel failed deployment
 		envManager.discardEnvBom(env.getCiId());
@@ -1518,6 +1522,16 @@ public class BomRfcBulkProcessor {
 		return deployment;
 	}
 
+	private boolean hasSufficientComputes(Map<String, List<CmsCI>> computesWithClouds) {
+		for (String cloud : computesWithClouds.keySet()) {
+			List<CmsCI> computes = computesWithClouds.get(cloud);
+			if (computes.size() < MIN_COMPUTES_IN_CLOUD) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	private void reduceScaleNumber(CmsCI platformCi, List<CmsCIRelation> dependsOnRelations, int scaleDownBy) {
 		boolean scaleNumberUpdated = false;
 		for (CmsCIRelation rel : dependsOnRelations) {
@@ -1527,7 +1541,7 @@ public class BomRfcBulkProcessor {
 				if (currentScale != null) {
 					int currentValue = Integer.valueOf(currentScale.getDfValue());
 					if (currentValue > 2) {
-						int newValue = currentValue - 1;
+						int newValue = currentValue - scaleDownBy;
 						currentScale.setDfValue(newValue + "");
 						currentScale.setDjValue(newValue + "");
 						cmProcessor.updateRelation(rel);
