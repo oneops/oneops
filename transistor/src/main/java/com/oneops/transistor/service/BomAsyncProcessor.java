@@ -132,6 +132,10 @@ public class BomAsyncProcessor {
     public CmsDeployment scaleDown(long platformId, int scaleDownBy, boolean ensureEvenScale, String userId) {
         CmsCI platformCi = cmProcessor.getCiById(platformId);
         List<CmsCIRelation> rels = cmProcessor.getToCIRelations(platformId, "manifest.ComposedOf", null);
+        if (rels == null || rels.size() == 0) {
+            throw new TransistorException(CmsError.TRANSISTOR_BOM_GENERATION_FAILED, "Platform does not exist. id :"
+                    + platformId);
+        }
         CmsCI envCi = rels.get(0).getFromCi();
         String envMsg = null;
 
@@ -148,7 +152,8 @@ public class BomAsyncProcessor {
                     + " seconds. bomGenerationInfo=" + gson.toJson(bomGenerationInfo);
         } catch (Exception e) {
             logger.error("Exception in scale down ", e);
-            envMsg = EnvSemaphore.BOM_ERROR + e.getMessage();
+            //not setting error message as comment for next time it should not block user from doing regular deployment
+            envMsg = envCi.getComments();
             throw new TransistorException(CmsError.TRANSISTOR_BOM_GENERATION_FAILED, envMsg);
         } finally {
             envSemaphore.unlockEnv(envCi.getCiId(), envMsg, processId);
