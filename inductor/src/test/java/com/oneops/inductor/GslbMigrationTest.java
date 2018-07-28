@@ -43,10 +43,21 @@ public class GslbMigrationTest {
   @Test
   @Ignore
   public void migration() {
+    execMigrate("/gslb-migration.json");
+  }
+
+  @Test
+  @Ignore
+  public void rollback() {
+    execMigrate("/gslb-rollback.json");
+  }
+
+  /** Invoke gslb migrate action */
+  private void execMigrate(String actionOrderPath) {
     CmsActionOrderSimple ao =
         gson.fromJson(
-            ResourceUtils.readResourceAsString("/gslb-migration.json"), CmsActionOrderSimple.class);
-    Response res = fqdnExec.execute(ao, System.getProperty("tmp.dir"));
+            ResourceUtils.readResourceAsString(actionOrderPath), CmsActionOrderSimple.class);
+    Response res = fqdnExec.execute(ao, System.getProperty("java.io.tmpdir"));
     assertEquals(res.getResult(), Result.SUCCESS);
     assertNotNull(ao.resultCi);
     assertEquals(OpsActionState.complete, ao.getActionState());

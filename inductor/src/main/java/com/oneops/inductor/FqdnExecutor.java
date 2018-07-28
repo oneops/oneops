@@ -38,6 +38,7 @@ import com.oneops.infoblox.model.zone.Delegate;
 import com.oneops.infoblox.model.zone.ZoneDelegate;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -75,7 +76,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
   static final String ATTRIBUTE_SERVICE_TYPE = "service_type";
 
   private static final String TORBIT_SERVICE_CLASS = "cloud.service.oneops.1.Torbit";
-  private static final String NETSCALAR_SERVICE_CLASS = "cloud.service.Netscaler";
+  private static final String NETSCALER_SERVICE_CLASS = "cloud.service.Netscaler";
   private static final String PAYLOAD_ENVIRONMENT = "Environment";
 
   public static final String LB_PAYLOAD = "lb";
@@ -138,7 +139,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
     String logKey = woHelper.getLogKey(wo);
     if (isFqdnInstance(wo) && isLocalWo(wo) && isGdnsEnabled(wo) && isTorbitServiceType(wo)) {
       if (isPTREnabled(wo)) {
-        woHelper.failWo(wo, logKey, "Fqdn with PTR is not currently supported for Torbit service_type", null);
+        woHelper.failWo(
+            wo, logKey, "Fqdn with PTR is not currently supported for Torbit service_type", null);
         return woHelper.formResponse(wo, logKey);
       }
       executeInternal(
@@ -197,13 +199,13 @@ public class FqdnExecutor implements ComponentWoExecutor {
   }
 
   /**
-   * FQDN and GSLB (Torbit/Netscalar) action order execution handler. The action order flow for Fqdn
+   * FQDN and GSLB (Torbit/Netscaler) action order execution handler. The action order flow for Fqdn
    * and GSLB is as follows,
    *
    * <p>1. If the action order type is torbit GSLB, the FQDN instance is already deployed as torbit
    * and just execute the torbit GSLB status action regardless of action name. The flow ends here.
    *
-   * <p>2. If not (ie, Netscalar) and action is migrate, perform the GSLB migration.
+   * <p>2. If not (ie, Netscaler) and action is migrate, perform the GSLB migration.
    *
    * <p>3. If action is not migrate, just pass through and let chef execute those recipes.
    *
@@ -214,6 +216,11 @@ public class FqdnExecutor implements ComponentWoExecutor {
   @Override
   public Response execute(CmsActionOrderSimple ao, String dataDir) {
     String logKey = woHelper.getLogKey(ao);
+    if (isMigrateAction(ao)) {
+      // Handle gslb migrate/rollback action first.
+      return performMigration(ao, dataDir, logKey);
+    }
+
     // Fqdn torbit service type.
     if (isTorbitGslb(ao)) {
       executeInternal(
@@ -229,12 +236,153 @@ public class FqdnExecutor implements ComponentWoExecutor {
       return woHelper.formResponse(ao, logKey);
     }
 
-    // Netscalar gslb migrate action.
-    if (isMigrateAction(ao)) {
-      return performMigration(ao, dataDir);
-    }
     // All non-migrate fqdn actions should go to chef recipes.
     return Response.getNotMatchingResponse();
+  }
+
+  /**
+   * Migration action handler method.
+   *
+   * @param ao action order
+   * @param dataDir inductor data directory
+   * @param logKey inductor log key.
+   * @return action order response.
+   */
+  private Response performMigration(CmsActionOrderSimple ao, String dataDir, String logKey) {
+    String arg = getMigrateArg(ao, logKey);
+    try {
+      String fileName = dataDir + "/" + ao.getRecordId() + ".json";
+      logger.info(logKey + "Inductor: " + InetAddress.getLocalHost().getHostAddress());
+      logger.info(logKey + "Migrate action order: " + fileName);
+      writeRequest(gsonPretty.toJson(ao), fileName);
+
+      switch (arg) {
+        case "torbit":
+          return migrateToTorbit(ao, dataDir, logKey);
+        case "netscaler":
+          return rollbackToNetscaler(ao, dataDir, logKey);
+        default:
+          throw new IllegalStateException(
+              "For GSLB migration, run the platform level migrate action!");
+      }
+    } catch (Exception ex) {
+      woHelper.failWo(ao, logKey, "Migrate to '" + arg + "'  action failed!", ex);
+      return woHelper.formResponse(ao, logKey);
+    }
+  }
+
+  /**
+   * GSLB rollback action execution.
+   *
+   * @param ao action order
+   * @param dataDir inductor data directory
+   * @param logKey inductor log key.
+   * @return action order response.
+   */
+  private Response rollbackToNetscaler(CmsActionOrderSimple ao, String dataDir, String logKey)
+      throws IOException {
+
+    logger.info(logKey + "<<<< Reverting the gslb to netscaler.");
+    String nsBaseDomain = gdnsBaseDomain(ao, logKey);
+    boolean gdnsEnabled = isGdnsEnabled(ao);
+    boolean stickiness = isStickinessEnabled(ao);
+    boolean primaryCloud = hasPrimaryCloud(ao);
+    boolean ptrEnabled = isPTREnabled(ao);
+    boolean newlyDeployedTorbit = isNewTorbitGslb(ao);
+
+    TorbitConfig tc = getTorbitConfig(ao, logKey);
+    InfobloxConfig ic = getInfobloxConfig(ao);
+    if (tc == null || ic == null) {
+      throw new IllegalStateException(
+          "Torbit/Infoblox config could not be obtained, Please check cloud service configuration.");
+    }
+    Context context = migrationContext(ao, ic);
+    String gslb = platformGslbDomain(context, nsBaseDomain);
+    String delegationConfig =
+        new String(Files.readAllBytes(Paths.get(DELEGATION_CONFIG_PATH)), UTF_8);
+    boolean revertibleGslb = isValidDomain(gslb, delegationConfig, logKey);
+
+    String gslbInfo =
+        String.format(
+            ", GSLB fqdn: %s, Revertible GSLB: %s, GSLB base domain: %s, GSLB enabled: %s, Primary Cloud: %s, PTR Enabled: %s, Newly Deployed Torbit: %s",
+            gslb,
+            revertibleGslb,
+            nsBaseDomain,
+            gdnsEnabled,
+            primaryCloud,
+            ptrEnabled,
+            newlyDeployedTorbit);
+    logger.info(logKey + gslbInfo);
+
+    /* Zone delegation infoblox client is used for removing zone delegation records and creating gslb -> torbit alias.*/
+    InfobloxClient zoneDelegIbaClient = initZoneDelegationClient(delegationConfig);
+    /* Cloud dns infoblox client is used for platform cname operations. */
+    InfobloxClient cloudDnsIbaClient = getCloudDNSClient(ic);
+
+    if (gdnsEnabled && !stickiness && !ptrEnabled && revertibleGslb && !newlyDeployedTorbit) {
+      if (primaryCloud) {
+        logger.info(logKey + "Starting the rollback to netscaler.");
+        List<String> aliases = new ArrayList<>(getAliasesWithDefault(context));
+
+        // 1. Revert gslb to netscaler by adding back delegations.
+        logger.info(logKey + "Check if CNAME exists for netscaler gslb: " + gslb);
+        List<CNAME> cname = zoneDelegIbaClient.getCNameRec(gslb);
+        logger.info(logKey + "Netscaler gslb CNAME response: " + cname);
+
+        if (!cname.isEmpty()) {
+          logger.info(logKey + "Netscaler gslb CNAME exists, deleting " + gslb);
+          List<String> delRes = zoneDelegIbaClient.deleteCNameRec(gslb);
+          logger.info(logKey + "Delete the gslb cname response: " + delRes);
+          if (delRes.size() != 1) {
+            throw new IllegalStateException(
+                "Can't delete gslb CNAME: " + gslb + ", aborting the rollback!!");
+          }
+        } else {
+          logger.info(logKey + "Netscaler gslb CNAME not exists.");
+        }
+
+        logger.info(logKey + "Checking netscaler zone delegations for gslb: " + gslb);
+        List<ZoneDelegate> currDZones = zoneDelegIbaClient.getDelegatedZones(gslb);
+        logger.info(logKey + "Zone delegation response " + currDZones);
+
+        if (currDZones.isEmpty()) {
+          List<Delegate> delegatesTo = getZoneDelegateRecords(delegationConfig);
+          logger.info(logKey + "Adding zone delegation records: " + delegatesTo);
+          ZoneDelegate delegatedZone =
+              zoneDelegIbaClient.createDelegatedZone(gslb, delegatesTo, 30);
+          logger.info(logKey + "Add delegation zone response: " + delegatedZone);
+
+          if (!hasValidDelegationRecords(delegatedZone, delegationConfig, logKey)) {
+            throw new IllegalStateException(
+                "Can't add zone delegation records for " + gslb + ", aborting the rollback!!");
+          }
+
+        } else {
+          // Zone delegation record already exists.
+          if (!hasValidDelegationRecords(currDZones.get(0), delegationConfig, logKey)) {
+            throw new IllegalStateException(
+                "Invalid zone delegation records found for " + gslb + ", aborting the rollback!!");
+          }
+        }
+
+        logger.info(logKey + "Reverting full, short and platform CNAME to netscaler gslb: " + gslb);
+        for (String alias : aliases) {
+          createOrModifyCName(alias, gslb, cloudDnsIbaClient, logKey);
+        }
+
+      } else {
+        logger.info(logKey + "Not a primary cloud. Skipping zone delegation and cname operations.");
+      }
+
+      // Now update the action order response.
+      updateGslbRollbackResult(ao, gslb, primaryCloud, logKey);
+      logger.info(logKey + "GSLB rollback completed successfully!!");
+      return woHelper.formResponse(ao, logKey);
+
+    } else {
+      woHelper.failWo(ao, logKey, "Not a migrated gslb, aborting the rollback!!" + gslbInfo, null);
+      return woHelper.formResponse(ao, logKey);
+    }
   }
 
   /**
@@ -242,140 +390,135 @@ public class FqdnExecutor implements ComponentWoExecutor {
    *
    * @param ao action order
    * @param dataDir inductor data directory
+   * @param logKey inductor log key.
    * @return action order response.
+   * @throws IOException if there is any error reading the migration config data.
    */
-  private Response performMigration(CmsActionOrderSimple ao, String dataDir) {
-    String logKey = woHelper.getLogKey(ao);
-    try {
+  private Response migrateToTorbit(CmsActionOrderSimple ao, String dataDir, String logKey)
+      throws IOException {
 
-      String fileName = dataDir + "/" + ao.getRecordId() + ".json";
-      logger.info(logKey + "Saving migrate action order to file " + fileName);
-      writeRequest(gsonPretty.toJson(ao), fileName);
+    logger.info(logKey + ">>>>> Migrating the gslb to torbit.");
+    boolean torbitEnabled = isTorbitGslb(ao);
+    if (torbitEnabled) {
+      // GSLB is already on torbit, either by creating a new one or by migrating from netscaler.
+      logger.warn(logKey + "GSLB is already on torbit. Skipping the migration!!");
+      return woHelper.formResponse(ao, logKey);
+    }
 
-      String baseDomain = gdnsBaseDomain(ao, logKey);
-      boolean gdnsEnabled = isGdnsEnabled(ao);
-      boolean torbitMigrate = isTorbitMigrate(ao, logKey);
-      boolean stickiness = isStickinessEnabled(ao);
-      boolean primaryCloud = hasPrimaryCloud(ao);
-      boolean ptrEnabled = isPTREnabled(ao);
+    String baseDomain = gdnsBaseDomain(ao, logKey);
+    boolean gdnsEnabled = isGdnsEnabled(ao);
+    boolean stickiness = isStickinessEnabled(ao);
+    boolean primaryCloud = hasPrimaryCloud(ao);
+    boolean ptrEnabled = isPTREnabled(ao);
 
-      TorbitConfig tc = getTorbitConfig(ao, logKey);
-      InfobloxConfig ic = getInfobloxConfig(ao);
-      if (tc == null || ic == null) {
-        throw new IllegalStateException(
-            "Torbit/Infoblox config could not be obtained, Please check cloud service configuration.");
+    TorbitConfig tc = getTorbitConfig(ao, logKey);
+    InfobloxConfig ic = getInfobloxConfig(ao);
+    if (tc == null || ic == null) {
+      throw new IllegalStateException(
+          "Torbit/Infoblox config could not be obtained, Please check cloud service configuration.");
+    }
+
+    Context context = migrationContext(ao, ic);
+    String gslb = platformGslbDomain(context, baseDomain);
+
+    String delegationConfig =
+        new String(Files.readAllBytes(Paths.get(DELEGATION_CONFIG_PATH)), UTF_8);
+    boolean migratableGslb = isValidDomain(gslb, delegationConfig, logKey);
+
+    String gslbInfo =
+        String.format(
+            "GSLB fqdn: %s, Migratable GSLB: %s, GSLB base domain: %s, GSLB enabled: %s, Primary Cloud: %s, PTR Enabled: %s",
+            gslb, migratableGslb, baseDomain, gdnsEnabled, primaryCloud, ptrEnabled);
+    logger.info(logKey + gslbInfo);
+
+    /* Zone delegation infoblox client is used for removing zone delegation records and creating gslb -> torbit alias.*/
+    InfobloxClient zoneDelegIbaClient = initZoneDelegationClient(delegationConfig);
+    /* Cloud dns infoblox client is used for platform cname operations. */
+    InfobloxClient cloudDnsIbaClient = getCloudDNSClient(ic);
+
+    if (gdnsEnabled && !stickiness && !ptrEnabled && migratableGslb) {
+
+      // Holds all newly updated entries.
+      Map<String, String> dnsEntries = new HashMap<>();
+
+      // 1. Create torbit MTD base regardless of cloud status.
+      logger.info(logKey + "The platform gslb domain is " + gslb);
+      logger.info(logKey + "Creating torbit MTD base (gdns)...");
+      GslbProvisionResponse res = gslbProvider.create(torbitGslbMigrationReq(ao, tc, ic, logKey));
+      String torbitGslb = res.getGlb();
+
+      if (res.getStatus() == Status.FAILED) {
+        woHelper.failWo(
+            ao, logKey, "Torbit MTD base creation failed, " + res.getFailureMessage(), null);
+        return woHelper.formResponse(ao, logKey);
       }
+      logger.info(logKey + "Created Torbit MTD base, " + res);
+      validateTorbitMtdBase(res, logKey);
 
-      Context context = migrationContext(ao, ic);
-      String gslb = platformGslbDomain(context, baseDomain);
+      if (primaryCloud) {
 
-      String delegationConfig =
-          new String(Files.readAllBytes(Paths.get(DELEGATION_CONFIG_PATH)), UTF_8);
-      boolean migratableGslb = isValidDomain(gslb, delegationConfig, logKey);
-
-      String gslbInfo =
-          String.format(
-              "GSLB fqdn: %s, Migratable GSLB: %s, GSLB base domain: %s, GSLB enabled: %s, Primary Cloud: %s, PTR Enabled: %s",
-              gslb, migratableGslb, baseDomain, gdnsEnabled, primaryCloud, ptrEnabled);
-      logger.info(logKey + gslbInfo);
-
-      /* Zone delegation infoblox client is used for removing zone delegation records and creating gslb -> torbit alias.*/
-      InfobloxClient zoneDelegIbaClient = initZoneDelegationClient(delegationConfig);
-      /* Cloud dns infoblox client is used for platform cname operations. */
-      InfobloxClient cloudDnsIbaClient = getCloudDNSClient(ic);
-
-      if (gdnsEnabled && torbitMigrate && !stickiness && !ptrEnabled && migratableGslb) {
-
-        logger.info(logKey + "Starting to migrate netscalar gslb to torbit.");
+        logger.info(logKey + "Starting to migrate netscaler gslb to torbit.");
         List<String> aliases = new ArrayList<>(getAliasesWithDefault(context));
         validateAliases(aliases, gslb);
 
-        // Holds all newly updated entries.
-        Map<String, String> dnsEntries = new HashMap<>();
-
-        // 1. Creating torbit MTD base.
-        logger.info(logKey + "The platform gslb domain is " + gslb);
-        logger.info(logKey + "Creating torbit MTD base (gdns)...");
-        GslbProvisionResponse res = gslbProvider.create(torbitGslbMigrationReq(ao, tc, ic, logKey));
-        String torbitGslb = res.getGlb();
-
-        if (res.getStatus() == Status.FAILED) {
-          logger.error(logKey + "Torbit MTD base creation failed, " + res.getFailureMessage());
-          woHelper.failWo(ao, logKey, res.getFailureMessage(), null);
-          return woHelper.formResponse(ao, logKey);
+        logger.info(logKey + "Modifying full, short and platform cname to torbit gslb: " + gslb);
+        for (String alias : aliases) {
+          createOrModifyCName(alias, torbitGslb, cloudDnsIbaClient, logKey);
+          dnsEntries.put(alias, torbitGslb);
         }
-        logger.info(logKey + "Created Torbit MTD base, " + res);
-        validateTorbitMtdBase(res, logKey);
 
-        if (primaryCloud) {
-          try {
-            logger.info(
-                logKey + "Modifying full, short and platform cname to torbit gslb: " + gslb);
-            for (String alias : aliases) {
-              createOrModifyCName(alias, torbitGslb, cloudDnsIbaClient, logKey);
-              dnsEntries.put(alias, torbitGslb);
-            }
+        // Removing zone delegation record.
+        logger.info(logKey + "Deleting zone delegation record for " + gslb);
+        List<ZoneDelegate> currDZones = zoneDelegIbaClient.getDelegatedZones(gslb);
+        logger.info(logKey + "Zone delegation response " + currDZones);
 
-            // Removing zone delegation record.
-            logger.info(logKey + "Deleting zone delegation record for " + gslb);
-            List<ZoneDelegate> currDZones = zoneDelegIbaClient.getDelegatedZones(gslb);
-            logger.info(logKey + "Zone delegation response " + currDZones);
-
-            if (!currDZones.isEmpty()) {
-              // Check for valid zone delegation records.
-              if (hasValidDelegationRecords(currDZones.get(0), delegationConfig, logKey)) {
-                List<String> zdDelRes = zoneDelegIbaClient.deleteDelegatedZone(gslb);
-                logger.info(logKey + "Zone delegation delete response " + zdDelRes);
-              } else {
-                throw new IllegalStateException(
-                    "Found invalid zone delegation records for " + gslb);
-              }
-            }
-            logger.info(logKey + "Zone delegation records deleted for " + gslb);
-
-          } catch (IOException ioe) {
-            logger.error(logKey + "Zone delegation operation error for " + gslb, ioe);
-            woHelper.failWo(ao, logKey, "Zone delegation operation error for  " + gslb, ioe);
-            return woHelper.formResponse(ao, logKey);
+        if (!currDZones.isEmpty()) {
+          // Check for valid zone delegation records.
+          if (hasValidDelegationRecords(currDZones.get(0), delegationConfig, logKey)) {
+            List<String> zdDelRes = zoneDelegIbaClient.deleteDelegatedZone(gslb);
+            logger.info(logKey + "Zone delegation delete response " + zdDelRes);
+          } else {
+            throw new IllegalStateException("Found invalid zone delegation records for " + gslb);
           }
-
-          // Adding cname record for gslb to torbit
-          createOrModifyCName(gslb, torbitGslb, zoneDelegIbaClient, logKey);
-          dnsEntries.put(gslb, torbitGslb);
-
-        } else {
-          logger.info(
-              logKey + "Not a primary cloud. Skipping zone delegation and cname operations.");
         }
+        logger.info(logKey + "Zone delegation records deleted for " + gslb);
 
-        // Now update the action order response.
-        updateGslbMigrateResult(ao, gslb, dnsEntries, primaryCloud, res, logKey);
-        logger.info(logKey + "GSLB Migration completed successfully!!");
-        return woHelper.formResponse(ao, logKey);
+        // Adding cname record for gslb to torbit
+        createOrModifyCName(gslb, torbitGslb, zoneDelegIbaClient, logKey);
+        dnsEntries.put(gslb, torbitGslb);
 
       } else {
-        // Unsupported gslb domain.
-        String errMsg = "Doesn't meet the GSLB migration prerequisites, " + gslbInfo;
-        logger.error(logKey + errMsg);
-        woHelper.failWo(ao, logKey, errMsg, null);
-        return woHelper.formResponse(ao, logKey);
+        logger.info(logKey + "Not a primary cloud. Skipping zone delegation and cname operations.");
       }
-    } catch (Exception ex) {
-      logger.error(logKey + "GSLB migration failed!", ex);
-      woHelper.failWo(ao, logKey, "GSLB migration failed!.", ex);
+
+      // Now update the action order response.
+      updateGslbMigrateResult(ao, gslb, dnsEntries, primaryCloud, res, logKey);
+      logger.info(logKey + "GSLB Migration completed successfully!!");
+      return woHelper.formResponse(ao, logKey);
+
+    } else {
+      // Unsupported gslb domain.
+      woHelper.failWo(
+          ao, logKey, "Doesn't meet the GSLB migration prerequisites, " + gslbInfo, null);
       return woHelper.formResponse(ao, logKey);
     }
   }
 
-  /** Torbit MTD host health check validation. */
+  /**
+   * Torbit MTD host health check validation. Will remove this naive logic once torbit provide a
+   * proper MTD base health status API.
+   */
   private void validateTorbitMtdBase(GslbProvisionResponse aliases, String logKey) {
-    // ToDo - Add Mtd health check status once torbit provides the API.
-    logger.warn(logKey + "MTD base health status check is not supported!");
+    logger.warn(logKey + "MTD base health status check is not supported! Sleeping...");
+    try {
+      Thread.sleep(30_000);
+    } catch (InterruptedException ignore) {
+    }
   }
 
   /** GSLB migration validation for aliases. */
   private void validateAliases(List<String> aliases, String gslb) {
-    if (aliases == null || aliases.size() < 1) {
+    if (aliases.size() < 1) {
       throw new IllegalStateException(
           "The current GSLB config for this platform seems wrong. Can't find any GSLB aliases for "
               + gslb);
@@ -393,20 +536,9 @@ public class FqdnExecutor implements ComponentWoExecutor {
    */
   private boolean hasValidDelegationRecords(
       ZoneDelegate zd, String delegationConfig, String logKey) {
-
     boolean validDelegations = true;
-    JsonObject jo = (JsonObject) gson.fromJson(delegationConfig, JsonElement.class);
-    JsonObject configObject = jo.getAsJsonArray("delegation").get(0).getAsJsonObject();
-
     List<Delegate> actualDelegates = zd.delegateTo();
-    List<Delegate> allowedDelegates = new ArrayList<>();
-    JsonArray asJsonArray = configObject.getAsJsonArray("delegate_to");
-    for (JsonElement jsonElement : asJsonArray) {
-      JsonObject dto = jsonElement.getAsJsonObject();
-      String address = dto.get("address").getAsString();
-      String name = dto.get("name").getAsString();
-      allowedDelegates.add(Delegate.of(address, name));
-    }
+    List<Delegate> allowedDelegates = getZoneDelegateRecords(delegationConfig);
 
     logger.info(logKey + "Allowed zone delegates are, " + allowedDelegates);
     logger.info(logKey + "Actual zone delegates are, " + actualDelegates);
@@ -418,6 +550,27 @@ public class FqdnExecutor implements ComponentWoExecutor {
       }
     }
     return validDelegations;
+  }
+
+  /**
+   * Get the zone delegation records from config json.
+   *
+   * @param delegationConfig delegation config json
+   * @return list of zone delegation records.
+   */
+  private List<Delegate> getZoneDelegateRecords(String delegationConfig) {
+    JsonObject jo = (JsonObject) gson.fromJson(delegationConfig, JsonElement.class);
+    JsonObject configObject = jo.getAsJsonArray("delegation").get(0).getAsJsonObject();
+
+    List<Delegate> allowedDelegates = new ArrayList<>();
+    JsonArray asJsonArray = configObject.getAsJsonArray("delegate_to");
+    for (JsonElement jsonElement : asJsonArray) {
+      JsonObject dto = jsonElement.getAsJsonObject();
+      String address = dto.get("address").getAsString();
+      String name = dto.get("name").getAsString();
+      allowedDelegates.add(Delegate.of(address, name));
+    }
+    return allowedDelegates;
   }
 
   /**
@@ -472,6 +625,38 @@ public class FqdnExecutor implements ComponentWoExecutor {
         woHelper.failWo(ao, logKey, res.getFailureMessage(), null);
       }
     }
+  }
+
+  /**
+   * Rollback the result ci data.
+   *
+   * @param ao original action order.
+   * @param gslb platform gslb name
+   * @param primaryCloud <code>true</code> if it's a primary cloud.
+   * @param logKey inductor log key.
+   */
+  private void updateGslbRollbackResult(
+      CmsActionOrderSimple ao, String gslb, boolean primaryCloud, String logKey) {
+
+    logger.info(logKey + "Updating the action order results after rollback.");
+    boolean torbitGslb = isTorbitGslb(ao);
+    Map<String, String> ciAtrrs = ao.getCiAttributes();
+    Map<String, String> resultAttrs = woHelper.getResultCiAttributes(ao);
+
+    // Copy everything from ci attributes first
+    resultAttrs.putAll(ciAtrrs);
+
+    // If its' torbit, copy back legacy entries and remove torbit specific entries.
+    if (torbitGslb) {
+      Type type = new TypeToken<Map<String, Object>>() {}.getType();
+      Map<String, Object> legacyEntries = gson.fromJson(ciAtrrs.get("legacy_entries"), type);
+      resultAttrs.put("entries", gson.toJson(legacyEntries));
+      resultAttrs.remove("gslb_map");
+      resultAttrs.remove("legacy_gslb");
+      resultAttrs.remove("legacy_entries");
+      resultAttrs.put("service_type", "netscaler");
+    }
+    logger.info(logKey + "Rollback result ci attributes: " + resultAttrs);
   }
 
   /**
@@ -535,7 +720,6 @@ public class FqdnExecutor implements ComponentWoExecutor {
 
     JsonObject jo = (JsonObject) gson.fromJson(delegationConfig, JsonElement.class);
     JsonObject configObject = jo.getAsJsonArray("delegation").get(0).getAsJsonObject();
-
     String migrateBaseDomain = configObject.get("base_domain").getAsString();
 
     List<String> excludedDomains = new ArrayList<>();
@@ -543,8 +727,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
     for (JsonElement jsonElement : asJsonArray) {
       excludedDomains.add(jsonElement.getAsString());
     }
-    logger.info(logKey + "Migration config, base domain: " + migrateBaseDomain);
-    logger.info(logKey + "Migration config, excluded domains: " + excludedDomains);
+    logger.info(logKey + "ZoneDelegation, base domain: " + migrateBaseDomain);
+    logger.info(logKey + "ZoneDelegation, excluded domains: " + excludedDomains);
 
     boolean nestedDomain = false;
     for (String excludedDomain : excludedDomains) {
@@ -629,6 +813,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
    * @param ao action order object
    * @return <code>true</code> if the pointer record is enabled.
    */
+  @SuppressWarnings("unchecked")
   private boolean isPTREnabled(CmsWorkOrderSimpleBase ao) {
     boolean ptrEnabled = false;
     Map<String, String> fqdnAttrs = ao.getCiAttributes();
@@ -650,29 +835,69 @@ public class FqdnExecutor implements ComponentWoExecutor {
   }
 
   /**
-   * Checks if the migration arg is torbit (ie, from netscalar to torbit).
+   * Returns the migration action argument passed by the user
    *
    * @param ao action order.
-   * @param logKey inductor log key.
-   * @return <code>true</code> if the arg list is <b>torbit</b>
+   * @param logKey inductor log key
+   * @return migrate action arg or <code>null</code> if there is no arg.
    */
-  private boolean isTorbitMigrate(CmsActionOrderSimple ao, String logKey) {
-    boolean migrate = false;
+  private String getMigrateArg(CmsActionOrderSimple ao, String logKey) {
+    String arg = null;
     try {
       JsonObject root = (JsonObject) gson.fromJson(ao.getArglist(), JsonElement.class);
       // This is a platform level migrate action.
       if (root.has("migrate")) {
-        String arg = root.get("migrate").getAsString();
-        logger.info(logKey + "Fqdn migrate action arg is, " + arg);
-        migrate = "torbit".equalsIgnoreCase(arg);
+        arg = root.get("migrate").getAsString();
       }
     } catch (Exception ignore) {
     }
-    return migrate;
+    arg = (arg != null) ? arg.trim().toLowerCase() : null;
+    logger.info(logKey + "Fqdn migrate action argument: " + arg);
+    return arg;
   }
 
   /**
-   * Builds new torbit GSLB request for migrating the netscalar gslb fqdn. This request should
+   * Checks if the action order is of torbit GSLB type, either newly deployed or migrated one.
+   *
+   * @param ao action order
+   * @return <code>true</code> if it's a local action order , fqdn instance type and service type
+   *     attribute is <b>torbit</b>.
+   */
+  private boolean isTorbitGslb(CmsActionOrderSimple ao) {
+    CmsCISimple ci = ao.getCi();
+    Map<String, String> attributes = ci.getCiAttributes();
+    return isFqdnInstance(ao)
+        && isLocalWo(ao)
+        && attributes.containsKey(ATTRIBUTE_SERVICE_TYPE)
+        && SERVICE_TYPE_TORBIT.equals(attributes.get(ATTRIBUTE_SERVICE_TYPE))
+        && attributes.containsKey("gslb_map");
+  }
+
+  /**
+   * Checks if the action order is of newly deployed torbit GSLB type. For a newly deployed GSLB,
+   * the legacy entries would be blank.
+   *
+   * @param ao action order
+   * @return <code>true</code> if it's newly deployed torbit action order.
+   */
+  private boolean isNewTorbitGslb(CmsActionOrderSimple ao) {
+    CmsCISimple ci = ao.getCi();
+    Map<String, String> attr = ci.getCiAttributes();
+
+    String gslbMap = attr.getOrDefault("gslb_map", "");
+    String legacyGslb = attr.getOrDefault("legacy_gslb", "").trim();
+    String legacyEntries = attr.getOrDefault("legacy_entries", "").trim();
+    String serviceType = attr.getOrDefault(ATTRIBUTE_SERVICE_TYPE, "");
+
+    return isFqdnInstance(ao)
+        && SERVICE_TYPE_TORBIT.equalsIgnoreCase(serviceType)
+        && !gslbMap.isEmpty()
+        && legacyGslb.isEmpty()
+        && legacyEntries.isEmpty();
+  }
+
+  /**
+   * Builds new torbit GSLB request for migrating the netscaler gslb fqdn. This request should
    * create only the new torbit gslb A record.
    *
    * @param ao action order request
@@ -717,7 +942,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return String.join(".", ctx.platform, ctx.subdomain, gdnsBaseDomain).toLowerCase();
   }
   /**
-   * Returns the netscalar gdns base domain.
+   * Returns the netscaler gdns base domain.
    *
    * @param ao action order.
    * @param logKey inductor log key
@@ -727,7 +952,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     String domain = null;
     CmsCISimple gdns = gdnsService(ao);
     if (gdns != null) {
-      if (NETSCALAR_SERVICE_CLASS.equals(gdns.getCiClassName())) {
+      if (NETSCALER_SERVICE_CLASS.equals(gdns.getCiClassName())) {
         Map<String, String> attributes = gdns.getCiAttributes();
         domain = attributes.get(ATTRIBUTE_GSLB_BASE_DOMAIN);
       }
@@ -1003,6 +1228,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return list;
   }
 
+  @SuppressWarnings("unchecked")
   private List<DcARecord> getDcDnsEntries(
       Context context, CmsWorkOrderSimpleBase wo, String logKey) {
     List<DcARecord> dcARecords = new ArrayList<>();
@@ -1285,23 +1511,6 @@ public class FqdnExecutor implements ComponentWoExecutor {
       }
     }
     return false;
-  }
-
-  /**
-   * Checks if the action order is torbit GSLB type.
-   *
-   * @param ao action order
-   * @return <code>true</code> if it's a local action order , fqdn instance type and service type
-   *     attribute is <b>torbit</b>.
-   */
-  private boolean isTorbitGslb(CmsActionOrderSimple ao) {
-    CmsCISimple ci = ao.getCi();
-    Map<String, String> attributes = ci.getCiAttributes();
-    return isFqdnInstance(ao)
-        && isLocalWo(ao)
-        && attributes.containsKey(ATTRIBUTE_SERVICE_TYPE)
-        && SERVICE_TYPE_TORBIT.equals(attributes.get(ATTRIBUTE_SERVICE_TYPE))
-        && attributes.containsKey("gslb_map");
   }
 
   private Distribution distribution(Map<String, String> fqdnAttributes) {
