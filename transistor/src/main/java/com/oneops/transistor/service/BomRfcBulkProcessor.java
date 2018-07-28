@@ -1544,7 +1544,7 @@ public class BomRfcBulkProcessor {
 				CmsCIRelationAttribute currentScale = rel.getAttribute("current");
 				if (currentScale != null) {
 					int currentValue = Integer.valueOf(currentScale.getDfValue());
-					if (currentValue > 2) {
+					if (currentValue > MIN_COMPUTES_BEFORE_AUTO_SCALE_DOWN) {
 						int newValue = currentValue - scaleDownBy;
 						currentScale.setDfValue(newValue + "");
 						currentScale.setDjValue(newValue + "");
