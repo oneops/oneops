@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 import static com.oneops.cms.util.CmsConstants.*;
 
 public class BomRfcBulkProcessor {
-	private static final int MIN_COMPUTES_IN_CLOUD = 2;
+	private static final int MIN_COMPUTES_BEFORE_AUTO_SCALE_DOWN = 2;
 	private static Logger logger = Logger.getLogger(BomRfcBulkProcessor.class);
 
     private static final Map<String, Integer> priorityMap = new HashMap<>();
@@ -1453,11 +1453,15 @@ public class BomRfcBulkProcessor {
 		Map<String, List<CmsCI>> cloudToComputesMap = getComputesWithClouds(platformCi);
 
 		if (ensureEvenScale && ! isEvenScale(cloudToComputesMap, platformCi)) {
-			logger.info("scale is not even currently, rejecting scale down");
-			return null;
+			String errorMessage = "scale is not even currently, rejecting scale down for platform: " + platformCi.getCiId();
+			logger.info(errorMessage);
+			throw new TransistorException(CmsError.TRANSISTOR_EXCEPTION, errorMessage);
 		}
-		if (! hasSufficientComputes(cloudToComputesMap)) {
-			logger.info("1 or more clouds has less than minimum computes, rejecting scale down");
+		if (! hasSufficientComputes(cloudToComputesMap, scaleDownBy)) {
+			String errorMessage = "1 or more clouds has less than min computes, rejecting scale down for platform "
+					+ platformCi.getCiId();
+			logger.info(errorMessage);
+			throw new TransistorException(CmsError.TRANSISTOR_EXCEPTION, errorMessage);
 		}
 		String bomNsPath = env.getNsPath() + "/" + env.getCiName() + "/bom";
 		//TODO: cancel failed deployment
@@ -1522,10 +1526,10 @@ public class BomRfcBulkProcessor {
 		return deployment;
 	}
 
-	private boolean hasSufficientComputes(Map<String, List<CmsCI>> computesWithClouds) {
+	private boolean hasSufficientComputes(Map<String, List<CmsCI>> computesWithClouds, int scaleDownBy) {
 		for (String cloud : computesWithClouds.keySet()) {
 			List<CmsCI> computes = computesWithClouds.get(cloud);
-			if (computes.size() < MIN_COMPUTES_IN_CLOUD) {
+			if (computes.size() - scaleDownBy < MIN_COMPUTES_BEFORE_AUTO_SCALE_DOWN) {
 				return false;
 			}
 		}
@@ -1547,7 +1551,7 @@ public class BomRfcBulkProcessor {
 						cmProcessor.updateRelation(rel);
 						scaleNumberUpdated = true;
 					} else {
-						logger.info("current scale is less than 3, can not scale down platform " + platformCi.getCiId());
+						logger.info("current scale is less than min, can not scale down platform " + platformCi.getCiId());
 					}
 				}
 			}
