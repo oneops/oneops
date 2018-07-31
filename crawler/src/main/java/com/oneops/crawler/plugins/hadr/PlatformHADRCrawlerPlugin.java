@@ -368,5 +368,9 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
   }
 
 
+  @Override
+  protected Logger getLogger() {
+    return log;
+  }
 
 }

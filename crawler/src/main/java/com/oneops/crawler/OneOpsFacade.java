@@ -23,6 +23,7 @@ import com.oneops.Environment;
 import com.oneops.Platform;
 import com.oneops.notification.NotificationMessage;
 import com.squareup.okhttp.*;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,7 +103,7 @@ public class OneOpsFacade {
         int responseCode = response.code();
         log.info("OO response body: " + responseBody + ", code: " + responseCode);
         if (responseCode >= 300) {
-            throw new OneOpsException("Error while doing deployment. Response fron OneOps: " + responseBody
+            throw new OneOpsException("Error while doing deployment. Response from OneOps: " + responseBody
             + " ResponseCode : " + responseCode);
         }
         return responseCode;
@@ -152,7 +153,7 @@ public class OneOpsFacade {
         String responseBody = response.body().string();
         int responseCode = response.code();
         if (responseCode >= 300) {
-            throw new OneOpsException("Error while sending notification. Response fron OneOps: " + responseBody
+            throw new OneOpsException("Error while sending notification. Response from OneOps: " + responseBody
                     + " ResponseCode : " + responseCode);
         }
 
@@ -177,5 +178,34 @@ public class OneOpsFacade {
         return responseCode;
     }
 
+    public long scaleDown(long platformId, int scaleDownByNumber, String userId) throws IOException, OneOpsException {
+        HashMap<String, String> params = new HashMap<>();
+
+        log.info("scaling down platform id: " + platformId);
+        RequestBody body = RequestBody.create(JSON, gson.toJson(params));
+
+        String url = transistorBaseUrl + "/transistor/rest/platforms/{platformId}/deployments/scaledown" + platformId;
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("X-Cms-User", userId)
+                .addHeader("Content-Type", "application/json")
+                .post(body)
+                .build();
+
+        OkHttpClient client = new OkHttpClient();
+
+        Response response = client.newCall(request).execute();
+        String responseBody = response.body().string();
+        int responseCode = response.code();
+        log.info("OO response body: " + responseBody + ", code: " + responseCode);
+        if (responseCode >= 300) {
+            throw new OneOpsException("Error while scaling down platform: " + platformId
+                    + ". Response from OneOps: " + responseBody + " ResponseCode : " + responseCode);
+        }
+        if (StringUtils.isNumeric(responseBody)) {
+            Long.parseLong(responseBody);
+        }
+        return 0;
+    }
 }
 
