@@ -70,9 +70,8 @@ public class ThanosClient {
         Response response = client.newCall(request).execute();
         String responseBody = response.body().string();
         int responseCode = response.code();
-//        log.info("Thanos api response code: " + responseCode);
+        log.info("Thanos api response code: " + responseCode);
         ArrayList<CloudResourcesUtilizationStats> cloudResourcesUtilizationStats = new ArrayList<>();
-//        CloudResourcesUtilizationStats[] cloudResourcesUtilizationStats = new CloudResourcesUtilizationStats[];
         Type listType = new TypeToken<ArrayList<CloudResourcesUtilizationStats>>(){}.getType();
         return gson.fromJson(responseBody, listType);
     }
