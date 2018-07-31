@@ -218,7 +218,7 @@ class Base::PlatformsController < ApplicationController
         group = {:id            => group_id,
                  :template_name => r.relationAttributes.template,
                  :class_name    => component.ciClassName,
-                 :cardinality   => r.relationAttributes.constraint,
+                 :cardinality   => Range.new(*r.relationAttributes.constraint.gsub('*', '999').split('..').map(&:to_i)),
                  :obsolete      => true,
                  :items         => []}
         group_map[group_id] = group
