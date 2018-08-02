@@ -1,6 +1,5 @@
 package com.oneops.crawler.plugins.quota;
 
-import com.google.gson.Gson;
 import com.oneops.Deployment;
 import com.oneops.Environment;
 import com.oneops.Organization;

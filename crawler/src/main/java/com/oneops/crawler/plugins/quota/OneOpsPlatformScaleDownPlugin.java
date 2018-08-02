@@ -40,7 +40,6 @@ public class OneOpsPlatformScaleDownPlugin extends AbstractCrawlerPlugin {
     private ThanosClient thanosClient;
     private boolean esEnabled = false;
 
-    private int totalPlatformsScaledDown = 0;
     private String indexName = "ooscaledown";
 
     public OneOpsPlatformScaleDownPlugin() {
@@ -87,14 +86,7 @@ public class OneOpsPlatformScaleDownPlugin extends AbstractCrawlerPlugin {
     }
 
     void readConfig() {
-        String esEnabled = System.getProperty("scaledown.es.enabled", "false");
-
-        if ("true".equalsIgnoreCase(esEnabled)) {
-            this.esEnabled = true;
-        } else {
-            this.esEnabled = false;
-        }
-
+        this.esEnabled = new Boolean(System.getProperty("scaledown.es.enabled", "false"));
         String configJson =  System.getProperty("scaledown.plugin.config");
         log.info("scale down config string: " + configJson);
         readConfig(configJson);

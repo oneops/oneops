@@ -38,6 +38,7 @@ public class OneOpsFacade {
     private String antennaBaseUrl ;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private Gson gson;
+    OkHttpClient client = new OkHttpClient();
 
     public static final MediaType JSON
             = MediaType.parse("application/json; charset=utf-8");
@@ -96,8 +97,6 @@ public class OneOpsFacade {
                 .post(body)
                 .build();
 
-        OkHttpClient client = new OkHttpClient();
-
         Response response = client.newCall(request).execute();
         String responseBody = response.body().string();
         int responseCode = response.code();
@@ -123,8 +122,6 @@ public class OneOpsFacade {
                 .put(body)
                 .build();
 
-        OkHttpClient client = new OkHttpClient();
-
         Response response = client.newCall(request).execute();
         String responseBody = response.body().string();
         Map<String, Double> release = gson.fromJson(responseBody, Map.class);
@@ -148,7 +145,6 @@ public class OneOpsFacade {
                 .post(body)
                 .build();
 
-        OkHttpClient client = new OkHttpClient();
         Response response = client.newCall(request).execute();
         String responseBody = response.body().string();
         int responseCode = response.code();
@@ -170,7 +166,6 @@ public class OneOpsFacade {
                 .get()
                 .build();
 
-        OkHttpClient client = new OkHttpClient();
         Response response = client.newCall(request).execute();
         String responseBody = response.body().string();
         int responseCode = response.code();
@@ -181,7 +176,7 @@ public class OneOpsFacade {
     public long scaleDown(long platformId, int scaleDownByNumber, String userId) throws IOException, OneOpsException {
         HashMap<String, String> params = new HashMap<>();
 
-        log.info("scaling down platform id: " + platformId);
+        log.info("scaling down platform id: {}", platformId);
         RequestBody body = RequestBody.create(JSON, gson.toJson(params));
 
         String url = transistorBaseUrl + "/transistor/rest/platforms/{platformId}/deployments/scaledown" + platformId;
@@ -192,12 +187,10 @@ public class OneOpsFacade {
                 .post(body)
                 .build();
 
-        OkHttpClient client = new OkHttpClient();
-
         Response response = client.newCall(request).execute();
         String responseBody = response.body().string();
         int responseCode = response.code();
-        log.info("OO response body: " + responseBody + ", code: " + responseCode);
+        log.info("OO response body: {}, code: {}", responseBody, responseCode);
         if (responseCode >= 300) {
             throw new OneOpsException("Error while scaling down platform: " + platformId
                     + ". Response from OneOps: " + responseBody + " ResponseCode : " + responseCode);
