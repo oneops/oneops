@@ -1,5 +1,8 @@
 package com.oneops.cms.ws.rest;
 
+import static com.oneops.cms.cm.ops.domain.OpsProcedureState.active;
+import static com.oneops.cms.cm.ops.domain.OpsProcedureState.complete;
+import static com.oneops.cms.cm.ops.domain.OpsProcedureState.pending;
 import static com.oneops.cms.util.CmsConstants.GSLB_TYPE_NETSCALER;
 import static com.oneops.cms.util.CmsConstants.GSLB_TYPE_TORBIT;
 
@@ -7,14 +10,17 @@ import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
+import com.oneops.cms.cm.ops.domain.OpsProcedureSimple;
 import com.oneops.cms.cm.ops.domain.OpsProcedureState;
 import com.oneops.cms.cm.ops.service.OpsManager;
 import com.oneops.cms.cm.service.CmsCmManager;
 import com.oneops.cms.execution.MigrateArg;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +43,8 @@ public class GslbRestController extends AbstractRestController {
   private static final String GSLB_MIGRATION_PROC = "gslb-migration";
   private static final String MANIFEST_PLATFORM_CLASS = "manifest.Platform";
 
+  private static final String SERVICE_TYPE_ATTR = "service_type";
+
   @Autowired
   OpsManager opsManager;
 
@@ -47,38 +55,95 @@ public class GslbRestController extends AbstractRestController {
 
   @RequestMapping(value = "/gslb/migrate", method = RequestMethod.POST)
   @ResponseBody
-  public Map<String, Long> gslbMigrate(@RequestParam String nsPath, @RequestParam String type) {
+  public List<OpsProcedureSimple> gslbMigrate(@RequestParam String nsPath,
+      @RequestParam String type,
+      @RequestParam(required=false) boolean force) throws Exception {
     type = type(type);
-    logger.info("started migrating gslb for nsPath " +  nsPath);
+    //TODO validate nspath to be atleast upto environment, should not allow org level migrates
+    logger.info("started migrating gslb for nsPath: " +  nsPath + ", force: " + force);
     List<CmsCI> fqdnInstances = cmsCmManager.getCiBy3NsLike(nsPath, FQDN_SHORT_CLASS, null);
     Map<String, CmsCI> procedureCiMap = new HashMap<>();
     Map<String, List<CmsCI>> instanceMap = fqdnInstances.stream()
         .filter(ci -> ci.getCiClassName().startsWith("bom."))
         .collect(Collectors.groupingBy(CmsCI::getNsPath));
-    Map<String, Long> procedureMap = new HashMap<>();
+
+    List<OpsProcedureSimple> procedureList = new ArrayList<>();
     for (Entry<String, List<CmsCI>> entry : instanceMap.entrySet()) {
-      String bomNsPath = entry.getKey();
-      CmsCI manifestPlatformCi = getManifestPlatformCi(bomNsPath);
-      if (manifestPlatformCi != null) {
-        String packNsPath = getPackNsPath(manifestPlatformCi);
-        logger.info("gslb migrate :: pack nsPath :" + packNsPath + " for bom nsPath : " + bomNsPath);
-        if (StringUtils.isNotBlank(packNsPath)) {
-          CmsCI procedureCi = procedureCiMap.computeIfAbsent(packNsPath, this::getMigrationProcedure);
-          if (procedureCi != null) {
-            CmsOpsProcedure procRequest = new CmsOpsProcedure();
-            procRequest.setCiId(manifestPlatformCi.getCiId());
-            procRequest.setCreatedBy("oneops-system");
-            procRequest.setProcedureState(OpsProcedureState.active);
-            procRequest.setProcedureCiId(procedureCi.getCiId());
-            procRequest.setArglist(procedureArgument(type));
-            logger.info("submitting gslb-migration procedure for nsPath " +  bomNsPath + ", proc ciId : " + procedureCi.getCiId());
-            CmsOpsProcedure procedure = opsManager.submitProcedure(procRequest);
-            procedureMap.put(bomNsPath, procedure.getProcedureId());
+      //continue only if there is atleast one bom instance that is not migrated or force is requested
+      if (force || hasAnyNonMigratedInstance(entry.getValue(), type)) {
+        String bomNsPath = entry.getKey();
+        CmsCI manifestPlatformCi = getManifestPlatformCi(bomNsPath);
+
+        if (manifestPlatformCi != null) {
+          String packNsPath = getPackNsPath(manifestPlatformCi);
+          logger.info("gslb migrate :: pack nsPath :" + packNsPath + " for bom nsPath : " + bomNsPath);
+          if (StringUtils.isNotBlank(packNsPath)) {
+            CmsCI procedureCi = procedureCiMap.computeIfAbsent(packNsPath, this::getMigrationProcedure);
+            if (procedureCi != null) {
+              //submit gslb-migration procedure for this nsPath
+              CmsOpsProcedure procRequest = new CmsOpsProcedure();
+              procRequest.setCiId(manifestPlatformCi.getCiId());
+              procRequest.setCreatedBy("oneops-system");
+              procRequest.setProcedureState(OpsProcedureState.active);
+              procRequest.setProcedureCiId(procedureCi.getCiId());
+              procRequest.setArglist(procedureArgument(type));
+              logger.info("submitting gslb-migration procedure for nsPath " +  bomNsPath + ", proc ciId : " + procedureCi.getCiId());
+
+              CmsOpsProcedure procedure = opsManager.submitProcedure(procRequest);
+              CmsOpsProcedure updatedProc = waitForCompletion(procedure.getProcedureId());
+              if (updatedProc == null)
+                updatedProc = procedure;
+              procedureList.add(procedure(updatedProc, bomNsPath));
+              //continue only if the last procedure was successful
+              if (!isSuccessful(updatedProc)) {
+                logger.info("gslb migrate :: procedure [nsPath: " + bomNsPath +
+                    ", id: " + procedure.getProcedureId() + "] not successful, aborting.");
+                break;
+              }
+            }
           }
         }
       }
     }
-    return procedureMap;
+    return procedureList;
+  }
+
+  private OpsProcedureSimple procedure(CmsOpsProcedure procedure, String nsPath) {
+    return new OpsProcedureSimple()
+        .nsPath(nsPath)
+        .procedureId(procedure.getProcedureId())
+        .state(procedure.getProcedureState());
+  }
+
+  private boolean isSuccessful(CmsOpsProcedure procedure) {
+    return (procedure.getProcedureState() == complete);
+  }
+
+  private CmsOpsProcedure waitForCompletion(long procedureId) throws Exception {
+    CmsOpsProcedure opsProcedure = null;
+    long startTime = System.currentTimeMillis();
+    while (timeElapsedInSecs(startTime) < 300) {
+      opsProcedure = opsManager.getCmsOpsProcedure(procedureId, false);
+      if (opsProcedure.getProcedureState() == pending ||
+          opsProcedure.getProcedureState() == active) {
+        logger.info("procedure " + procedureId + " still running, will wait and check");
+        Thread.sleep(3_000);
+      }
+      else
+        break;
+    }
+    return opsProcedure;
+  }
+
+  private long timeElapsedInSecs(long startTime) {
+    return (System.currentTimeMillis() - startTime) / 1000L;
+  }
+
+  private boolean hasAnyNonMigratedInstance(List<CmsCI> bomCis, String type) {
+    Optional<CmsCI> optinal = bomCis.stream()
+        .filter(ci -> !type.equals(attribute(ci, SERVICE_TYPE_ATTR)))
+        .findFirst();
+    return optinal.isPresent();
   }
 
   private String procedureArgument(String type) {
