@@ -58,6 +58,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
     public EnvTTLCrawlerPlugin() {
         ooFacade = new OneOpsFacade();
         searchDal = new SearchDal();
+        init();
     }
 
     public void init() {
@@ -82,6 +83,10 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                     "        \"platform\" : {\n" +
                     "                \"properties\" : {\n" +
                     "                        \"nsPath\" : {\n" +
+                    "                                \"type\" : \"string\",\n" +
+                    "                                \"index\" : \"not_analyzed\"\n" +
+                    "                        },\n" +
+                    "                        \"activeClouds\" : {\n" +
                     "                                \"type\" : \"string\",\n" +
                     "                                \"index\" : \"not_analyzed\"\n" +
                     "                        },\n" +
@@ -405,6 +410,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
         if (deployments.size() == 0) {
             return null;
         }
+
         if (config != null && config.getOrgs() != null) {
             boolean orgToBeProcessed = false;
 
@@ -440,6 +446,11 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                 }
             }
 
+            List<String> activeClouds = platform.getActiveClouds();
+            if (activeClouds == null || activeClouds.size() == 0 ) {
+                log.info("no active clouds for platform id: " + platform.getId());
+                continue platforms;
+            }
             for (String cloud : platform.getActiveClouds()) {
                 if (cloud.toLowerCase().matches(prodCloudRegex)) {
                     log.info(platform.getId() + " Platform not eligible because of prod clouds: "
@@ -550,6 +561,11 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
 
     public SearchDal getSearchDal() {
         return searchDal;
+    }
+
+    @Override
+    protected Logger getLogger() {
+        return log;
     }
 }
 
