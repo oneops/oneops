@@ -2234,4 +2234,14 @@ public class CmsCmProcessor {
 	public void setDjMapper(DJMapper djMapper) {
 		this.djMapper = djMapper;
 	}
+
+	public boolean getVarByMatchingCriteriaBoolean(String varNameLike, String criteria) {
+		List<CmsVar> vars = getCmVarByLongestMatchingCriteria(varNameLike, criteria);
+		if (vars != null && !vars.isEmpty()) {
+			CmsVar var = vars.get(0);
+			return Boolean.valueOf(var.getValue());
+		}
+		return false;
+	}
+
 }

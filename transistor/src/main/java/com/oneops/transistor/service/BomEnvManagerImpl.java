@@ -283,7 +283,6 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 		return capacityProcessor.estimateCapacity(bomData.getRelease().getNsPath(), bomData.getCis(), deployedToRelations);
 	}
 
-
 	private CmsCISimple matchOfferings(CmsRfcCI rfcCi, String service, Map<String, List<CmsCI>> offeringsByService, Map<String, Expression> expressionCache) {
 		if (rfcCi == null) return null;
 		List<CmsCI> serviceOfferings = offeringsByService.get(service);
