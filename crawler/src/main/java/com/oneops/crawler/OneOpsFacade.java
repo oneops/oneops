@@ -195,7 +195,10 @@ public class OneOpsFacade {
             throw new OneOpsException("Error while scaling down platform: " + platformId
                     + ". Response from OneOps: " + responseBody + " ResponseCode : " + responseCode);
         }
-        return gson.fromJson(responseBody, Deployment.class);
+        if (! StringUtils.isEmpty(responseBody)) {
+            return gson.fromJson(responseBody, Deployment.class);
+        }
+        return null;
     }
 }
 

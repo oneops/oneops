@@ -163,7 +163,7 @@ public class OneOpsPlatformScaleDownPlugin extends AbstractCrawlerPlugin {
             if (isScaleDownEnabled()) {
                 log.warn("Doing actual scale down for platform " + platform.getId());
                 Deployment deployment = ooFacade.scaleDown(platform.getId(), scaleDownByNumber, SCALE_DOWN_USER_ID);
-                if (deployment.getDeploymentId() > 0) {
+                if (deployment != null && deployment.getDeploymentId() > 0) {
                     log.info("Deployment submitted for platform {} id: {}" + platform.getPath(), platform.getId());
                     searchDal.post(getIndexName(), "platform", record);
                 } else {

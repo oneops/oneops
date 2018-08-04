@@ -141,15 +141,15 @@ public class BomAsyncProcessor {
 
         final String processId = UUID.randomUUID().toString();
         envSemaphore.lockEnv(envCi.getCiId(), EnvSemaphore.LOCKED_STATE, processId);
-        CmsDeployment deployment = new CmsDeployment();
+        CmsDeployment deployment = null;
         try {
             Map<String, Object> bomGenerationInfo = bomManager.scaleDown(platformCi, envCi, scaleDownBy, ensureEvenScale, userId);
             bomGenerationInfo.put("createdBy", userId);
             bomGenerationInfo.put("mode", "persistent");
             bomGenerationInfo.put("autoDeploy", true);
 
-            if (bomGenerationInfo.get("deploymentId") != null) {
-                deployment.setDeploymentId((Long) bomGenerationInfo.get("deploymentId"));
+            if (bomGenerationInfo.get("deployment") != null) {
+                deployment = (CmsDeployment) bomGenerationInfo.get("deployment");
             }
 
             envMsg = EnvSemaphore.SUCCESS_PREFIX + " Generation time taken: "
