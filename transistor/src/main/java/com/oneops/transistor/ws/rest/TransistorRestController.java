@@ -1068,7 +1068,7 @@ public class TransistorRestController extends AbstractRestController {
 
 	@RequestMapping(value = "platforms/{platformId}/deployments/scaledown", method = RequestMethod.POST)
 	@ResponseBody
-	public long scaleDown(
+	public CmsDeployment scaleDown(
 			@PathVariable long platformId,
 			@RequestParam int scaleDownBy,
 			@RequestParam (required = false, defaultValue = "true") boolean ensureEvenScale,
@@ -1077,11 +1077,7 @@ public class TransistorRestController extends AbstractRestController {
 		try {
 			if (userId == null) userId = "oneops-system";
 
-			CmsDeployment deployment =  baProcessor.scaleDown(platformId, scaleDownBy, ensureEvenScale, userId);
-			if (deployment != null) {
-				return deployment.getDeploymentId();
-			}
-			return 0;
+			return baProcessor.scaleDown(platformId, scaleDownBy, ensureEvenScale, userId);
 		} catch (Exception te) {
 			logger.error("Error while submitting scale-down deployment: ", te);
 			throw te;
