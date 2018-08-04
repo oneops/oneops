@@ -18,6 +18,7 @@
 package com.oneops.crawler.plugins.quota;
 
 import com.google.gson.Gson;
+import com.oneops.Deployment;
 import com.oneops.Environment;
 import com.oneops.Organization;
 import com.oneops.Platform;
@@ -144,6 +145,15 @@ public class OneOpsPlatformScaleDownPlugin extends AbstractCrawlerPlugin {
                 totalReclaim = totalReclaim + scaleDownByNumber;
             }
         }
+        if (scaleDownByNumber > 0) {
+            scaleDown(scaleDownByNumber, totalReclaim, platform, cloudResourcesUtilizationStats);
+        }
+    }
+
+    private void scaleDown(int scaleDownByNumber, int totalReclaim, Platform platform,
+                           ArrayList<ThanosClient.CloudResourcesUtilizationStats> cloudResourcesUtilizationStats)
+            throws IOException, OneOpsException {
+
         if (scaleDownByNumber != 0) {
             log.info("will scale down for this platform: " + platform.getPath() + " id: " + platform.getId());
             PlatformRecord record = new PlatformRecord();
@@ -152,10 +162,15 @@ public class OneOpsPlatformScaleDownPlugin extends AbstractCrawlerPlugin {
             record.setPotentialReclaimCount(totalReclaim);
             if (isScaleDownEnabled()) {
                 log.warn("Doing actual scale down for platform " + platform.getId());
-                ooFacade.scaleDown(platform.getId(), scaleDownByNumber, SCALE_DOWN_USER_ID);
+                Deployment deployment = ooFacade.scaleDown(platform.getId(), scaleDownByNumber, SCALE_DOWN_USER_ID);
+                if (deployment != null && deployment.getDeploymentId() > 0) {
+                    log.info("Deployment submitted for platform {} id: {}" + platform.getPath(), platform.getId());
+                    searchDal.post(getIndexName(), "platform", record);
+                } else {
+                    throw new RuntimeException("Deployment id not valid or deployment not submitted for platform: "
+                            + platform.getPath());
+                }
             }
-
-            searchDal.post(getIndexName(), "platform", record);
         }
     }
 
