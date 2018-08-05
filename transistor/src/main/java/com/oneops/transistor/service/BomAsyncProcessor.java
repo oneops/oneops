@@ -147,6 +147,11 @@ public class BomAsyncProcessor {
             bomGenerationInfo.put("createdBy", userId);
             bomGenerationInfo.put("mode", "persistent");
             bomGenerationInfo.put("autoDeploy", true);
+
+            if (bomGenerationInfo.get("deployment") != null) {
+                deployment = (CmsDeployment) bomGenerationInfo.get("deployment");
+            }
+
             envMsg = EnvSemaphore.SUCCESS_PREFIX + " Generation time taken: "
                     + ((Long) bomGenerationInfo.get("generationTime") / 1000.0)
                     + " seconds. bomGenerationInfo=" + gson.toJson(bomGenerationInfo);

@@ -468,6 +468,7 @@ public class BomManagerImpl implements BomManager {
 		if (deployment != null) {
 			deployment = dpmtProcessor.deployRelease(deployment);
 			bomInfo.put("deploymentId", deployment.getDeploymentId());
+			bomInfo.put("deployment", deployment);
 		}
 		return bomInfo;
 	}

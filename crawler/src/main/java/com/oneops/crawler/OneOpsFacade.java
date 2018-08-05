@@ -173,7 +173,7 @@ public class OneOpsFacade {
         return responseCode;
     }
 
-    public long scaleDown(long platformId, int scaleDownByNumber, String userId) throws IOException, OneOpsException {
+    public Deployment scaleDown(long platformId, int scaleDownByNumber, String userId) throws IOException, OneOpsException {
         HashMap<String, String> params = new HashMap<>();
 
         log.info("scaling down platform id: {}", platformId);
@@ -195,10 +195,10 @@ public class OneOpsFacade {
             throw new OneOpsException("Error while scaling down platform: " + platformId
                     + ". Response from OneOps: " + responseBody + " ResponseCode : " + responseCode);
         }
-        if (StringUtils.isNumeric(responseBody)) {
-            Long.parseLong(responseBody);
+        if (! StringUtils.isEmpty(responseBody)) {
+            return gson.fromJson(responseBody, Deployment.class);
         }
-        return 0;
+        return null;
     }
 }
 
