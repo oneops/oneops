@@ -50,6 +50,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -1188,6 +1189,11 @@ public class FqdnExecutor implements ComponentWoExecutor {
       newEntries = cloudEntries;
     }
 
+    List<Lb> lbTargets = lbTargets(wo, context);
+    logger.info(logKey + "Mtd LbTargets :: " + lbTargets);
+    List<HealthCheck> healthChecks = healthChecks(context, logKey);
+    logger.info(logKey + "Mtd healthChecks :: " + healthChecks);
+
     return Gslb.builder()
         .app(context.platform)
         .subdomain(context.subdomain)
@@ -1195,8 +1201,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
         .torbitConfig(torbitConfig)
         .infobloxConfig(infobloxConfig)
         .logContextId(logKey)
-        .lbs(lbTargets(wo, context))
-        .healthChecks(healthChecks(context, logKey))
+        .lbs(lbTargets)
+        .healthChecks(healthChecks)
         .cnames(new ArrayList<>(aliases))
         .cloudARecords(newEntries)
         .dcARecords(dcARecords)
@@ -1355,11 +1361,25 @@ public class FqdnExecutor implements ComponentWoExecutor {
     if (deployedLbs == null) {
       throw new RuntimeException("Lb payload not available in workorder");
     }
+    Optional<Map<String, Integer>> weightsMap = weights(wo);
     return deployedLbs
         .stream()
         .filter(lb -> isNotBlank(lb.getCiAttributes().get(ATTRIBUTE_DNS_RECORD)))
-        .map(lb -> lbTarget(lb, cloudMap))
+        .map(lb -> lbTarget(lb, cloudMap, weightsMap))
         .collect(Collectors.toList());
+  }
+
+  private Optional<Map<String, Integer>> weights(CmsWorkOrderSimple wo) {
+    Map<String, String> config = wo.getConfig();
+    if (config != null && config.containsKey("weights")) {
+      String value = config.get("weights");
+      Type type = new TypeToken<Map<String, Integer>>() {}.getType();
+      Map<String, Integer> map = gson.fromJson(value, type);
+      if (!map.isEmpty()) {
+        return Optional.of(map);
+      }
+    }
+    return Optional.empty();
   }
 
   private List<Lb> lbTargets(CmsActionOrderSimple ao) {
@@ -1368,20 +1388,25 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return deployedLbs
         .stream()
         .filter(lb -> isNotBlank(lb.getCiAttributes().get(ATTRIBUTE_DNS_RECORD)))
-        .map(lb -> lbTarget(lb, cloudMap))
+        .map(lb -> lbTarget(lb, cloudMap, Optional.empty()))
         .collect(Collectors.toList());
   }
 
-  private Lb lbTarget(Instance lbCi, Map<Long, Cloud> cloudMap) {
+  private Lb lbTarget(Instance lbCi, Map<Long, Cloud> cloudMap, Optional<Map<String, Integer>> weightsMapOpt) {
     String lbName = lbCi.getCiName();
     String[] elements = lbName.split("-");
     String cloudId = elements[elements.length - 2];
     Cloud cloud = cloudMap.get(Long.parseLong(cloudId));
+    Integer weightPercent = null;
+    if (weightsMapOpt.isPresent()) {
+      Map<String, Integer> weightsMap = weightsMapOpt.get();
+      weightPercent = weightsMap.containsKey(cloud.name) ? weightsMap.get(cloud.name) : 0;
+    }
     return Lb.create(
         cloud.name,
         lbCi.getCiAttributes().get(ATTRIBUTE_DNS_RECORD),
         isEnabledForTraffic(cloud),
-        null);
+        weightPercent);
   }
 
   private boolean isEnabledForTraffic(Cloud cloud) {
