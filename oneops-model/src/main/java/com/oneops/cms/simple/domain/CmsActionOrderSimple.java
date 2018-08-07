@@ -1,20 +1,20 @@
-/*******************************************************************************
+/**
+ * *****************************************************************************
  *
- *   Copyright 2015 Walmart, Inc.
+ * <p>Copyright 2015 Walmart, Inc.
  *
- *   Licensed under the Apache License, Version 2.0 (the "License");
- *   you may not use this file except in compliance with the License.
- *   You may obtain a copy of the License at
+ * <p>Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
  *
- *   Unless required by applicable law or agreed to in writing, software
- *   distributed under the License is distributed on an "AS IS" BASIS,
- *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   See the License for the specific language governing permissions and
- *   limitations under the License.
+ * <p>Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- *******************************************************************************/
+ * <p>*****************************************************************************
+ */
 package com.oneops.cms.simple.domain;
 
 import com.oneops.cms.cm.ops.domain.CmsOpsAction;
@@ -24,11 +24,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * The Class CmsActionOrderSimple.
- */
-public class CmsActionOrderSimple extends CmsOpsAction implements
-    CmsWorkOrderSimpleBase<CmsCISimple> {
+/** The Class CmsActionOrderSimple. */
+public class CmsActionOrderSimple extends CmsOpsAction
+    implements CmsWorkOrderSimpleBase<CmsCISimple> {
 
   private static final long serialVersionUID = 1L;
 
@@ -39,6 +37,7 @@ public class CmsActionOrderSimple extends CmsOpsAction implements
   public Map<String, List<CmsCISimple>> payLoad;
   public Map<String, Map<String, CmsCISimple>> services;
   public Map<String, String> searchTags = new HashMap<>();
+  public Map<String, String> config;
 
   /**
    * Gets the cloud.
@@ -173,8 +172,8 @@ public class CmsActionOrderSimple extends CmsOpsAction implements
   }
 
   @Override
-  public boolean isPayloadEntryEqual(String payloadEntry, String attributeName,
-      String valueToBeCompared) {
+  public boolean isPayloadEntryEqual(
+      String payloadEntry, String attributeName, String valueToBeCompared) {
     return false;
   }
 
@@ -229,16 +228,12 @@ public class CmsActionOrderSimple extends CmsOpsAction implements
     this.ci = ci;
   }
 
-  /**
-   * Gets the search tags
-   */
+  /** Gets the search tags */
   public Map<String, String> getSearchTags() {
     return searchTags;
   }
 
-  /**
-   * Sets the search tags
-   */
+  /** Sets the search tags */
   public void setSearchTags(Map<String, String> searchTags) {
     this.searchTags = searchTags;
   }
@@ -260,6 +255,16 @@ public class CmsActionOrderSimple extends CmsOpsAction implements
 
   @Override
   public void setComments(String comments) {
-    //No-op
+    // No-op
+  }
+
+  /** Accessor for config variables. */
+  public Map<String, String> getConfig() {
+    return config;
+  }
+
+  /** Mutator for config variables. */
+  public void setConfig(Map<String, String> config) {
+    this.config = config;
   }
 }

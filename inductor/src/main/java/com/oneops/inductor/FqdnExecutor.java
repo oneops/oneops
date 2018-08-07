@@ -3,6 +3,7 @@ package com.oneops.inductor;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
+import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -50,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -100,6 +102,9 @@ public class FqdnExecutor implements ComponentWoExecutor {
   private static final String CLOUD_STATUS_INACTIVE = "inactive";
 
   private static final String DELEGATION_CONFIG_PATH = "/secrets/gslb_delegation.json";
+
+  /** Config variable to enable GSLB cname cut over. */
+  public static final String GSLB_MIGRATION_CUTOVER = "GSLB_MIGRATION_CUTOVER_ENABLED";
 
   private static final Logger logger = Logger.getLogger(FqdnExecutor.class);
 
@@ -250,6 +255,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
    */
   private Response performMigration(CmsActionOrderSimple ao, String dataDir, String logKey) {
     String arg = getMigrateArg(ao, logKey);
+    Stopwatch stopwatch = Stopwatch.createStarted();
+
     try {
       String fileName = dataDir + "/" + ao.getRecordId() + ".json";
       logger.info(logKey + "Inductor: " + InetAddress.getLocalHost().getHostAddress());
@@ -268,6 +275,16 @@ public class FqdnExecutor implements ComponentWoExecutor {
     } catch (Exception ex) {
       woHelper.failWo(ao, logKey, "Migrate to '" + arg + "'  action failed!", ex);
       return woHelper.formResponse(ao, logKey);
+
+    } finally {
+      stopwatch.stop();
+      logger.info(
+          logKey
+              + "Migrate to '"
+              + arg
+              + "' took "
+              + stopwatch.elapsed(TimeUnit.SECONDS)
+              + " seconds!");
     }
   }
 
@@ -410,6 +427,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
     boolean stickiness = isStickinessEnabled(ao);
     boolean primaryCloud = hasPrimaryCloud(ao);
     boolean ptrEnabled = isPTREnabled(ao);
+    boolean cutOverEnabled = isCutOverEnabled(ao);
+    boolean singlePlatform = isSinglePlatform(ao);
 
     TorbitConfig tc = getTorbitConfig(ao, logKey);
     InfobloxConfig ic = getInfobloxConfig(ao);
@@ -427,8 +446,15 @@ public class FqdnExecutor implements ComponentWoExecutor {
 
     String gslbInfo =
         String.format(
-            "GSLB fqdn: %s, Migratable GSLB: %s, GSLB base domain: %s, GSLB enabled: %s, Primary Cloud: %s, PTR Enabled: %s",
-            gslb, migratableGslb, baseDomain, gdnsEnabled, primaryCloud, ptrEnabled);
+            "GSLB fqdn: %s, Migratable GSLB: %s, GSLB base domain: %s, GSLB enabled: %s, Primary Cloud: %s, PTR Enabled: %s, Single Platform: %s, CNAME CutOver: %s",
+            gslb,
+            migratableGslb,
+            baseDomain,
+            gdnsEnabled,
+            primaryCloud,
+            ptrEnabled,
+            singlePlatform,
+            cutOverEnabled);
     logger.info(logKey + gslbInfo);
 
     /* Zone delegation infoblox client is used for removing zone delegation records and creating gslb -> torbit alias.*/
@@ -436,7 +462,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     /* Cloud dns infoblox client is used for platform cname operations. */
     InfobloxClient cloudDnsIbaClient = getCloudDNSClient(ic);
 
-    if (gdnsEnabled && !stickiness && !ptrEnabled && migratableGslb) {
+    if (gdnsEnabled && !stickiness && !ptrEnabled && migratableGslb && !singlePlatform) {
 
       // Holds all newly updated entries.
       Map<String, String> dnsEntries = new HashMap<>();
@@ -454,6 +480,14 @@ public class FqdnExecutor implements ComponentWoExecutor {
       }
       logger.info(logKey + "Created Torbit MTD base, " + res);
       validateTorbitMtdBase(res, logKey);
+
+      if (!cutOverEnabled) {
+        logger.info(
+            logKey
+                + "GSLB CNAME migration is not enabled. Enable it and run again to complete the migration.");
+        // Returns the same a/o without any modifications.
+        return woHelper.formResponse(ao, logKey);
+      }
 
       if (primaryCloud) {
 
@@ -969,7 +1003,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
    * @return <code>true</code> if stickiness is enabled.
    */
   private boolean isStickinessEnabled(CmsActionOrderSimple ao) {
-    boolean stickiness = false;
+    boolean stickiness = true;
     Instance lb = woHelper.getLbFromDependsOn(ao);
     if (lb != null) {
       String stkVal = lb.getCiAttributes().get("stickiness");
@@ -993,6 +1027,31 @@ public class FqdnExecutor implements ComponentWoExecutor {
       }
     }
     return false;
+  }
+
+  /**
+   * Checks if GSLB CNAME migration is enabled.
+   *
+   * @param ao action order
+   * @return <code>true</code> if cname migration is enabled.
+   */
+  private boolean isCutOverEnabled(CmsActionOrderSimple ao) {
+    Map<String, String> config = ao.getConfig();
+    if (config != null) {
+      return "true".equalsIgnoreCase(config.getOrDefault(GSLB_MIGRATION_CUTOVER, "false"));
+    } else {
+      return false;
+    }
+  }
+
+  /**
+   * Check if the platform is single (means no LB).
+   *
+   * @param ao action order
+   * @return <code>true</code> if the platform is single.
+   */
+  private boolean isSinglePlatform(CmsActionOrderSimple ao) {
+    return woHelper.getLbFromDependsOn(ao) == null;
   }
 
   /**
