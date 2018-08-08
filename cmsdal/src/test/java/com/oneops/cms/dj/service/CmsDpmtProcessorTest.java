@@ -108,33 +108,33 @@ public class CmsDpmtProcessorTest {
         processor.setCapacityProcessor(capacityProcessor);
         processor.setDpmtMapper(dpmtMapper);
         capacityProcessor.setCmProcessor(cmProcessor);
-        when(dpmtMapper.getGlobalDeploymentApprovalBypassFlag(DEPLOYMENT_APPROVAL_BYPASS_FLAG)).thenReturn("true");
+       // when(dpmtMapper.getGlobalDeploymentApprovalBypassFlag(DEPLOYMENT_APPROVAL_BYPASS_FLAG)).thenReturn("true");
 
         when(djMapper.getNextDjId()).thenReturn(1L);
         CmsRelease cmsRelease = new CmsRelease();
         cmsRelease.setReleaseState("open");
         cmsRelease.setReleaseStateId(1);
         cmsRelease.setNsPath(nsPath + "/test/open/java/one/bom");
-
-
         when(djMapper.getReleaseById(1)).thenReturn(cmsRelease);
         when(cmProcessor.getNextDjId()).thenReturn(1L);
         CmsVar softQuotaEnabled = new CmsVar();
         softQuotaEnabled.setId(1);
         softQuotaEnabled.setName("test");
-
         softQuotaEnabled.setValue("test");
+        CmsVar isBypassApprovalFlagEnabled = new CmsVar();
+        isBypassApprovalFlagEnabled.setId(2);
+        isBypassApprovalFlagEnabled.setName("DEPLOYMENT_APPROVAL_BYPASS_FLAG");
+        isBypassApprovalFlagEnabled.setValue("true");
         when(cmProcessor.getCmSimpleVar("CAPACITY_MANAGEMENT")).thenReturn(softQuotaEnabled);
+        when(cmProcessor.getCmSimpleVar("DEPLOYMENT_APPROVAL_BYPASS_FLAG")).thenReturn(isBypassApprovalFlagEnabled);
         when(rfcProcessor.getReleaseById(1)).thenReturn(cmsRelease);
         CmsDeployment cmsDeployment = new CmsDeployment();
         cmsDeployment.setReleaseId(1);
         List<CmsDeployment> list = new ArrayList<>();
         list.add(cmsDeployment);
         when(dpmtMapper.findLatestDeploymentByReleaseId(cmsDeployment.getReleaseId(), null)).thenReturn(list);
-        when(cmProcessor.getCmSimpleVar("CAPACITY_MANAGEMENT")).thenReturn(softQuotaEnabled);
         when(utilMapper.getCmSimpleVar("CAPACITY_MANAGEMENT")).thenReturn(softQuotaEnabled);
-
-
+        when(utilMapper.getCmSimpleVar("DEPLOYMENT_APPROVAL_BYPASS_FLAG")).thenReturn(isBypassApprovalFlagEnabled);
         CmsDeployment cmsDeploymentforRelease = processor.deployRelease(cmsDeployment);
         return cmsDeploymentforRelease;
     }

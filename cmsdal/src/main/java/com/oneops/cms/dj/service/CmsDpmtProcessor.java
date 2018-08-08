@@ -30,6 +30,7 @@ import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.ns.dal.NSMapper;
 import com.oneops.cms.util.*;
+import com.oneops.cms.util.domain.CmsVar;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.dao.DuplicateKeyException;
@@ -1064,8 +1065,15 @@ public class CmsDpmtProcessor {
 
 
   public boolean getBooleanVariable(String gblDeptFlag) {
-    String depmtStatus = dpmtMapper.getGlobalDeploymentApprovalBypassFlag(gblDeptFlag);
-    return depmtStatus != null && Boolean.TRUE.toString().equalsIgnoreCase(depmtStatus);
-  }
 
+    cmProcessor.getCmSimpleVar(gblDeptFlag);
+
+    CmsVar deploymentApprovalBypassFlag = cmProcessor.getCmSimpleVar(DEPLOYMENT_APPROVAL_BYPASS_FLAG);
+    if (deploymentApprovalBypassFlag != null) {
+      String value = deploymentApprovalBypassFlag.getValue();
+      if (Boolean.TRUE.toString().equalsIgnoreCase(value)) return true;
+    }
+
+    return false;
+  }
 }
