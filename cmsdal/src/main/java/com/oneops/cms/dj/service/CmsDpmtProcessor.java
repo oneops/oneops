@@ -1066,9 +1066,7 @@ public class CmsDpmtProcessor {
 
   public boolean getBooleanVariable(String gblDeptFlag) {
 
-    cmProcessor.getCmSimpleVar(gblDeptFlag);
-
-    CmsVar deploymentApprovalBypassFlag = cmProcessor.getCmSimpleVar(DEPLOYMENT_APPROVAL_BYPASS_FLAG);
+    CmsVar deploymentApprovalBypassFlag = cmProcessor.getCmSimpleVar(gblDeptFlag);
     if (deploymentApprovalBypassFlag != null) {
       String value = deploymentApprovalBypassFlag.getValue();
       if (Boolean.TRUE.toString().equalsIgnoreCase(value)) return true;
