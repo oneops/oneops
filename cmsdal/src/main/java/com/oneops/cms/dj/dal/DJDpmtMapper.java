@@ -41,7 +41,6 @@ public interface DJDpmtMapper {
 	void updDpmtRecordState(CmsDpmtRecord cmsDpmtRecord);
 	void resetFailedRecords(CmsDeployment cmsDeployment);
 
-	String getGlobalDeploymentApprovalBypassFlag(@Param("gblDeptFlag") String gblDeptFlag);
 	CmsDeployment getDeployment(long deploymentId);
 	CmsDeployment getDeploymentSimple(long deploymentId);
 	List<CmsDeployment> findDeployment(@Param("nsPath") String nsPath,@Param("state") String state);

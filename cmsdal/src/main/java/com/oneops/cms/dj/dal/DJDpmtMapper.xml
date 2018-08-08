@@ -750,11 +750,4 @@
 			AND ex.state_id != s.id
 	</update>
 
-
-	<select id="getGlobalDeploymentApprovalBypassFlag" parameterType="string" resultType="string">
-		select var_value
-		from cms_vars
-		where var_name = #{gblDeptFlag}
-	</select>
-
 </mapper>
