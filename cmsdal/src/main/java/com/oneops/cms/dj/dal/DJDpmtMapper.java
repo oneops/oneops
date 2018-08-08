@@ -17,18 +17,13 @@
  *******************************************************************************/
 package com.oneops.cms.dj.dal;
 
-import com.oneops.cms.dj.domain.CmsDeployment;
-import com.oneops.cms.dj.domain.CmsDpmtApproval;
-import com.oneops.cms.dj.domain.CmsDpmtRecord;
-import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
-import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsWorkOrder;
-import com.oneops.cms.dj.domain.TimelineDeployment;
+import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.util.TimelineQueryParam;
+import org.apache.ibatis.annotations.Param;
+
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import org.apache.ibatis.annotations.Param;
 
 /**
  * The Interface DJDpmtMapper.
@@ -46,6 +41,7 @@ public interface DJDpmtMapper {
 	void updDpmtRecordState(CmsDpmtRecord cmsDpmtRecord);
 	void resetFailedRecords(CmsDeployment cmsDeployment);
 
+	String getGlobalDeploymentApprovalBypassFlag(@Param("gblDeptFlag") String gblDeptFlag);
 	CmsDeployment getDeployment(long deploymentId);
 	CmsDeployment getDeploymentSimple(long deploymentId);
 	List<CmsDeployment> findDeployment(@Param("nsPath") String nsPath,@Param("state") String state);

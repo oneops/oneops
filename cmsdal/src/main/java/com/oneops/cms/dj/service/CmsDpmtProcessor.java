@@ -26,38 +26,21 @@ import com.oneops.cms.cm.domain.CmsCIRelationBasic;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.crypto.CmsCrypto;
 import com.oneops.cms.dj.dal.DJDpmtMapper;
-import com.oneops.cms.dj.domain.CmsDeployment;
-import com.oneops.cms.dj.domain.CmsDpmtApproval;
-import com.oneops.cms.dj.domain.CmsDpmtRecord;
-import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
-import com.oneops.cms.dj.domain.CmsRelease;
-import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsWorkOrder;
-import com.oneops.cms.dj.domain.TimelineDeployment;
+import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.ns.dal.NSMapper;
-import com.oneops.cms.util.CmsConstants;
-import com.oneops.cms.util.CmsError;
-import com.oneops.cms.util.CmsUtil;
-import com.oneops.cms.util.ListUtils;
-import com.oneops.cms.util.TimelineQueryParam;
-import java.lang.reflect.InvocationTargetException;
-import java.security.GeneralSecurityException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import com.oneops.cms.util.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.dao.DuplicateKeyException;
+
+import java.lang.reflect.InvocationTargetException;
+import java.security.GeneralSecurityException;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The Class CmsDpmtProcessor.
@@ -94,7 +77,7 @@ public class CmsDpmtProcessor {
   private static final String MANIFEST_PLATFORM_CLASS = "manifest.Platform";
   private static final String ONEOPS_AUTOREPLACE_USER = "oneops-autoreplace";
   private static final int BOM_RELASE_NSPATH_LENGTH = 5;
-
+  private static final String DEPLOYMENT_APPROVAL_BYPASS_FLAG = "DEPLOYMENT_APPROVAL_BYPASS_FLAG";
   private static final String ZONES_SELECTED = "ZONES_SELECTED";
 
   /**
@@ -164,7 +147,7 @@ public class CmsDpmtProcessor {
       createDeployment(dpmt);
 
     } else {
-      if (needApprovalForNewDpmt(dpmt)) {
+      if (needApprovalForNewDpmt(dpmt) && !getBooleanVariable(DEPLOYMENT_APPROVAL_BYPASS_FLAG)) {
         dpmt.setDeploymentState(DPMT_STATE_PENDING);
 
         createDeployment(dpmt);
@@ -1077,6 +1060,12 @@ public class CmsDpmtProcessor {
 
   public int getAndUpdateStepState(long deploymentId, int step, String newState) {
     return dpmtMapper.getAndUpdateStepState(deploymentId, step, newState);
+  }
+
+
+  public boolean getBooleanVariable(String gblDeptFlag) {
+    String depmtStatus = dpmtMapper.getGlobalDeploymentApprovalBypassFlag(gblDeptFlag);
+    return depmtStatus != null && Boolean.TRUE.toString().equalsIgnoreCase(depmtStatus);
   }
 
 }
