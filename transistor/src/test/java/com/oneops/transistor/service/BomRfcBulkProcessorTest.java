@@ -115,10 +115,9 @@ public class BomRfcBulkProcessorTest {
         Map<String, List<CmsCI>> computesWithClouds = new HashMap<>();
        //cloud # 1 with at threshold # of computes
         ArrayList computes = new ArrayList();
-        for (int i = 0; i < BomRfcBulkProcessor.MIN_COMPUTES_SCALE; i++) {
+        for (int i = 0; i <= BomRfcBulkProcessor.MIN_COMPUTES_SCALE; i++) {
             computes.add(new CmsCI());
         }
-        computes.add(new CmsCI());
         computesWithClouds.put("cloud_1", computes);
 
         //cloud # 2 with above threshold # of computes
@@ -126,9 +125,8 @@ public class BomRfcBulkProcessorTest {
         for (int i = 0; i < BomRfcBulkProcessor.MIN_COMPUTES_SCALE + 2; i++) {
             computes.add(new CmsCI());
         }
-        computes.add(new CmsCI());
         computesWithClouds.put("cloud_2", computes);
-        assertTrue(new BomRfcBulkProcessor().hasSufficientComputes(computesWithClouds, 1));
+        assertTrue(new BomRfcBulkProcessor().hasSufficientComputes(computesWithClouds, 1, 3));
     }
 
     @Test
@@ -136,10 +134,9 @@ public class BomRfcBulkProcessorTest {
         Map<String, List<CmsCI>> computesWithClouds = new HashMap<>();
         //cloud # 1 with at threshold # of computes
         ArrayList computes = new ArrayList();
-        for (int i = 0; i < BomRfcBulkProcessor.MIN_COMPUTES_SCALE; i++) {
+        for (int i = 0; i <= BomRfcBulkProcessor.MIN_COMPUTES_SCALE; i++) {
             computes.add(new CmsCI());
         }
-        computes.add(new CmsCI());
         computesWithClouds.put("cloud_1", computes);
 
         //cloud # 2 with below threshold # of computes
@@ -147,8 +144,18 @@ public class BomRfcBulkProcessorTest {
         for (int i = 0; i < BomRfcBulkProcessor.MIN_COMPUTES_SCALE - 1; i++) {
             computes.add(new CmsCI());
         }
-        computes.add(new CmsCI());
         computesWithClouds.put("cloud_2", computes);
-        assertFalse(new BomRfcBulkProcessor().hasSufficientComputes(computesWithClouds, 1));
+        assertFalse(new BomRfcBulkProcessor().hasSufficientComputes(computesWithClouds, 1, 3));
+
+        //now add more computes to both clouds , still should fail because of the minComputesInEachCloud param value
+        computes = new ArrayList();
+        for (int i = 0; i < BomRfcBulkProcessor.MIN_COMPUTES_SCALE * 3; i++) {
+            computes.add(new CmsCI());
+        }
+        computesWithClouds.get("cloud_1").addAll(computes);
+        computesWithClouds.get("cloud_2").addAll(computes);
+
+        assertFalse(new BomRfcBulkProcessor().hasSufficientComputes(computesWithClouds, 1,
+                computesWithClouds.get("cloud_1").size()));
     }
 }

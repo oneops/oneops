@@ -79,6 +79,7 @@ public class ThanosClient {
     public static class CloudResourcesUtilizationStats implements Serializable {
         String cloud_name;
         int reclaim_vms;
+        int min_cluster_size;
         String org;
         String assembly;
         String environment;
@@ -166,6 +167,14 @@ public class ThanosClient {
 
         public void setVms(int vms) {
             this.Vms = vms;
+        }
+
+        public int getMin_cluster_size() {
+            return min_cluster_size;
+        }
+
+        public void setMin_cluster_size(int min_cluster_size) {
+            this.min_cluster_size = min_cluster_size;
         }
     }
 }

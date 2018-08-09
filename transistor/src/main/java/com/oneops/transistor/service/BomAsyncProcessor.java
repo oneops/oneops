@@ -129,7 +129,8 @@ public class BomAsyncProcessor {
         return prefix + String.valueOf(envId);
     }
 
-    public CmsDeployment scaleDown(long platformId, int scaleDownBy, boolean ensureEvenScale, String userId) {
+    public CmsDeployment scaleDown(long platformId, int scaleDownBy, int minComputesInEachCloud,
+                                   boolean ensureEvenScale, String userId) {
         CmsCI platformCi = cmProcessor.getCiById(platformId);
         List<CmsCIRelation> rels = cmProcessor.getToCIRelations(platformId, "manifest.ComposedOf", null);
         if (rels == null || rels.size() == 0) {
@@ -143,7 +144,8 @@ public class BomAsyncProcessor {
         envSemaphore.lockEnv(envCi.getCiId(), EnvSemaphore.LOCKED_STATE, processId);
         CmsDeployment deployment = null;
         try {
-            Map<String, Object> bomGenerationInfo = bomManager.scaleDown(platformCi, envCi, scaleDownBy, ensureEvenScale, userId);
+            Map<String, Object> bomGenerationInfo = bomManager.scaleDown(platformCi, envCi, scaleDownBy,
+                    minComputesInEachCloud, ensureEvenScale, userId);
             bomGenerationInfo.put("createdBy", userId);
             bomGenerationInfo.put("mode", "persistent");
             bomGenerationInfo.put("autoDeploy", true);
@@ -159,7 +161,7 @@ public class BomAsyncProcessor {
             logger.error("Exception in scale down ", e);
             //not setting error message as comment for next time it should not block user from doing regular deployment
             envMsg = envCi.getComments();
-            throw new TransistorException(CmsError.TRANSISTOR_BOM_GENERATION_FAILED, envMsg);
+            throw new TransistorException(CmsError.TRANSISTOR_BOM_GENERATION_FAILED, e.getMessage());
         } finally {
             envSemaphore.unlockEnv(envCi.getCiId(), envMsg, processId);
         }

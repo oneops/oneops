@@ -173,8 +173,11 @@ public class OneOpsFacade {
         return responseCode;
     }
 
-    public Deployment scaleDown(long platformId, int scaleDownByNumber, String userId) throws IOException, OneOpsException {
+    public Deployment scaleDown(long platformId, int scaleDownByNumber, int minComputesInEachCloud, String userId)
+            throws IOException, OneOpsException {
         HashMap<String, String> params = new HashMap<>();
+        params.put("scaleDownByNumber", String.valueOf(scaleDownByNumber));
+        params.put("minComputesInEachCloud", String.valueOf(minComputesInEachCloud));
 
         log.info("scaling down platform id: {}", platformId);
         RequestBody body = RequestBody.create(JSON, gson.toJson(params));

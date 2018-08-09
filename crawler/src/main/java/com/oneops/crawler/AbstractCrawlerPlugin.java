@@ -112,9 +112,15 @@ public abstract class AbstractCrawlerPlugin {
                 }
             }
 
-            eligiblePlatforms.add(platform.getId());
+            if (isPlatformEligible(platform)) {
+                eligiblePlatforms.add(platform.getId());
+            }
         }
         return eligiblePlatforms;
+    }
+
+    protected boolean isPlatformEligible(Platform platform) {
+        return true;
     }
 
     public boolean isEnabled() {
