@@ -114,10 +114,12 @@ public class FqdnExecutorTest {
     assertThat(lbs.get(0).vip(), is("1.1.1.0"));
     assertThat(lbs.get(0).cloud(), is("cl1"));
     assertThat(lbs.get(0).enabledForTraffic(), is(true));
+    assertTrue(lbs.get(0).weightPercent() == null);
 
     assertThat(lbs.get(1).vip(), is("1.1.1.1"));
     assertThat(lbs.get(1).cloud(), is("cl2"));
     assertThat(lbs.get(1).enabledForTraffic(), is(true));
+    assertTrue(lbs.get(1).weightPercent() == null);
 
     InfobloxConfig ibConfig = request.infobloxConfig();
     assertThat(ibConfig.host(), is("https://localhost:8123"));
@@ -148,6 +150,54 @@ public class FqdnExecutorTest {
     CloudARecord cloudARecord = cloudARecords.get(0);
     assertThat(cloudARecord.cloud(), is("cl1"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
+  }
+
+  @Test
+  public void gslbRequestWithEqualWeights() {
+    CmsWorkOrderSimple wo = woWith2Clouds();
+    wo.getRfcCi().setRfcAction("add");
+    Map<String, String> map = new HashMap<>();
+    map.put("weights", "{\"cl1\": 50, \"cl2\" : 50}");
+    wo.setConfig(map);
+    fqdnExecutor.execute(wo, "/tmp");
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
+
+    Gslb request = argument.getValue();
+    assertThat(request.lbs().get(0).weightPercent(), is(50));
+    assertThat(request.lbs().get(1).weightPercent(), is(50));
+  }
+
+  @Test
+  public void gslbRequestWithDifferentWeights() {
+    CmsWorkOrderSimple wo = woWith2Clouds();
+    wo.getRfcCi().setRfcAction("add");
+    Map<String, String> map = new HashMap<>();
+    map.put("weights", "{\"cl1\": 60, \"cl2\" : 40}");
+    wo.setConfig(map);
+    fqdnExecutor.execute(wo, "/tmp");
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
+
+    Gslb request = argument.getValue();
+    assertThat(request.lbs().get(0).weightPercent(), is(60));
+    assertThat(request.lbs().get(1).weightPercent(), is(40));
+  }
+
+  @Test
+  public void gslbRequestWithMissingWeights() {
+    CmsWorkOrderSimple wo = woWith2Clouds();
+    wo.getRfcCi().setRfcAction("add");
+    Map<String, String> map = new HashMap<>();
+    map.put("weights", "{\"cl1\": 100}");
+    wo.setConfig(map);
+    fqdnExecutor.execute(wo, "/tmp");
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
+
+    Gslb request = argument.getValue();
+    assertThat(request.lbs().get(0).weightPercent(), is(100));
+    assertThat(request.lbs().get(1).weightPercent(), is(0));
   }
 
   @Test

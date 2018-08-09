@@ -1384,6 +1384,21 @@ public class CmsCmProcessor {
 		return relList;
 
 	}
+
+	public List<CmsCIRelation> getCIRelationsWithToCIAndNoAttrs(String nsPath,
+			String relationName,
+			String shortRelName,
+			String fromClazzName,
+			String toClazzName) {
+		CiClassNames toNames = parseClassName(toClazzName);
+		CiClassNames fromNames = parseClassName(fromClazzName);
+		List<CmsCIRelation> relList = ciMapper.getCIRelations(nsPath, relationName,
+				shortRelName, fromNames.className, fromNames.shortClassName,
+				toNames.className, toNames.shortClassName);
+		populateRelCis(relList, false, true);
+		return relList;
+
+	}
 	
 	/**
 	 * Gets the to ci relations.

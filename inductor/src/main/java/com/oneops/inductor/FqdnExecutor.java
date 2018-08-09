@@ -3,6 +3,7 @@ package com.oneops.inductor;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
+import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -49,7 +50,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -100,6 +103,9 @@ public class FqdnExecutor implements ComponentWoExecutor {
   private static final String CLOUD_STATUS_INACTIVE = "inactive";
 
   private static final String DELEGATION_CONFIG_PATH = "/secrets/gslb_delegation.json";
+
+  /** Config variable to enable GSLB cname cut over. */
+  public static final String GSLB_MIGRATION_CUTOVER = "GSLB_MIGRATION_CUTOVER_ENABLED";
 
   private static final Logger logger = Logger.getLogger(FqdnExecutor.class);
 
@@ -250,6 +256,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
    */
   private Response performMigration(CmsActionOrderSimple ao, String dataDir, String logKey) {
     String arg = getMigrateArg(ao, logKey);
+    Stopwatch stopwatch = Stopwatch.createStarted();
+
     try {
       String fileName = dataDir + "/" + ao.getRecordId() + ".json";
       logger.info(logKey + "Inductor: " + InetAddress.getLocalHost().getHostAddress());
@@ -268,6 +276,16 @@ public class FqdnExecutor implements ComponentWoExecutor {
     } catch (Exception ex) {
       woHelper.failWo(ao, logKey, "Migrate to '" + arg + "'  action failed!", ex);
       return woHelper.formResponse(ao, logKey);
+
+    } finally {
+      stopwatch.stop();
+      logger.info(
+          logKey
+              + "Migrate to '"
+              + arg
+              + "' took "
+              + stopwatch.elapsed(TimeUnit.SECONDS)
+              + " seconds!");
     }
   }
 
@@ -410,6 +428,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
     boolean stickiness = isStickinessEnabled(ao);
     boolean primaryCloud = hasPrimaryCloud(ao);
     boolean ptrEnabled = isPTREnabled(ao);
+    boolean cutOverEnabled = isCutOverEnabled(ao);
+    boolean singlePlatform = isSinglePlatform(ao);
 
     TorbitConfig tc = getTorbitConfig(ao, logKey);
     InfobloxConfig ic = getInfobloxConfig(ao);
@@ -427,8 +447,15 @@ public class FqdnExecutor implements ComponentWoExecutor {
 
     String gslbInfo =
         String.format(
-            "GSLB fqdn: %s, Migratable GSLB: %s, GSLB base domain: %s, GSLB enabled: %s, Primary Cloud: %s, PTR Enabled: %s",
-            gslb, migratableGslb, baseDomain, gdnsEnabled, primaryCloud, ptrEnabled);
+            "GSLB fqdn: %s, Migratable GSLB: %s, GSLB base domain: %s, GSLB enabled: %s, Primary Cloud: %s, PTR Enabled: %s, Single Platform: %s, CNAME CutOver: %s",
+            gslb,
+            migratableGslb,
+            baseDomain,
+            gdnsEnabled,
+            primaryCloud,
+            ptrEnabled,
+            singlePlatform,
+            cutOverEnabled);
     logger.info(logKey + gslbInfo);
 
     /* Zone delegation infoblox client is used for removing zone delegation records and creating gslb -> torbit alias.*/
@@ -436,7 +463,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     /* Cloud dns infoblox client is used for platform cname operations. */
     InfobloxClient cloudDnsIbaClient = getCloudDNSClient(ic);
 
-    if (gdnsEnabled && !stickiness && !ptrEnabled && migratableGslb) {
+    if (gdnsEnabled && !stickiness && !ptrEnabled && migratableGslb && !singlePlatform) {
 
       // Holds all newly updated entries.
       Map<String, String> dnsEntries = new HashMap<>();
@@ -454,6 +481,14 @@ public class FqdnExecutor implements ComponentWoExecutor {
       }
       logger.info(logKey + "Created Torbit MTD base, " + res);
       validateTorbitMtdBase(res, logKey);
+
+      if (!cutOverEnabled) {
+        logger.info(
+            logKey
+                + "GSLB CNAME migration is not enabled. Enable it and run again to complete the migration.");
+        // Returns the same a/o without any modifications.
+        return woHelper.formResponse(ao, logKey);
+      }
 
       if (primaryCloud) {
 
@@ -969,7 +1004,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
    * @return <code>true</code> if stickiness is enabled.
    */
   private boolean isStickinessEnabled(CmsActionOrderSimple ao) {
-    boolean stickiness = false;
+    boolean stickiness = true;
     Instance lb = woHelper.getLbFromDependsOn(ao);
     if (lb != null) {
       String stkVal = lb.getCiAttributes().get("stickiness");
@@ -993,6 +1028,31 @@ public class FqdnExecutor implements ComponentWoExecutor {
       }
     }
     return false;
+  }
+
+  /**
+   * Checks if GSLB CNAME migration is enabled.
+   *
+   * @param ao action order
+   * @return <code>true</code> if cname migration is enabled.
+   */
+  private boolean isCutOverEnabled(CmsActionOrderSimple ao) {
+    Map<String, String> config = ao.getConfig();
+    if (config != null) {
+      return "true".equalsIgnoreCase(config.getOrDefault(GSLB_MIGRATION_CUTOVER, "false"));
+    } else {
+      return false;
+    }
+  }
+
+  /**
+   * Check if the platform is single (means no LB).
+   *
+   * @param ao action order
+   * @return <code>true</code> if the platform is single.
+   */
+  private boolean isSinglePlatform(CmsActionOrderSimple ao) {
+    return woHelper.getLbFromDependsOn(ao) == null;
   }
 
   /**
@@ -1129,6 +1189,11 @@ public class FqdnExecutor implements ComponentWoExecutor {
       newEntries = cloudEntries;
     }
 
+    List<Lb> lbTargets = lbTargets(wo, context);
+    logger.info(logKey + "Mtd LbTargets :: " + lbTargets);
+    List<HealthCheck> healthChecks = healthChecks(context, logKey);
+    logger.info(logKey + "Mtd healthChecks :: " + healthChecks);
+
     return Gslb.builder()
         .app(context.platform)
         .subdomain(context.subdomain)
@@ -1136,8 +1201,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
         .torbitConfig(torbitConfig)
         .infobloxConfig(infobloxConfig)
         .logContextId(logKey)
-        .lbs(lbTargets(wo, context))
-        .healthChecks(healthChecks(context, logKey))
+        .lbs(lbTargets)
+        .healthChecks(healthChecks)
         .cnames(new ArrayList<>(aliases))
         .cloudARecords(newEntries)
         .dcARecords(dcARecords)
@@ -1296,11 +1361,25 @@ public class FqdnExecutor implements ComponentWoExecutor {
     if (deployedLbs == null) {
       throw new RuntimeException("Lb payload not available in workorder");
     }
+    Optional<Map<String, Integer>> weightsMap = weights(wo);
     return deployedLbs
         .stream()
         .filter(lb -> isNotBlank(lb.getCiAttributes().get(ATTRIBUTE_DNS_RECORD)))
-        .map(lb -> lbTarget(lb, cloudMap))
+        .map(lb -> lbTarget(lb, cloudMap, weightsMap))
         .collect(Collectors.toList());
+  }
+
+  private Optional<Map<String, Integer>> weights(CmsWorkOrderSimple wo) {
+    Map<String, String> config = wo.getConfig();
+    if (config != null && config.containsKey("weights")) {
+      String value = config.get("weights");
+      Type type = new TypeToken<Map<String, Integer>>() {}.getType();
+      Map<String, Integer> map = gson.fromJson(value, type);
+      if (!map.isEmpty()) {
+        return Optional.of(map);
+      }
+    }
+    return Optional.empty();
   }
 
   private List<Lb> lbTargets(CmsActionOrderSimple ao) {
@@ -1309,20 +1388,25 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return deployedLbs
         .stream()
         .filter(lb -> isNotBlank(lb.getCiAttributes().get(ATTRIBUTE_DNS_RECORD)))
-        .map(lb -> lbTarget(lb, cloudMap))
+        .map(lb -> lbTarget(lb, cloudMap, Optional.empty()))
         .collect(Collectors.toList());
   }
 
-  private Lb lbTarget(Instance lbCi, Map<Long, Cloud> cloudMap) {
+  private Lb lbTarget(Instance lbCi, Map<Long, Cloud> cloudMap, Optional<Map<String, Integer>> weightsMapOpt) {
     String lbName = lbCi.getCiName();
     String[] elements = lbName.split("-");
     String cloudId = elements[elements.length - 2];
     Cloud cloud = cloudMap.get(Long.parseLong(cloudId));
+    Integer weightPercent = null;
+    if (weightsMapOpt.isPresent()) {
+      Map<String, Integer> weightsMap = weightsMapOpt.get();
+      weightPercent = weightsMap.containsKey(cloud.name) ? weightsMap.get(cloud.name) : 0;
+    }
     return Lb.create(
         cloud.name,
         lbCi.getCiAttributes().get(ATTRIBUTE_DNS_RECORD),
         isEnabledForTraffic(cloud),
-        null);
+        weightPercent);
   }
 
   private boolean isEnabledForTraffic(Cloud cloud) {

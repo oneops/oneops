@@ -1,7 +1,9 @@
 package com.oneops.inductor;
 
+import static com.oneops.inductor.FqdnExecutor.GSLB_MIGRATION_CUTOVER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonParser;
@@ -43,24 +45,44 @@ public class GslbMigrationTest {
   @Test
   @Ignore
   public void migration() {
-    execMigrate("/gslb-migration.json");
+    CmsActionOrderSimple ao = getActionOrder("/gslb-migration.json", true);
+
+    Response res = fqdnExec.execute(ao, System.getProperty("java.io.tmpdir"));
+    assertEquals(res.getResult(), Result.SUCCESS);
+    assertNotNull(ao.resultCi);
+    assertEquals(OpsActionState.complete, ao.getActionState());
+  }
+
+  @Test
+  @Ignore
+  public void migrationWithoutCutOver() {
+    CmsActionOrderSimple ao = getActionOrder("/gslb-migration.json", false);
+
+    Response res = fqdnExec.execute(ao, System.getProperty("java.io.tmpdir"));
+    assertEquals(res.getResult(), Result.SUCCESS);
+    assertNull(ao.resultCi);
+    assertEquals(OpsActionState.complete, ao.getActionState());
   }
 
   @Test
   @Ignore
   public void rollback() {
-    execMigrate("/gslb-rollback.json");
-  }
+    CmsActionOrderSimple ao = getActionOrder("/gslb-rollback.json", true);
 
-  /** Invoke gslb migrate action */
-  private void execMigrate(String actionOrderPath) {
-    CmsActionOrderSimple ao =
-        gson.fromJson(
-            ResourceUtils.readResourceAsString(actionOrderPath), CmsActionOrderSimple.class);
     Response res = fqdnExec.execute(ao, System.getProperty("java.io.tmpdir"));
     assertEquals(res.getResult(), Result.SUCCESS);
     assertNotNull(ao.resultCi);
     assertEquals(OpsActionState.complete, ao.getActionState());
+  }
+
+  private CmsActionOrderSimple getActionOrder(String resource, boolean cnameCutOver) {
+    CmsActionOrderSimple ao =
+        gson.fromJson(ResourceUtils.readResourceAsString(resource), CmsActionOrderSimple.class);
+
+    Map<String, String> config = new HashMap<>();
+    config.put(GSLB_MIGRATION_CUTOVER, String.valueOf(cnameCutOver));
+    ao.setConfig(config);
+    return ao;
   }
 
   @Test

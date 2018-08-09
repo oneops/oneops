@@ -1041,6 +1041,7 @@ public class CmsUtil {
                 }
             }
         }
+        aos.setConfig(ao.getConfig());
         return aos;
     }
 
@@ -1068,7 +1069,7 @@ public class CmsUtil {
         if (aos.getResultCi() != null) {
             ao.setResultCi(custCISimple2CI(aos.getResultCi(), null));
         }
-
+        aos.setConfig(ao.getConfig());
         return ao;
     }
 
