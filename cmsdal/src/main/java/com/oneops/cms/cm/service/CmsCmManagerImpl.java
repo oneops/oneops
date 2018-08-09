@@ -572,4 +572,13 @@ public class CmsCmManagerImpl implements CmsCmManager {
         cmsAltNs.setNsPath(altNs);
         cmProcessor.createAltNs(cmsAltNs, ciId);
     }
+
+    @Override
+    public CmsVar getCmVarByLongestMatchingCriteria(String varNameLike, String criteria) {
+        List<CmsVar> list = cmProcessor.getCmVarByLongestMatchingCriteria(varNameLike, criteria);
+        if (list != null && !list.isEmpty()) {
+            return list.get(0);
+        }
+        return null;
+    }
 }

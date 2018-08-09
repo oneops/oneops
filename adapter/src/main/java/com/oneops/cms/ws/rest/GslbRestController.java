@@ -9,12 +9,16 @@ import static com.oneops.cms.util.CmsConstants.GSLB_TYPE_TORBIT;
 import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
+import com.oneops.cms.cm.domain.CmsCIRelation;
+import com.oneops.PlatformFqdn;
 import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
 import com.oneops.cms.cm.ops.domain.OpsProcedureSimple;
 import com.oneops.cms.cm.ops.domain.OpsProcedureState;
 import com.oneops.cms.cm.ops.service.OpsManager;
 import com.oneops.cms.cm.service.CmsCmManager;
+import com.oneops.cms.exceptions.CmsException;
 import com.oneops.cms.execution.MigrateArg;
+import com.oneops.cms.util.CmsError;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -45,67 +49,163 @@ public class GslbRestController extends AbstractRestController {
 
   private static final String SERVICE_TYPE_ATTR = "service_type";
 
-  @Autowired
-  OpsManager opsManager;
+  @Autowired OpsManager opsManager;
 
-  @Autowired
-  CmsCmManager cmsCmManager;
+  @Autowired CmsCmManager cmsCmManager;
 
   private Gson gson = new Gson();
 
   @RequestMapping(value = "/gslb/migrate", method = RequestMethod.POST)
   @ResponseBody
-  public List<OpsProcedureSimple> gslbMigrate(@RequestParam String nsPath,
+  public List<OpsProcedureSimple> gslbMigrate(
+      @RequestParam String nsPath,
       @RequestParam String type,
-      @RequestParam(required=false) boolean force) throws Exception {
+      @RequestParam(required = false) boolean force,
+      @RequestParam(required = false) boolean continueOnFailure)
+      throws Exception {
     type = type(type);
-    //TODO validate nspath to be atleast upto environment, should not allow org level migrates
-    logger.info("started migrating gslb for nsPath: " +  nsPath + ", force: " + force);
-    List<CmsCI> fqdnInstances = cmsCmManager.getCiBy3NsLike(nsPath, FQDN_SHORT_CLASS, null);
-    Map<String, CmsCI> procedureCiMap = new HashMap<>();
-    Map<String, List<CmsCI>> instanceMap = fqdnInstances.stream()
-        .filter(ci -> ci.getCiClassName().startsWith("bom."))
-        .collect(Collectors.groupingBy(CmsCI::getNsPath));
-
     List<OpsProcedureSimple> procedureList = new ArrayList<>();
-    for (Entry<String, List<CmsCI>> entry : instanceMap.entrySet()) {
-      //continue only if there is atleast one bom instance that is not migrated or force is requested
-      if (force || hasAnyNonMigratedInstance(entry.getValue(), type)) {
-        String bomNsPath = entry.getKey();
-        CmsCI manifestPlatformCi = getManifestPlatformCi(bomNsPath);
+    List<PlatformFqdn> platformNsPaths = platformFqdnsThatCanBeMigrated(nsPath, type, force);
+    Map<String, CmsCI> procedureCiMap = new HashMap<>();
+    for (PlatformFqdn platformFqdn : platformNsPaths) {
+      String bomNsPath = platformFqdn.getNsPath();
+      CmsCI manifestPlatformCi = getManifestPlatformCi(bomNsPath);
 
-        if (manifestPlatformCi != null) {
-          String packNsPath = getPackNsPath(manifestPlatformCi);
-          logger.info("gslb migrate :: pack nsPath :" + packNsPath + " for bom nsPath : " + bomNsPath);
-          if (StringUtils.isNotBlank(packNsPath)) {
-            CmsCI procedureCi = procedureCiMap.computeIfAbsent(packNsPath, this::getMigrationProcedure);
-            if (procedureCi != null) {
-              //submit gslb-migration procedure for this nsPath
-              CmsOpsProcedure procRequest = new CmsOpsProcedure();
-              procRequest.setCiId(manifestPlatformCi.getCiId());
-              procRequest.setCreatedBy("oneops-system");
-              procRequest.setProcedureState(OpsProcedureState.active);
-              procRequest.setProcedureCiId(procedureCi.getCiId());
-              procRequest.setArglist(procedureArgument(type));
-              logger.info("submitting gslb-migration procedure for nsPath " +  bomNsPath + ", proc ciId : " + procedureCi.getCiId());
-
-              CmsOpsProcedure procedure = opsManager.submitProcedure(procRequest);
-              CmsOpsProcedure updatedProc = waitForCompletion(procedure.getProcedureId());
-              if (updatedProc == null)
-                updatedProc = procedure;
-              procedureList.add(procedure(updatedProc, bomNsPath));
-              //continue only if the last procedure was successful
-              if (!isSuccessful(updatedProc)) {
-                logger.info("gslb migrate :: procedure [nsPath: " + bomNsPath +
-                    ", id: " + procedure.getProcedureId() + "] not successful, aborting.");
-                break;
-              }
+      if (manifestPlatformCi != null) {
+        String packNsPath = getPackNsPath(manifestPlatformCi);
+        logger.info(
+            "gslb migrate :: pack nsPath :" + packNsPath + " for bom nsPath : " + bomNsPath);
+        if (StringUtils.isNotBlank(packNsPath)) {
+          CmsCI procedureCi =
+              procedureCiMap.computeIfAbsent(packNsPath, this::getMigrationProcedure);
+          if (procedureCi != null) {
+            // submit gslb-migration procedure for this nsPath
+            CmsOpsProcedure procedure =
+                submitProcedure(bomNsPath, type, procedureCi, manifestPlatformCi);
+            CmsOpsProcedure updatedProc = waitForCompletion(procedure.getProcedureId());
+            if (updatedProc == null) updatedProc = procedure;
+            procedureList.add(procedure(updatedProc, bomNsPath));
+            // continue only if the last procedure was successful
+            if (!isSuccessful(updatedProc)) {
+              logger.info(
+                  "gslb migrate :: procedure [nsPath: "
+                      + bomNsPath
+                      + ", id: "
+                      + procedure.getProcedureId()
+                      + "] not successful. continue ? "
+                      + continueOnFailure);
+              if (!continueOnFailure) break;
             }
+          } else {
+            logger.info("gslb migration procedure not available for this pack ns : " + packNsPath);
           }
         }
       }
     }
     return procedureList;
+  }
+
+  private CmsOpsProcedure submitProcedure(
+      String bomNsPath, String type, CmsCI procedureCi, CmsCI manifestPlatformCi) {
+    CmsOpsProcedure procRequest = new CmsOpsProcedure();
+    procRequest.setCiId(manifestPlatformCi.getCiId());
+    procRequest.setCreatedBy("oneops-system");
+    procRequest.setProcedureState(OpsProcedureState.active);
+    procRequest.setProcedureCiId(procedureCi.getCiId());
+    procRequest.setArglist(procedureArgument(type));
+    logger.info(
+        "submitting gslb-migration procedure for nsPath "
+            + bomNsPath
+            + ", proc ciId : "
+            + procedureCi.getCiId());
+
+    return opsManager.submitProcedure(procRequest);
+  }
+
+  private List<PlatformFqdn> platformFqdnsThatCanBeMigrated(
+      String nsPath, String type, boolean force) {
+    type = type(type);
+    String[] nsElements = nsPath.split("/");
+    if (!isAtleastEnvironmentLevelNs(nsElements)) {
+      throw new CmsException(
+          CmsError.CMS_EXCEPTION, "nsPath should be atleast upto environment ns.");
+    }
+    if (!isGdnsEnabled(nsElements)) {
+      throw new CmsException(
+          CmsError.CMS_EXCEPTION, "gdns not enabled for this environment, nothing to migrate");
+    }
+
+    logger.info("started migrating gslb for nsPath: " + nsPath + ", force: " + force);
+    List<CmsCI> fqdnInstances = cmsCmManager.getCiBy3NsLike(nsPath, FQDN_SHORT_CLASS, null);
+    Map<String, List<CmsCI>> instanceMap =
+        fqdnInstances
+            .stream()
+            .filter(ci -> ci.getCiClassName().startsWith("bom."))
+            .collect(Collectors.groupingBy(CmsCI::getNsPath));
+
+    List<PlatformFqdn> nsPaths = new ArrayList<>();
+    for (Entry<String, List<CmsCI>> entry : instanceMap.entrySet()) {
+      List<CmsCI> bomFqdns = entry.getValue();
+
+      if (!isEligibleForMigration(bomFqdns.get(0))) {
+        logger.info(
+            "gslb migrate :: skipping platform "
+                + bomFqdns.get(0).getNsPath()
+                + " as it does not meet the conditions for gslb migration");
+        continue;
+      }
+
+      // continue only if there is atleast one bom instance that is not migrated or force is
+      // requested
+      if (force || hasAnyNonMigratedInstance(entry.getValue(), type)) {
+        PlatformFqdn platformFqdn = new PlatformFqdn();
+        platformFqdn.setNsPath(entry.getKey());
+        platformFqdn.setEntries(attribute(bomFqdns.get(0), "entries"));
+        nsPaths.add(platformFqdn);
+      }
+    }
+    return nsPaths;
+  }
+
+  @RequestMapping(value = "/gslb/migrate/platforms", method = RequestMethod.GET)
+  @ResponseBody
+  public List<PlatformFqdn> getEligiblePlatforms(
+      @RequestParam String nsPath,
+      @RequestParam String type,
+      @RequestParam(required = false) boolean force)
+      throws Exception {
+    return platformFqdnsThatCanBeMigrated(nsPath, type, force);
+  }
+
+  private boolean isEligibleForMigration(CmsCI fqdn) {
+    List<CmsCIRelation> lbRelations =
+        cmsCmManager.getFromCIRelations(fqdn.getCiId(), "bom.DependsOn", null, "Lb");
+    if (lbRelations != null && lbRelations.size() > 0) {
+      return isNotTrue(attribute(fqdn, "ptr_enabled"))
+          && isNotTrue(attribute(lbRelations.get(0).getToCi(), "stickiness"));
+    }
+    logger.info("gslb migrate :: no dependsOn lb found " + fqdn.getNsPath());
+    return false;
+  }
+
+  private boolean isNotTrue(String attrValue) {
+    return !("true".equalsIgnoreCase(attrValue));
+  }
+
+  private boolean isAtleastEnvironmentLevelNs(String[] nsElements) {
+    return nsElements.length >= 4
+        && !"public".equals(nsElements[1])
+        && !"_clouds".equals(nsElements[2]);
+  }
+
+  private boolean isGdnsEnabled(String[] nsElements) {
+    String assemblyNs = String.join("/", "", nsElements[1], nsElements[2]);
+    List<CmsCI> cis = cmsCmManager.getCiBy3(assemblyNs, "manifest.Environment", nsElements[3]);
+    if (cis == null || cis.isEmpty())
+      throw new CmsException(CmsError.CMS_EXCEPTION, "No environment ci found @ " + assemblyNs);
+    String value = attribute(cis.get(0), "global_dns");
+    logger.info("gslb migrate :: assembly ns : " + assemblyNs + "platform " + nsElements[2] + " gdns enabled : " + value);
+    return "true".equalsIgnoreCase(value);
   }
 
   private OpsProcedureSimple procedure(CmsOpsProcedure procedure, String nsPath) {
@@ -124,13 +224,11 @@ public class GslbRestController extends AbstractRestController {
     long startTime = System.currentTimeMillis();
     while (timeElapsedInSecs(startTime) < 300) {
       opsProcedure = opsManager.getCmsOpsProcedure(procedureId, false);
-      if (opsProcedure.getProcedureState() == pending ||
-          opsProcedure.getProcedureState() == active) {
+      if (opsProcedure.getProcedureState() == pending
+          || opsProcedure.getProcedureState() == active) {
         logger.info("procedure " + procedureId + " still running, will wait and check");
         Thread.sleep(3_000);
-      }
-      else
-        break;
+      } else break;
     }
     return opsProcedure;
   }
@@ -140,9 +238,8 @@ public class GslbRestController extends AbstractRestController {
   }
 
   private boolean hasAnyNonMigratedInstance(List<CmsCI> bomCis, String type) {
-    Optional<CmsCI> optinal = bomCis.stream()
-        .filter(ci -> !type.equals(attribute(ci, SERVICE_TYPE_ATTR)))
-        .findFirst();
+    Optional<CmsCI> optinal =
+        bomCis.stream().filter(ci -> !type.equals(attribute(ci, SERVICE_TYPE_ATTR))).findFirst();
     return optinal.isPresent();
   }
 
@@ -150,14 +247,19 @@ public class GslbRestController extends AbstractRestController {
     return gson.toJson(new MigrateArg(type));
   }
 
-  //get the gslb type, default is torbit
+  // get the gslb type, default is torbit
   private String type(String type) {
     if (StringUtils.isNotBlank(type)) {
       type = type.toLowerCase();
       if (GSLB_TYPE_NETSCALER.equals(type) || GSLB_TYPE_TORBIT.equals(type)) {
         return type;
       }
-      throw new IllegalArgumentException("Invalid type. type should be one of [" + GSLB_TYPE_NETSCALER + "," + GSLB_TYPE_TORBIT + "]");
+      throw new IllegalArgumentException(
+          "Invalid type. type should be one of ["
+              + GSLB_TYPE_NETSCALER
+              + ","
+              + GSLB_TYPE_TORBIT
+              + "]");
     }
     return GSLB_TYPE_TORBIT;
   }
@@ -185,10 +287,14 @@ public class GslbRestController extends AbstractRestController {
   }
 
   private String getPackNsPath(CmsCI platformCi) {
-    return "/public/" + attribute(platformCi, PACK_SOURCE_ATTRIBUTE)
-        + "/packs/" + attribute(platformCi, PACK_NAME_ATTRIBUTE)
-        + "/" + attribute(platformCi, PACK_VERSION_ATTRIBUTE)
-        + "/" + attribute(platformCi, PLATFORM_AVAILABILITY_ATTRIBUTE);
+    return "/public/"
+        + attribute(platformCi, PACK_SOURCE_ATTRIBUTE)
+        + "/packs/"
+        + attribute(platformCi, PACK_NAME_ATTRIBUTE)
+        + "/"
+        + attribute(platformCi, PACK_VERSION_ATTRIBUTE)
+        + "/"
+        + attribute(platformCi, PLATFORM_AVAILABILITY_ATTRIBUTE);
   }
 
   private String attribute(CmsCI ci, String attributeName) {
@@ -198,5 +304,4 @@ public class GslbRestController extends AbstractRestController {
     }
     return null;
   }
-
 }
