@@ -449,9 +449,11 @@ public class BomManagerImpl implements BomManager {
 	}
 
 	@Override
-	public Map<String, Object> scaleDown(CmsCI platformCi, CmsCI envCi, int scaleDownBy, boolean ensureEvenScale,  String userId) {
+	public Map<String, Object> scaleDown(CmsCI platformCi, CmsCI envCi, int scaleDownBy,
+										 int minComputesInEachCloud, boolean ensureEvenScale,  String userId) {
 		long startTime = System.currentTimeMillis();
-		CmsDeployment deployment = bomGenerationProcessor.scaleDown(platformCi, envCi, scaleDownBy, ensureEvenScale, userId);
+		CmsDeployment deployment = bomGenerationProcessor.scaleDown(platformCi, envCi, scaleDownBy,
+				minComputesInEachCloud, ensureEvenScale, userId);
 		long endTime = System.currentTimeMillis();
 		Map<String, Object> bomInfo = new HashMap<>();
 		if (deployment != null) {

@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 import static com.oneops.cms.util.CmsConstants.*;
 
 public class BomRfcBulkProcessor {
-	static final int MIN_COMPUTES_SCALE = 2;
+	static final int MIN_COMPUTES_SCALE = 3;
 	private static Logger logger = Logger.getLogger(BomRfcBulkProcessor.class);
 
     private static final Map<String, Integer> priorityMap = new HashMap<>();
@@ -1447,7 +1447,8 @@ public class BomRfcBulkProcessor {
 		}
 	}
 
-	public CmsDeployment scaleDown(CmsCI platformCi, CmsCI env, int scaleDownBy, boolean ensureEvenScale, String user) {
+	public CmsDeployment scaleDown(CmsCI platformCi, CmsCI env, int scaleDownBy, int minComputesInEachCloud,
+								   boolean ensureEvenScale, String user) {
 		long startTimeMillis = System.currentTimeMillis();
 		Map<String, List<CmsCI>> cloudToComputesMap = getComputesWithClouds(platformCi);
 
@@ -1456,7 +1457,7 @@ public class BomRfcBulkProcessor {
 			logger.info(errorMessage);
 			throw new TransistorException(CmsError.TRANSISTOR_EXCEPTION, errorMessage);
 		}
-		if (! hasSufficientComputes(cloudToComputesMap, scaleDownBy)) {
+		if (! hasSufficientComputes(cloudToComputesMap, scaleDownBy, minComputesInEachCloud)) {
 			String errorMessage = "1 or more clouds has less than min computes, rejecting scale down for platform "
 					+ platformCi.getCiId();
 			logger.info(errorMessage);
@@ -1525,10 +1526,14 @@ public class BomRfcBulkProcessor {
 		return deployment;
 	}
 
-	boolean hasSufficientComputes(Map<String, List<CmsCI>> computesWithClouds, int scaleDownBy) {
+	boolean hasSufficientComputes(Map<String, List<CmsCI>> computesWithClouds, int scaleDownBy,
+								  int minComputesInEachCloud) {
+		if (minComputesInEachCloud < MIN_COMPUTES_SCALE) {
+			minComputesInEachCloud = MIN_COMPUTES_SCALE;
+		}
 		for (String cloud : computesWithClouds.keySet()) {
 			List<CmsCI> computes = computesWithClouds.get(cloud);
-			if (computes.size() - scaleDownBy < MIN_COMPUTES_SCALE) {
+			if (computes.size() - scaleDownBy < minComputesInEachCloud) {
 				return false;
 			}
 		}
