@@ -432,4 +432,7 @@ public class ThreadLocalDJMapper implements DJMapper{
         return get().getAltNsBy(rfcCI);
     }
 
+    @Override
+    public List<Integer> getDeploymentDistinctStepsTotal(@Param("deploymentId") long deploymentId) { return get().getDeploymentDistinctStepsTotal(deploymentId); };
+
 }

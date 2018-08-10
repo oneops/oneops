@@ -147,6 +147,7 @@
 		<property name="nsMapper" ref="nsMapper" />
 		<property name="rfcProcessor" ref="cmsRfcProcessor" />
         <property name="capacityProcessor" ref="capacityProcessor"/>
+        <property name="djMapper" ref="djMapper"/>
     </bean>
 
 

@@ -81,6 +81,7 @@ public class CmsListener implements MessageListener {
   private CMSClient cmsClient;
   private ExecutionManager executionManager;
   private boolean isDeployerEnabled;
+  private int deploymentStepsLimit;
 
   /**
    * Inits the.
@@ -139,7 +140,8 @@ public class CmsListener implements MessageListener {
         logger.error("Got bad message:" + message.getText() + "/n end msg");
         return;
       } else {
-        if (isDeployerEnabled(dpmt.getNsPath())) {
+        if (isDeployerEnabled(dpmt.getNsPath()) &&
+                cmsClient.isDeployerStepsInLimit(deploymentStepsLimit, dpmt.getDeploymentId())) {
           notifyIfRequired(dpmt);
           logger.info("Executing deployment using Deployer : " + dpmt.getDeploymentId());
           startDeployment(dpmt);
@@ -334,6 +336,10 @@ public class CmsListener implements MessageListener {
    */
   public void setWfController(WorkflowController wfController) {
     this.wfController = wfController;
+  }
+
+  public void setDeploymentStepsLimit(int deploymentStepsLimit) {
+    this.deploymentStepsLimit = deploymentStepsLimit;
   }
 
 }

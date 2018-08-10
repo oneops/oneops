@@ -26,6 +26,7 @@ import com.oneops.cms.cm.domain.CmsCIRelationBasic;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.crypto.CmsCrypto;
 import com.oneops.cms.dj.dal.DJDpmtMapper;
+import com.oneops.cms.dj.dal.DJMapper;
 import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.ns.dal.NSMapper;
@@ -52,6 +53,7 @@ public class CmsDpmtProcessor {
   public static final String OPEN_DEPLOYMENT_REGEXP = "active|failed|paused";
   static Logger logger = Logger.getLogger(CmsDpmtProcessor.class);
 
+  private DJMapper djMapper;
   private DJDpmtMapper dpmtMapper;
   private NSMapper nsMapper;
   private CmsCmProcessor cmProcessor;
@@ -105,6 +107,10 @@ public class CmsDpmtProcessor {
 
   public void setNsMapper(NSMapper nsMapper) {
     this.nsMapper = nsMapper;
+  }
+
+  public void setDjMapper(DJMapper djMapper) {
+    this.djMapper = djMapper;
   }
 
   public void setRfcProcessor(CmsRfcProcessor rfcProcessor) {
@@ -1073,5 +1079,9 @@ public class CmsDpmtProcessor {
     }
 
     return cmVarValue;
+  }
+
+  public List<Integer> getDeploymentDistinctStepsTotal(long deploymentId){
+    return djMapper.getDeploymentDistinctStepsTotal(deploymentId);
   }
 }
