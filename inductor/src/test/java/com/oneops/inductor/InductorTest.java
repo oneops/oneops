@@ -20,6 +20,7 @@ package com.oneops.inductor;
 import static com.oneops.cms.util.CmsConstants.MANAGED_VIA;
 import static com.oneops.cms.util.CmsConstants.SECURED_BY;
 import static com.oneops.inductor.InductorConstants.PRIVATE;
+import static com.oneops.inductor.InductorConstants.ADD_FAIL_CLEAN;
 import static com.oneops.inductor.util.ResourceUtils.readResourceAsBytes;
 import static com.oneops.inductor.util.ResourceUtils.readResourceAsString;
 import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
@@ -248,7 +249,7 @@ public class InductorTest {
   /**
    * This could be used for local testing, Need to add key and modify the user-app.json accordingly
    */
-  //@Test
+  @Test
   public void runVerification() throws IOException {
     CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
     Config cfg = new Config();
@@ -266,11 +267,38 @@ public class InductorTest {
     WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
     HashMap<String, CmsWorkOrderSimple> hm = new HashMap<>();
     hm.put("workorder", wo);
-    byte[] userWO = readResourceAsBytes("user-app.json");
+    byte[] userWO = readResourceAsBytes("/user-app.json");
 
-    Files.write(Paths.get("/tmp/wos/190494.json"), userWO, TRUNCATE_EXISTING);
+    // Files.write(Paths.get("/tmp/wos/190494.json"), userWO, TRUNCATE_EXISTING);
     Map<String, String> mp = new HashMap<>();
-    executor.runVerification(wo, mp);
+    mp = executor.runVerification(wo, mp);
+    assertTrue(!mp.containsKey("compute_kci_status"));
+    assertTrue(mp.containsKey("kci_status"));
+    assertTrue(mp.get("kci_status").toString().equals("verify is disabled"));
+  }
+
+  /**
+   * This is used to check if the compute kci has failed
+   */
+  @Test
+  public void computeKciFailedVerification() {
+    Listener listener = new Listener();
+    Map<String, String> responseMap = new HashMap<>();
+    assertFalse(listener.computeKciFailed(responseMap));
+    responseMap.put("compute_kci_failure", "true");
+    assertTrue(listener.computeKciFailed(responseMap));
+  }
+
+  /**
+   * This is used to check if the workorder is updated to include the add_fail_clean recipe
+   */
+  @Test
+  public void updateWorkOrderWithActionVerification() {
+    Listener listener = new Listener();
+    CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
+    CmsWorkOrderSimple workorder = listener.updateWorkOrderWithAction(wo, ADD_FAIL_CLEAN);
+    assertEquals(workorder.getRfcCi().getRfcAction(), ADD_FAIL_CLEAN);
+    assertEquals(workorder.getSearchTags().get("rfcAction"), ADD_FAIL_CLEAN);
   }
 
   /**

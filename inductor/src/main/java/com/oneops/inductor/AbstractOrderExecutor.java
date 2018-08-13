@@ -1135,6 +1135,9 @@ public abstract class AbstractOrderExecutor {
         if (result.getResultCode() > 0) {
           wo.setComments("FATAL: Spec verification failed!");
           responseMap.put("task_result_code", "500");
+          if("compute".equals(compName)) {
+            responseMap.put("compute_kci_failure", "true");  
+          }
         }
 
         // Clean up working dir.
@@ -1145,10 +1148,15 @@ public abstract class AbstractOrderExecutor {
         logger.info(logKey + "Verification failed: " + t.getMessage());
         logger.error("Verification failed", t);
         responseMap.put("task_result_code", "500");
+        if("compute".equals(compName)) {
+          responseMap.put("compute_kci_failure", "true");  
+        }
       } finally {
         logger.info(logKey + " Run Verification took: "
             + MILLISECONDS.toSeconds(System.currentTimeMillis() - start) + " seconds.");
       }
+    } else {
+      responseMap.put("kci_status", "verify is disabled");
     }
 
     return responseMap;
