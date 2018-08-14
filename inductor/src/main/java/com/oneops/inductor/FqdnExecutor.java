@@ -1,5 +1,8 @@
 package com.oneops.inductor;
 
+import static com.oneops.gslb.domain.Protocol.HTTP;
+import static com.oneops.gslb.domain.Protocol.HTTPS;
+import static com.oneops.gslb.domain.Protocol.TCP;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
@@ -33,6 +36,7 @@ import com.oneops.gslb.domain.Lb;
 import com.oneops.gslb.domain.Protocol;
 import com.oneops.gslb.domain.ProvisionedGslb;
 import com.oneops.gslb.domain.TorbitConfig;
+import com.oneops.inductor.util.DnsUtils;
 import com.oneops.infoblox.InfobloxClient;
 import com.oneops.infoblox.model.cname.CNAME;
 import com.oneops.infoblox.model.zone.Delegate;
@@ -47,6 +51,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -122,17 +127,12 @@ public class FqdnExecutor implements ComponentWoExecutor {
   GslbProvider gslbProvider;
 
   private Map<String, Distribution> distributionMap;
-  private Map<String, Protocol> protocolMap;
 
   public FqdnExecutor() {
     gslbProvider = new GslbProvider();
     distributionMap = new HashMap<>();
     distributionMap.put("proximity", Distribution.PROXIMITY);
     distributionMap.put("roundrobin", Distribution.ROUND_ROBIN);
-    protocolMap = new HashMap<>();
-    protocolMap.put("tcp", Protocol.TCP);
-    protocolMap.put("http", Protocol.HTTP);
-    protocolMap.put("https", Protocol.TCP);
   }
 
   @Override
@@ -472,7 +472,6 @@ public class FqdnExecutor implements ComponentWoExecutor {
       logger.info(logKey + "The platform gslb domain is " + gslb);
       logger.info(logKey + "Creating torbit MTD base (gdns)...");
       GslbProvisionResponse res = gslbProvider.create(torbitGslbMigrationReq(ao, tc, ic, logKey));
-      String torbitGslb = res.getGlb();
 
       if (res.getStatus() == Status.FAILED) {
         woHelper.failWo(
@@ -480,7 +479,6 @@ public class FqdnExecutor implements ComponentWoExecutor {
         return woHelper.formResponse(ao, logKey);
       }
       logger.info(logKey + "Created Torbit MTD base, " + res);
-      validateTorbitMtdBase(res, logKey);
 
       if (!cutOverEnabled) {
         logger.info(
@@ -491,6 +489,9 @@ public class FqdnExecutor implements ComponentWoExecutor {
       }
 
       if (primaryCloud) {
+        // Validate before doing the cut-over.
+        String torbitGslb = res.getGlb();
+        validateTorbitMtdBase(res, delegationConfig, logKey);
 
         logger.info(logKey + "Starting to migrate netscaler gslb to torbit.");
         List<String> aliases = new ArrayList<>(getAliasesWithDefault(context));
@@ -543,12 +544,33 @@ public class FqdnExecutor implements ComponentWoExecutor {
    * Torbit MTD host health check validation. Will remove this naive logic once torbit provide a
    * proper MTD base health status API.
    */
-  private void validateTorbitMtdBase(GslbProvisionResponse aliases, String logKey) {
-    logger.warn(logKey + "MTD base health status check is not supported! Sleeping...");
-    try {
-      Thread.sleep(30_000);
-    } catch (InterruptedException ignore) {
+  private void validateTorbitMtdBase(
+      GslbProvisionResponse gslb, String delegationConfig, String logKey) {
+    List<String> dnsResolvers = getDnsResolvers(delegationConfig);
+    if (dnsResolvers.isEmpty()) {
+      throw new IllegalStateException("Can't find any DNS resolvers for gslb validation!");
     }
+
+    boolean aRecResolvable = DnsUtils.isARecResolvable(gslb.getGlb(), dnsResolvers, logKey);
+    if (!aRecResolvable) {
+      throw new IllegalStateException("Can't resolve torbit gslb domain: " + gslb.getGlb());
+    }
+  }
+
+  /**
+   * Get the DNS resolvers for torbit gslb validation.
+   *
+   * @param delegationConfig delegation config.
+   * @return list of dns resolvers host names.
+   */
+  private List<String> getDnsResolvers(String delegationConfig) {
+    JsonObject jo = (JsonObject) gson.fromJson(delegationConfig, JsonElement.class);
+    JsonArray asJsonArray = jo.getAsJsonArray("resolvers");
+    List<String> resolvers = new LinkedList<>();
+    for (JsonElement jsonElement : asJsonArray) {
+      resolvers.add(jsonElement.getAsString());
+    }
+    return resolvers;
   }
 
   /** GSLB migration validation for aliases. */
@@ -1392,7 +1414,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
         .collect(Collectors.toList());
   }
 
-  private Lb lbTarget(Instance lbCi, Map<Long, Cloud> cloudMap, Optional<Map<String, Integer>> weightsMapOpt) {
+  private Lb lbTarget(
+      Instance lbCi, Map<Long, Cloud> cloudMap, Optional<Map<String, Integer>> weightsMapOpt) {
     String lbName = lbCi.getCiName();
     String[] elements = lbName.split("-");
     String cloudId = elements[elements.length - 2];
@@ -1400,7 +1423,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     Integer weightPercent = null;
     if (weightsMapOpt.isPresent()) {
       Map<String, Integer> weightsMap = weightsMapOpt.get();
-      weightPercent = weightsMap.containsKey(cloud.name) ? weightsMap.get(cloud.name) : 0;
+      weightPercent = weightsMap.getOrDefault(cloud.name, 0);
     }
     return Lb.create(
         cloud.name,
@@ -1476,75 +1499,173 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return isPlatformDisabled;
   }
 
+  /**
+   * Torbit GSLB health check mapper function from existing LB listener/ecv config.
+   *
+   * <pre>
+   * ┌─────────────────┬─────────┬───────────────────────────────────────────────────────┐
+   * │   LB Listener   │  LB ECV │                Torbit MTD health check                │
+   * ├─────────────────┼─────────┼───────────────────────────────────────────────────────┤
+   * │ HTTP 8080       │ /health │ http-8080 + /health + tls: false                      │
+   * │ HTTP 8080       │ n/a     │ http-8080 + tls: false                                │
+   * │ HTTPS 8443      │ /health │ https-8443 + /health + tls: true (No cert validation) │
+   * │ HTTPS 8443      │ n/a     │ https-8443 + tls: true                                │
+   * │ SSL_BRIDGE 8443 │ n/a     │ tcp-8443 + tls: true                                  │
+   * │ TLS 8444        │ n/a     │ tcp-8444 + tls: true                                  │
+   * │ TCP 8445        │ /health │ tcp-8445 + tls: false                                 │
+   * │ TCP 8445        │ n/a     │ tcp-8445 + tls: false                                 │
+   * └─────────────────┴─────────┴───────────────────────────────────────────────────────┘
+   * </pre>
+   *
+   * LB listeners are generally in this format 'vproto vport iproto iport', gslb needs to use the
+   * vport for health checks. ECV map is configured as 'iport : ecv-url', so we need to use the
+   * iport from listener configuration to lookup the ecv config from ecv map.
+   *
+   * @param context fqdn executor context
+   * @param logKey inductor log key
+   * @return list of Torbit gslb health check to be created.
+   */
   private List<HealthCheck> healthChecks(Context context, String logKey) {
     Instance lb = context.lb;
     if (lb == null) {
       throw new RuntimeException("DependsOn Lb is empty");
     }
+
     List<HealthCheck> hcList = new ArrayList<>();
-    String listenerJson = lb.getCiAttributes().get(ATTRIBUTE_LISTENERS);
-    String ecvMapJson = lb.getCiAttributes().get(ATTRIBUTE_ECV_MAP);
-    if (isNotBlank(listenerJson) && isNotBlank(ecvMapJson)) {
-      JsonElement element = jsonParser.parse(ecvMapJson);
-      if (element instanceof JsonObject) {
-        JsonObject root = (JsonObject) element;
-        Set<Entry<String, JsonElement>> set = root.entrySet();
-        Map<Integer, String> ecvMap =
-            set.stream()
-                .collect(
-                    Collectors.toMap(
-                        s -> Integer.parseInt(s.getKey()), s -> s.getValue().getAsString()));
-        logger.info(logKey + "listeners " + listenerJson);
-        JsonArray listeners = (JsonArray) jsonParser.parse(listenerJson);
-        listeners.forEach(
-            s -> {
-              String listener = s.getAsString();
-              // listeners are generally in this format 'http <lb-port> http <app-port>', gslb needs
-              // to use the lb-port for health checks
-              // ecv map is configured as '<app-port> : <ecv-url>', so we need to use the app-port
-              // from listener configuration to lookup the ecv config from ecv map
-              String[] config = listener.split(" ");
-              if (config.length >= 2) {
-                String protocol = config[0];
-                int lbPort = Integer.parseInt(config[1]);
-                int ecvPort = Integer.parseInt(config[config.length - 1]);
-                String healthConfig = ecvMap.get(ecvPort);
-                if (healthConfig != null) {
-                  if ("http".equalsIgnoreCase(protocol)) {
-                    String path = healthConfig.substring(healthConfig.indexOf(" ") + 1);
-                    logger.info(
-                        logKey
-                            + "healthConfig : "
-                            + healthConfig
-                            + ", health check configuration, protocol: "
-                            + protocol
-                            + ", port: "
-                            + lbPort
-                            + ", path "
-                            + path);
-                    hcList.add(newHealthCheck(protocol, lbPort, path));
-                  } else {
-                    logger.info(
-                        logKey
-                            + "health check configuration, protocol: "
-                            + protocol
-                            + ", port: "
-                            + lbPort);
-                    hcList.add(newHealthCheck(protocol, lbPort, null));
-                  }
-                }
-              }
-            });
+    List<String> lbListeners = getLBListeners(lb);
+    Map<String, String> ecvMap = getLbEcvMap(lb);
+
+    logger.info(logKey + "LB listeners: " + lbListeners);
+    logger.info(logKey + "LB ecv map: " + ecvMap);
+
+    for (String lbListener : lbListeners) {
+      // https 8081 http 8080 (virtualProto virtualPort instanceProto instancePort)
+      String[] cfg = lbListener.trim().split(" ");
+
+      if (cfg.length != 4) {
+        logger.error(logKey + "Invalid lb listener config: " + lbListener);
+        throw new IllegalStateException("Invalid lb listener config: " + lbListener);
       }
+
+      String vProto = cfg[0];
+      String vPort = cfg[1];
+      String iProto = cfg[2];
+      String iPort = cfg[3];
+
+      String ecv = ecvMap.get(iPort);
+      String ecvPath = null;
+
+      if (ecv != null) {
+        // ECV format is `iPort : GET /ecvPath`
+        String[] parts = ecv.trim().split(" ");
+        if (parts.length == 2) {
+          ecvPath = parts[1];
+        } else {
+          logger.warn(logKey + "Skipping invalid ecv for iPort: " + iPort + ", path: " + ecv);
+        }
+      }
+
+      HealthCheck healthCheck = newHealthCheck(vProto, vPort, ecvPath);
+      logger.info(logKey + "Adding MTD health check: " + healthCheck);
+      hcList.add(healthCheck);
     }
     return hcList;
   }
 
-  private HealthCheck newHealthCheck(String protocol, int port, String testObjectPath) {
+  /**
+   * Get the listener config of the LB
+   *
+   * @param lb lb instance
+   * @return list of listeners.
+   */
+  protected List<String> getLBListeners(Instance lb) {
+    String json = lb.getCiAttributes().get(ATTRIBUTE_LISTENERS);
+    if (isNotBlank(json)) {
+      Type listType = new TypeToken<List<String>>() {}.getType();
+      return gson.fromJson(json, listType);
+    } else {
+      return Collections.emptyList();
+    }
+  }
+
+  /**
+   * Get the ecv map of the LB
+   *
+   * @param lb lb instance
+   * @return ecv map
+   */
+  protected Map<String, String> getLbEcvMap(Instance lb) {
+    String json = lb.getCiAttributes().get(ATTRIBUTE_ECV_MAP);
+    if (isNotBlank(json)) {
+      Type mapType = new TypeToken<Map<String, String>>() {}.getType();
+      return gson.fromJson(json, mapType);
+    } else {
+      return Collections.emptyMap();
+    }
+  }
+
+  /**
+   * Creates new health health check based on the LB and ECV path.
+   *
+   * <pre>
+   * ┌─────────────────┬─────────┬───────────────────────────────────────────────────────┐
+   * │   LB Listener   │  LB ECV │                Torbit MTD health check                │
+   * ├─────────────────┼─────────┼───────────────────────────────────────────────────────┤
+   * │ HTTP 8080       │ /health │ http-8080 + /health + tls: false                      │
+   * │ HTTP 8080       │ n/a     │ http-8080 + tls: false                                │
+   * │ HTTPS 8443      │ /health │ https-8443 + /health + tls: true (No cert validation) │
+   * │ HTTPS 8443      │ n/a     │ https-8443 + tls: true                                │
+   * │ SSL_BRIDGE 8443 │ n/a     │ tcp-8443 + tls: true                                  │
+   * │ TLS 8444        │ n/a     │ tcp-8444 + tls: true                                  │
+   * │ TCP 8445        │ /health │ tcp-8445 + tls: false                                 │
+   * │ TCP 8445        │ n/a     │ tcp-8445 + tls: false                                 │
+   * └─────────────────┴─────────┴───────────────────────────────────────────────────────┘
+   * </pre>
+   */
+  protected HealthCheck newHealthCheck(String vProto, String vPort, String ecvPath) {
+
+    Protocol protocol;
+    boolean tls;
+    int status;
+    String path;
+
+    switch (vProto.toLowerCase()) {
+      case "http":
+        protocol = HTTP;
+        path = ecvPath;
+        status = 200;
+        tls = false;
+
+        break;
+      case "https":
+        protocol = HTTPS;
+        path = ecvPath;
+        status = 200;
+        tls = true;
+
+        break;
+      case "tls":
+      case "ssl_bridge":
+        protocol = TCP;
+        path = null;
+        status = 0;
+        tls = true;
+
+        break;
+      default:
+        protocol = TCP;
+        path = null;
+        status = 0;
+        tls = false;
+
+        break;
+    }
     return HealthCheck.builder()
-        .protocol(protocolMap.get(protocol))
-        .port(port)
-        .path(testObjectPath)
+        .protocol(protocol)
+        .port(Integer.parseInt(vPort))
+        .path(path)
+        .expectedStatus(status)
+        .tls(tls)
         .build();
   }
 
