@@ -419,7 +419,9 @@ public class CmsDpmtProcessor {
         rfcProcessor.updateRelease(bomRelease);
         logger.info("Canceled deployment release releaseId " + releaseId);
 
-        capacityProcessor.discardCapacityForDeployment(dpmt);
+        existingDpmt = dpmtMapper.getDeployment(dpmt.getDeploymentId());
+        capacityProcessor.discardCapacityForDeployment(existingDpmt);
+        return existingDpmt;
       } else {
         String errMsg =
             "The deployment is not in failed/active state - " + existingDpmt.getDeploymentState();
