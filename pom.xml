@@ -1,11 +1,9 @@
 <?xml version="1.0"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
-  <version>18.07.28-4-SNAPSHOT</version>
+  <version>18.08.31-1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>OneOps</name>
   <url>http://oneops.com</url>
