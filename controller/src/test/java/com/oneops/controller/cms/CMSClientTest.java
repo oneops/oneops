@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 
 import java.security.GeneralSecurityException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -388,5 +389,27 @@ public class CMSClientTest {
   		
 	}
 
+	@Test
+	public void isDeployerStepsInLimitTrueTest(){
+		Integer[] stepTotals = {11,24,37,94,58};
+		when(cmsDpmtProcessor.getDeploymentDistinctStepsTotal(1234)).thenReturn(Arrays.asList(stepTotals));
+		assertEquals(cc.isDeployerStepsInLimit(100, 1234), true);
+	}
 
+	@Test
+	public void isDeployerStepsInLimitFalseTest(){
+		Integer[] stepTotals = {11,124,37,94,58};
+		when(cmsDpmtProcessor.getDeploymentDistinctStepsTotal(1234)).thenReturn(Arrays.asList(stepTotals));
+		assertEquals(cc.isDeployerStepsInLimit(100, 1234), false);
+	}
+
+	@Test
+	public void isDeployerStepsInLimitNullZeroTest(){
+		when(cmsDpmtProcessor.getDeploymentDistinctStepsTotal(1234)).thenReturn(null);
+		assertEquals(cc.isDeployerStepsInLimit(100, 1234), false);
+
+		Integer[] stepTotals = {};
+		when(cmsDpmtProcessor.getDeploymentDistinctStepsTotal(1234)).thenReturn(Arrays.asList(stepTotals));
+		assertEquals(cc.isDeployerStepsInLimit(100, 1234), false);
+	}
 }

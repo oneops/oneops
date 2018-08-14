@@ -987,5 +987,18 @@ public class CMSClient {
         }
         return false;
     }
+
+    public boolean isDeployerStepsInLimit(int deploymentStepsLimit, long deploymentId) {
+        List<Integer> stepsTotal = cmsDpmtProcessor.getDeploymentDistinctStepsTotal(deploymentId);
+        if(stepsTotal == null || (stepsTotal !=null && stepsTotal.size() == 0)){
+            return false;
+        }
+        for(Integer st: stepsTotal){
+            if(st > deploymentStepsLimit){
+                return false;
+            }
+        }
+        return true;
+    }
 }
 
