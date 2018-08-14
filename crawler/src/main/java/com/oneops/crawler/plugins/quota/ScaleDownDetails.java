@@ -24,7 +24,8 @@ import java.util.List;
  *
  *******************************************************************************/
 public class PlatformRecord implements Serializable {
-    int potentialReclaimCount;
+    int potentialVmReclaimCount;
+    int potentialCoresReclaimCount;
     Platform platform;
     List<ThanosClient.CloudResourcesUtilizationStats> cloudResourcesUtilizationStats;
 
@@ -43,11 +44,19 @@ public class PlatformRecord implements Serializable {
     public void setCloudResourcesUtilizationStats(List<ThanosClient.CloudResourcesUtilizationStats> cloudResourcesUtilizationStats) {
         this.cloudResourcesUtilizationStats = cloudResourcesUtilizationStats;
     }
-    public int getPotentialReclaimCount() {
-        return potentialReclaimCount;
+    public int getPotentialVmReclaimCount() {
+        return potentialVmReclaimCount;
     }
 
-    public void setPotentialReclaimCount(int potentialReclaimCount) {
-        this.potentialReclaimCount = potentialReclaimCount;
+    public void setPotentialVmReclaimCount(int potentialVmReclaimCount) {
+        this.potentialVmReclaimCount = potentialVmReclaimCount;
+    }
+
+    public int getPotentialCoresReclaimCount() {
+        return potentialCoresReclaimCount;
+    }
+
+    public void setPotentialCoresReclaimCount(int potentialCoresReclaimCount) {
+        this.potentialCoresReclaimCount = potentialCoresReclaimCount;
     }
 }

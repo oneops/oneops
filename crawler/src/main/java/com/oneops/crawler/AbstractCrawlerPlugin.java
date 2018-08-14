@@ -77,7 +77,7 @@ public abstract class AbstractCrawlerPlugin {
     }
 
     public List<Long> getEligiblePlatformIds(Environment env) {
-        if (config != null && config.getOrgs() != null) {
+        if (config != null && config.getOrgs() != null && config.getOrgs().length > 0) {
             boolean orgToBeProcessed = false;
 
             //Check if the org of this env enabled for ttl
