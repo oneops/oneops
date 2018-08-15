@@ -28,12 +28,6 @@ service_cookbooks = ARGV[3] || ''
 gem_sources       = get_gem_sources
 ostype            = get_os_type(log_level)
 
-if !(ostype =~ /windows/)
-  fast_image = File.exist?('/etc/oneops-tools-inventory.yml')
-else
-  fast_image = false
-end
-
 prefix_root = ''
 file_cache_path = '/tmp'
 ci = json_context.split("/").last.gsub(".json","")
@@ -51,10 +45,7 @@ end
 
 # set cwd to same dir as the exe-order.rb file
 Dir.chdir File.dirname(__FILE__)
-
-if !fast_image
-  gem_list = get_gem_list(dsl, version)
-end
+gem_list = get_gem_list(dsl, version)
 
 case dsl
 when "chef"
@@ -68,12 +59,10 @@ when "chef"
   #we want to make sure rubygems sources on the VM match rubygems_proxy env variable from compute cloud service
   #otherwise changes to the cloud service will require updating compute component
   #have to be called after chef is installed on windows, as that's the chef installation that also installs rubygems
-  if !fast_image
-    update_gem_sources(gem_sources, log_level)
+  update_gem_sources(gem_sources, log_level)
 
-    #Run bunle to insert/update neccessary gems if needed
-    install_using_prebuilt_gemfile(gem_sources, component, dsl, version)
-  end
+  #Run bunle to insert/update neccessary gems if needed
+  install_using_prebuilt_gemfile(gem_sources, component, dsl, version)
 
   chef_config = "#{prefix_root}/home/oneops/#{cookbook_path}/components/cookbooks/chef-#{ci}.rb"
 
