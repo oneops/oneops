@@ -382,6 +382,34 @@
     ]
   },
   "services": {
+    "service": {
+      "stub-dfw2b": {
+        "nsId": 125389678,
+        "ciAttributes": {
+          "attr2": "value should not replace",
+          "attr1": "value to replace"
+        },
+        "attrProps": {
+          "IS_SECURED": {
+            "client_secret": "true"
+          }
+        },
+        "altNs": {},
+        "ciId": 125389885,
+        "ciName": "class-name",
+        "ciClassName": "cloud.service.oneops.1.className",
+        "impl": "oo::chef-11.4.0",
+        "nsPath": "/stub-testing/_clouds/stub-dfw2b",
+        "ciGoid": "257942-1904-656801",
+        "comments": "",
+        "ciState": "default",
+        "lastAppliedRfcId": 0,
+        "createdBy": "oneopsuser",
+        "updatedBy": "oneopsuser",
+        "created": "Jul 5, 2018 11:36:18 AM",
+        "updated": "Jul 10, 2018 11:57:59 AM"
+      }
+    },
     "compute": {
       "stub-dfw2b": {
         "nsId": 125389677,
