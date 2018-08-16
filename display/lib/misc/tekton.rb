@@ -38,9 +38,14 @@ class NilClass
 end
 
 class String
+  @@with_color = true
+  def self.with_color=(val)
+    @@with_color = val
+  end
+
   [[:bold, "\e[1m"], [:red, "\e[31m"], [:green, "\e[32m"], [:yellow, "\e[33m"], [:blue, "\e[34m"]].each do |(name, code)|
     define_method(name) {|background = false|
-      "\e[0m#{"\e[7m" if background}#{code}#{self}\e[0m"
+      @@with_color ? "\e[0m#{"\e[7m" if background}#{code}#{self}\e[0m" : self
     }
   end
 
@@ -197,15 +202,26 @@ def sub_quota(sub, limits)
   say
 end
 
-def full_quota(title, limits, usage, available)
+def full_quota(title, limits, usage, available, available_threshold = nil)
+  if available_threshold
+    quotas = limits.select do |resource, limit|
+      r_limit = limit.to_f
+      r_avail = available[resource].to_i
+      r_limit <= 0 || (r_avail / r_limit) <= available_threshold
+    end
+  else
+    quotas = limits
+  end
+  return if quotas.empty?
+
   say "#{title} =>\n"
   say '  Resource                      | Used      | Reserved  | Available | Limit     '
   say '  ------------------------------|-----------|-----------|-----------|-----------'
-  limits.keys.sort.each do |n|
-    r_limit = limits[n].to_i
-    r_usage = usage[n].to_i
-    r_avail = available[n].to_i
-    say "  #{n.ljust(30)}|#{r_usage.to_s.rjust(10)} |#{(r_limit - r_usage - r_avail).to_s.rjust(10)} |#{r_avail.to_s.rjust(10).green} |#{r_limit.to_s.rjust(10).blue}"
+  quotas.keys.sort.each do |resource|
+    r_limit = limits[resource].to_i
+    r_avail = available[resource].to_i
+    r_usage = usage[resource].to_i
+    say "  #{resource.ljust(30)}|#{r_usage.to_s.rjust(10)} |#{(r_limit - r_usage - r_avail).to_s.rjust(10)} |#{r_avail.to_s.rjust(10).green} |#{r_limit.to_s.rjust(10).blue}"
   end
   say
 end
@@ -557,12 +573,15 @@ def execute(action, *args)
     limits.keys.sort.each {|org| full_quota(org, limits[org], usage[org], available[org])} unless limits.empty?
 
   elsif action == 'org:quotas'
-    org_name = args[0]
-    required_arg('org', org_name)
-    limits = tt_request("quota/entity/#{org_name}", 'Getting quotas')
-    usage = tt_request("quota/usage/entity/#{org_name}", 'Getting usages')
-    available = tt_request("quota/available/entity/#{org_name}", 'Getting usages')
-    limits.keys.sort.each {|sub| full_quota(sub.bold, limits[sub], usage[sub], available[sub])} unless limits.empty?
+    org = args[0]
+    required_arg('org', org)
+    orgs = execute('org:prompt', nil, org)
+    orgs.each do |org_name|
+      limits = tt_request("quota/entity/#{org_name}", 'Getting quotas')
+      usage = tt_request("quota/usage/entity/#{org_name}", 'Getting usages')
+      available = tt_request("quota/available/entity/#{org_name}", 'Getting usages')
+      limits.keys.sort.each {|sub| full_quota("#{org_name.bold} => #{sub.bold}", limits[sub], usage[sub], available[sub], @params.depleted_threshold)} unless limits.empty?
+    end
 
   elsif action == 'quota'
     sub_name, org_name, _ = args
@@ -596,13 +615,13 @@ def execute(action, *args)
     sub_name, org_name, *resources = args
     required_arg('subscription', sub_name)
     required_arg('org', org_name)
-    usage = resources && resources.inject({}) do |h, u|
-      name, value = u.split(/[=:]/, 2)
-      value = value.to_i
-      h[name] = value if !name.empty? && value > 0
+    values = resources && resources.inject({}) do |h, u|
+      name, _ = u.split(/[+-]?[=]/, 2)
+      expr = u[name.size..-1]
+      h[name] = expr unless name.empty? || expr.empty?
       h
     end
-    required_arg('resources', usage)
+    required_arg('resources', values)
 
     subs = execute('sub:prompt', sub_name, org_name)
     subs.each do |s|
@@ -615,7 +634,29 @@ def execute(action, *args)
         org = tt_request("org/#{o}", "Fetching org '#{o}'")
         execute!('orgs:add', o) unless org
 
-        tt_request("quota/#{"usage/" if action.include?('usage:set')}#{s}/#{o}", 'Updating quota', usage)
+        current = tt_request("quota/#{"usage/" if action.include?('usage:set')}#{s}/#{o}", 'Getting quota')
+        resolved_values = values.inject({}) do |h, (resource, expr)|
+          if expr[0] == '='
+            value = expr[1..-1].to_i
+            h[resource] = value if value > 0
+          elsif expr[0..1] == '+=' || expr[0..1] == '-='
+            current_value = current[resource].to_i
+            if expr[-1] == '%'
+              next h unless current_value > 0
+              value = expr[2..-2].to_i * current_value / 100
+            else
+              value = expr[2..-1].to_i
+            end
+            next h unless value > 0
+            if expr[0] == '-'
+              h[resource] = [current[resource] - value, 0].max
+            else
+              h[resource] = current[resource] + value
+            end
+          end
+          h
+        end
+        tt_request("quota/#{"usage/" if action.include?('usage:set')}#{s}/#{o}", 'Updating quota', resolved_values) unless resolved_values.empty?
         execute('quota', s, o)
       end
     end
@@ -676,13 +717,16 @@ def execute(action, *args)
   elsif action == 'org:prompt'
     sub_name, org_name, _ = args
     if org_name[0] == '?'
-      # quotas = tt_request("quota/subscription/#{sub_name}", 'Getting quotas')
-      # if quotas.empty?
-      #   say "No existing quotas set up for subscription '#{sub_name}'".red
-      #   exit(1)
-      # end
-      # orgs = quotas.keys
-      orgs = tt_request('org', 'Fetching orgs').map(&:name)
+      if sub_name.empty?
+        orgs = tt_request('org', 'Fetching orgs').map(&:name)
+      else
+        quotas = tt_request("quota/subscription/#{sub_name}", 'Getting quotas')
+        if quotas.empty?
+          say "No existing quotas set up for subscription '#{sub_name}'".red
+          exit(1)
+        end
+        orgs = quotas.keys
+      end
 
       org_pattern = org_name[1..-1]
       unless org_pattern.empty?
@@ -714,6 +758,13 @@ def execute(action, *args)
         end
         result = result.uniq
         exit if result.empty?
+      end
+    elsif org_name[0] == '*'
+      result = tt_request('org', 'Fetching orgs').map(&:name)
+      org_pattern = org_name[1..-1]
+      unless org_pattern.empty?
+        org_regex = /#{org_pattern}/i
+        result = result.select {|s| s =~ org_regex}
       end
     else
       result = org_name.split(',').uniq
@@ -826,7 +877,7 @@ end
 
   'orgs'                  => ['orgs [ORG_REGEX]', 'list orgs'],
   'orgs:add'              => ['orgs:add ORG', 'add org'],
-  'org:quotas'            => ['org:quotas ORG', 'list all quotas for org'],
+  'org:quotas'            => ['org:quotas ORG [--depleted [THRESHOLD_%]]', 'list all quotas for org'],
 
   'teams'                 => ['teams ORG [TEAM_REGEX]', 'list teams'],
   'teams:add'             => ['teams:add ORG TEAM_NAME [TEAM_DESCRIPTION]', 'add team'],
@@ -846,7 +897,7 @@ end
   'sub:quotas'            => ['sub:quotas SUBSCRIPTION', 'list all quotas for subscription'],
 
   'quota'                 => ['quota SUBSCRIPTION ORG', 'show quota'],
-  'quota:set'             => ['quota:set SUBSCRIPTION ORG RESOURCE=VALUE [RESOURCE=VALUE ...]', 'update quota limits'],
+  'quota:set'             => ['quota:set SUBSCRIPTION ORG RESOURCE[+|-]=VALUE[%]...', "update quota limits: directly set with '=' or increment with '+=' or decrement with '-='; specify absolute value or percentage of current value with '%'"],
   'quota:usage:set'       => ['quota:usage:set SUBSCRIPTION ORG RESOURCE=VALUE...', 'update quota limits'],
 
   'oo:resources'          => ['oo:resources', 'list resource types in OneOps'],
@@ -911,7 +962,8 @@ FOOTER
 #------------------------------------------------------------------------------------------------
 # Start here.
 #------------------------------------------------------------------------------------------------
-@params = OpenStruct.new(:verbose => 0, :force => false, :only_missing => false, :transfer_buffer => 0, :refresh => 0)
+__COLOR = true
+@params = OpenStruct.new(:verbose => 0, :force => false, :only_missing => false, :transfer_buffer => 0, :depleted_threshold => nil, :refresh => 0)
 
 @show_help = false
 @opt_parser = OptionParser.new do |opts|
@@ -928,13 +980,15 @@ FOOTER
   opts.on('--ta', '--tekton-auth CREDENTIALS', "Tekton auth if not using 'login' command: <username<:<password>  or <token>") {|creds| set_tekton_auth(*creds.split(':'))}
   opts.on('--oh', '--oneops-host HOST', "OneOps CMS host, defaults to '#{ONEOPS_HOSTS[:default]}' if no host or environment options are specified") {|host| @params.oneops_host = host}
 
-  opts.on('-b', '--buffer BUFFER_%', 'Buffer (as a percentage of usage) to add on top of usage number when setting quota limit value for new quotas. Default value is 0 (no buffer) - usage and limit are the same') {|buffer_pct| @params.transfer_buffer = buffer_pct.to_f / 100}
+  opts.on('-b', '--buffer BUFFER_%', 'Buffer (as a percentage of usage) to add on top of usage number when setting quota limit value for new quotas. Default value is 0 (no buffer) - usage and limit are the same') {|pct| @params.transfer_buffer = pct.to_f / 100}
+  opts.on('--depleted [THRESHOLD_%]', 'Show depleted quotas only (zero available or less than threshold %)') {|pct| @params.depleted_threshold = pct.to_f / 100}
 
   opts.on('-r', '--refresh [SECONDS]', 'Refresh interval for quota commands') {|i| @params.refresh = i.to_i; @params.refresh = 10 if @params.refresh == 0}
 
   opts.on('-f', '--force', 'Force update if already exists') {@params.force = true}
   opts.on('--omr', '--only-missing-resources', "Transfer usage only for resources missing quota (when there is already quota set up for at least one other resource (for a given subscription and org); use with '-f' option") {@params.only_missing = true}
 
+  opts.on('--no-color', 'No output coloring or font formatting.') {String.with_color = false}
   opts.on('-v', '--verbose', 'Verbose') {@params.verbose = 1}
   opts.on('--vv', '--very-verbose', 'Very verbose') {@params.verbose = 2}
 
