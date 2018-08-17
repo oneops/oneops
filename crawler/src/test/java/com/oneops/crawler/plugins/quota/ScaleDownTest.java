@@ -99,13 +99,13 @@ public class ScaleDownTest {
         CloudResourcesUtilizationStats cloudStats_dfw_Platform_2 = new CloudResourcesUtilizationStats();
 
 
-        cloudStats_dal_Platform_1.setReclaim_vms(3);
-        cloudStats_dfw_Platform_1.setReclaim_vms(2);
-        cloudStats_dal_Platform_1.setMin_cluster_size(4);
-        cloudStats_dfw_Platform_1.setMin_cluster_size(5);
+        cloudStats_dal_Platform_1.setReclaimVms(3);
+        cloudStats_dfw_Platform_1.setReclaimVms(2);
+        cloudStats_dal_Platform_1.setMinClusterSize(4);
+        cloudStats_dfw_Platform_1.setMinClusterSize(5);
 
-        cloudStats_dfw_Platform_2.setReclaim_vms(0);
-        cloudStats_dfw_Platform_2.setMin_cluster_size(4);
+        cloudStats_dfw_Platform_2.setReclaimVms(0);
+        cloudStats_dfw_Platform_2.setMinClusterSize(4);
 
 
         ArrayList<CloudResourcesUtilizationStats> cloudStats_1 = new ArrayList<CloudResourcesUtilizationStats>();
@@ -139,13 +139,13 @@ public class ScaleDownTest {
         CloudResourcesUtilizationStats cloudStats_dfw_Platform_2 = new CloudResourcesUtilizationStats();
 
 
-        cloudStats_dal_Platform_1.setReclaim_vms(3);
-        cloudStats_dfw_Platform_1.setReclaim_vms(2);
-        cloudStats_dal_Platform_1.setMin_cluster_size(4);
-        cloudStats_dfw_Platform_1.setMin_cluster_size(5);
+        cloudStats_dal_Platform_1.setReclaimVms(3);
+        cloudStats_dfw_Platform_1.setReclaimVms(2);
+        cloudStats_dal_Platform_1.setMinClusterSize(4);
+        cloudStats_dfw_Platform_1.setMinClusterSize(5);
 
-        cloudStats_dfw_Platform_2.setReclaim_vms(0);
-        cloudStats_dfw_Platform_2.setMin_cluster_size(4);
+        cloudStats_dfw_Platform_2.setReclaimVms(0);
+        cloudStats_dfw_Platform_2.setMinClusterSize(4);
 
 
         ArrayList<CloudResourcesUtilizationStats> cloudStats_1 = new ArrayList<CloudResourcesUtilizationStats>();
@@ -174,8 +174,8 @@ public class ScaleDownTest {
         CloudResourcesUtilizationStats cloudStats_dal_Platform_1 = new CloudResourcesUtilizationStats();
         CloudResourcesUtilizationStats cloudStats_dfw_Platform_1 = new CloudResourcesUtilizationStats();
 
-        cloudStats_dal_Platform_1.setReclaim_vms(3);
-        cloudStats_dfw_Platform_1.setReclaim_vms(2);
+        cloudStats_dal_Platform_1.setReclaimVms(3);
+        cloudStats_dfw_Platform_1.setReclaimVms(2);
 
         ArrayList<CloudResourcesUtilizationStats> cloudStats_1 = new ArrayList<CloudResourcesUtilizationStats>();
         cloudStats_1.add(cloudStats_dal_Platform_1);
