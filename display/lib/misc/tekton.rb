@@ -43,7 +43,7 @@ class String
     @@with_color = val
   end
 
-  [[:bold, "\e[1m"], [:red, "\e[31m"], [:green, "\e[32m"], [:yellow, "\e[33m"], [:blue, "\e[34m"]].each do |(name, code)|
+  [[:bold, "\e[m"], [:invert, "\e[7m"], [:red, "\e[31m"], [:green, "\e[32m"], [:yellow, "\e[33m"], [:blue, "\e[34m"]].each do |(name, code)|
     define_method(name) {|background = false|
       @@with_color ? "\e[0m#{"\e[7m" if background}#{code}#{self}\e[0m" : self
     }
@@ -53,7 +53,7 @@ class String
     pattern ? (self =~ /^#{pattern}/) == 0 : false
   end
 
-  def end_with(string)
+  def terminate_with(string)
     self[-string.size..-1] == string ? self : (self + string)
   end
 end
@@ -268,7 +268,12 @@ end
 
 def execute(action, *args)
   result = nil
-  if action == 'oo:resources'
+  if action == 'version'
+    say 'CLI version:    1.0.1'
+    info = tt_request('server/version', 'Getting tekton version')
+    say "Tekton version: #{info.version} (#{info.timestamp})"
+
+  elsif action == 'oo:resources'
     result = {}
     mappings = oo_request('CLOUD_PROVIDER_MAPPINGS/vars', 'Getting mappings')
     JSON.parse(mappings.value).each_pair do |provider, provider_mappings|
@@ -477,6 +482,39 @@ def execute(action, *args)
       end
     end
 
+  elsif action == 'users'
+    *usernames = args
+    required_arg('username', usernames)
+    usernames.each do |u|
+      info = tt_request("user/#{u}", 'Getting user info')
+      blurt "#{u.ljust(25).bold} | "
+      say info.empty? ? 'not found'.red : (info.admin ? ' global admin '.blue(true) : info.orgs.map(&:name).join(', '))
+    end
+
+  elsif action == 'users:delete'
+    *usernames = args
+    required_arg('username', usernames)
+    usernames.each do |u|
+      info = tt_request("user/#{u}", 'Getting user info')
+      if info.empty?
+        say "#{u.ljust(25).bold} - #{'not found'.red}"
+      else
+        ok = tt_request("user/#{info.id}", "Deleting user '#{usernames}'", {}, 'DELETE')
+        say "#{u.ljust(25).bold} - #{'deleted'.green}"
+      end
+    end
+
+  elsif action == 'admins'
+    say 'Not yet implemented!'.blue
+
+  elsif action == 'admins:add' || action == 'admins:remove'
+    *usernames = args
+    required_arg('username', usernames)
+    usernames.each do |u|
+      tt_request('user', "Managing admin status for user ''#{u}''", {:username => u, :admin => action[-4..-1] == ':add'})
+      execute('users', u)
+    end
+
   elsif action == 'orgs'
     org_regex = args[0]
     result = tt_request('org', 'Fetching orgs')
@@ -526,42 +564,42 @@ def execute(action, *args)
     org_name, team_name, desc, _ = args
     required_arg('org', org_name)
     required_arg('team_name', team_name)
-    ok = tt_request("org/#{org_name}/team/#{team_name}", "Deleting #{team_name} fro org #{org_name}", {}, 'DELETE')
+    ok = tt_request("org/#{org_name}/team/#{team_name}", "Deleting #{team_name} from org #{org_name}", {}, 'DELETE')
     say ok['ok'] ? 'Removed'.green : 'Failed'.red
 
-  elsif action == 'users'
+  elsif action == 'team:users'
     org_name, team_name, _ = args
     required_arg('org', org_name)
     required_arg('team', team_name)
 
     result = tt_request("org/#{org_name}/team/#{team_name}/users", 'Fetching users')
-    result.sort_by(&:username).each {|u| say "#{u.username.ljust(25).bold} |#{' team admin '.blue(true) if u.role == 'MAINTAINER'}"} if result
+    result.sort_by(&:username).each {|u| say "#{u.username.ljust(25).bold} | #{' team admin '.blue(true) if u.role == 'MAINTAINER'}"} if result
 
-  elsif action == 'users:add'
+  elsif action == 'team:users:add'
     org_name, team_name, *usernames = args
     required_arg('username', usernames)
     users = usernames.map {|u| {:username => u}}
     execute('users:add:internal', org_name, team_name, users)
 
-  elsif action == 'admins:add'
+  elsif action == 'team:admins:add'
     org_name, team_name, *usernames = args
     required_arg('username', usernames)
     admins = usernames.map {|u| {:username => u, :role => 'MAINTAINER'}}
     execute('users:add:internal', org_name, team_name, admins)
 
-  elsif action == 'users:add:internal'
+  elsif action == 'team:users:add:internal'
     org_name, team_name, users = args
     required_arg('org', org_name)
     required_arg('team', team_name)
     ok = tt_request("org/#{org_name}/team/#{team_name}/users", "Adding #{usernames} to team #{team}", users, 'PUT')
     say ok['ok'] ? 'Added'.green : 'Failed'.red
 
-  elsif action == 'users:remove'
+  elsif action == 'team:users:remove'
     org_name, team_name, *usernames = args
     required_arg('org', org_name)
     required_arg('team', team_name)
     required_arg('username', usernames)
-    ok = tt_request("org/#{org_name}/team/#{team_name}/users", "Deleting #{usernames} fro team #{team}", usernames, 'DELETE')
+    ok = tt_request("org/#{org_name}/team/#{team_name}/users", "Deleting #{usernames} from team #{team}", usernames, 'DELETE')
     say ok['ok'] ? 'Removed'.green : 'Failed'.red
 
   elsif action == 'sub:quotas'
@@ -798,7 +836,7 @@ def execute(action, *args)
 
   elsif action == 'help'
     action = match_action(args[0])
-    action.empty? ? ('actions'.start_with?(args[0]) ? say(actions_help) : general_help) : action_help(action)
+    action.empty? ? (args[0] =~ /^(actions)|(commands)/i ? say(actions_help) : general_help) : action_help(action)
 
   else
     say "Unknown action: #{action}".red
@@ -854,7 +892,7 @@ def run(args)
   end
   @params.tekton_host = "https://#{@params.tekton_host}" unless @params.tekton_host.start_with?('http')
   @params.tekton_host = "#{@params.tekton_host}/" unless @params.tekton_host.end_with?('/')
-  @params.tekton_host = @params.tekton_host.end_with('api/v1/')
+  @params.tekton_host = @params.tekton_host.terminate_with('api/v1/')
 
   if @params.oneops_host.empty?
     @params.oneops_host = ONEOPS_HOSTS[:default]
@@ -865,40 +903,47 @@ def run(args)
   end
   @params.oneops_host = "https://#{@params.oneops_host}" unless @params.oneops_host.start_with?('http')
   @params.oneops_host = "#{@params.oneops_host}/" unless @params.oneops_host.end_with?('/')
-  @params.oneops_host = @params.oneops_host.end_with('adapter/rest/cm/simple/')
+  @params.oneops_host = @params.oneops_host.terminate_with('adapter/rest/cm/simple/')
 
   execute(@action, *@args)
 end
 
 @actions = {
-  'help'                  => ['help [actions|ACTION]', 'display help: full or actions or specific acdtion'],
+  'help'                  => ['help [actions|ACTION]', 'display help: full descriptiin or list of avaialble actions or specific action'],
+  'version'               => ['version', 'display CLI and tekton server versions'],
+
   'login'                 => ['login [-e ENV] [USERNAME [PASSWORD]]', 'log in for running Tekton commands, defaults to \'prod\' environment if not specified'],
-  'logout'                => ['logout [USERNAME [PASSWORD]]', 'log out after running Tekton commands'],
+  'logout'                => ['logout [USERNAME [PASSWORD]]', "log out after running Tekton commands\n"],
+
+  'admins'                => ['admins ', 'list global admins'],
+  'admins:add'            => ['admins:add USERNAME...', 'add global admins'],
+  'admins:remove'         => ['admins:remove USERNAME', 'remove global admins'],
+  'users'                 => ['users USERNAME... ', 'list user info'],
 
   'orgs'                  => ['orgs [ORG_REGEX]', 'list orgs'],
   'orgs:add'              => ['orgs:add ORG', 'add org'],
-  'org:quotas'            => ['org:quotas ORG [--depleted [THRESHOLD_%]]', 'list all quotas for org'],
-
   'teams'                 => ['teams ORG [TEAM_REGEX]', 'list teams'],
   'teams:add'             => ['teams:add ORG TEAM_NAME [TEAM_DESCRIPTION]', 'add team'],
-#  'teams:remove'           => ['teams:add ORG TEAM_NAME', 'remove team'],
+  'teams:remove'           => ['teams:add ORG TEAM_NAME', 'remove team'],
 
-  'users'                 => ['users ORG TEAM [TEAM_REGEX]', 'list team users'],
-  'users:add'             => ['users:add ORG TEAM USERNAME...', 'add users to team'],
-  'admins:add'            => ['users:add ORG TEAM USERNAME...', 'add team admins to team'],
-  'users:remove'          => ['users:remove ORG TEAM USERNAME...', 'remove users from team'],
+  'team:users'            => ['team:users ORG TEAM [TEAM_REGEX]', 'list team users (both regular and admin usres)'],
+  'team:users:add'        => ['users:add ORG TEAM USERNAME...', 'add users (regular, non-admin) to team (resets team admin status if user is team admin)'],
+  'team:users:remove'     => ['users:remove ORG TEAM USERNAME...', 'remove users from team'],
+  'team:admins:add'       => ['users:add ORG TEAM USERNAME...', "add team admin user to team (makes user a team admin if user is alrady on the team)\n"],
 
   'resources'             => ['resources', 'list resource types'],
-  'resources:add'         => ['resources:add  [-f]', 'add resource type'],
+  'resources:add'         => ['resources:add  [-f]', "add resource type\n"],
 
   'subs'                  => ['subs', 'list subsctiptions (including hard quota)'],
   'subs:add'              => ['subs:add [-f] SUBSCRIPTION', 'add subscription'],
-  'subs:set'              => ['subs:set SUBSCRIPTION RESOURCE=VALUE...', 'set subscription limits (hard quota)'],
+  'subs:set'              => ['subs:set SUBSCRIPTION RESOURCE=VALUE...', "set subscription limits (hard quota)\n"],
+
   'sub:quotas'            => ['sub:quotas SUBSCRIPTION', 'list all quotas for subscription'],
+  'org:quotas'            => ['org:quotas ORG [--depleted [THRESHOLD_%]]', 'list all quotas for org'],
 
   'quota'                 => ['quota SUBSCRIPTION ORG', 'show quota'],
-  'quota:set'             => ['quota:set SUBSCRIPTION ORG RESOURCE[+|-]=VALUE[%]...', "update quota limits: directly set with '=' or increment with '+=' or decrement with '-='; specify absolute value or percentage of current value with '%'"],
-  'quota:usage:set'       => ['quota:usage:set SUBSCRIPTION ORG RESOURCE=VALUE...', 'update quota limits'],
+  'quota:set'             => ['quota:set SUBSCRIPTION ORG RESOURCE[+|-]=VALUE[%]...', 'update quota limits: directly set with \'=\' or increment with \'+=\' or decrement with \'-=\'; specify absolute value or percentage of current value with \'%\''],
+  'quota:usage:set'       => ['quota:usage:set SUBSCRIPTION ORG RESOURCE=VALUE...', "update quota limits\n"],
 
   'oo:resources'          => ['oo:resources', 'list resource types in OneOps'],
   'oo:resources:transfer' => ['oo:resources:transfer [-f]', 'transfer resources types in OneOps to Tekton'],
@@ -906,7 +951,7 @@ end
   'oo:subs:transfer'      => ['oo:subs:transfer  [-f] ORG [CLOUD_REGEX]', 'transfer subsctiptions in OneOps to Tekton'],
   'oo:sub:usage'          => ['oo:sub:usage SUBSCRIPTION', 'list usage for a given subscription for all orgs in OneOps'],
   'oo:usage'              => ['oo:usage ORG [CLOUD_REGEX]', 'list usage in OneOps and compares with usage in Tekton'],
-  'oo:usage:transfer'     => ['oo:usage:transfer [-f [--omr]] [-b BUFFER_%] ORG [CLOUD_REGEX]', 'convert current usage in OneOps into quota in Tekton or update usage for existing Tekton quota with the current ussage in OneOps']
+  'oo:usage:transfer'     => ['oo:usage:transfer [-f [--omr]] [-b BUFFER_%] ORG [CLOUD_REGEX]', "convert current usage in OneOps into quota in Tekton or update usage for existing Tekton quota with the current ussage in OneOps\n"]
 }
 
 @usage = <<-USAGE
@@ -1013,27 +1058,30 @@ if @repl
     File.read(HISTORY_FILE_NAME).split("\n").each {|c| Readline::HISTORY << c}
   end
 
-  while input = Readline.readline('>>> '.bold, true).strip
-    Readline::HISTORY.pop if input.empty?
-    if input.start_with?('hist')
+  prompt = "#{'>>>'.invert} "
+  while input = Readline.readline(prompt, true).strip
+    if input.empty?
+      Readline::HISTORY.pop
+    elsif input.start_with?('hist')
+      Readline::HISTORY.pop
       say Readline::HISTORY.to_a
-      next
-    end
-    input.split(';').each do |command|
-      if command == 'exit' || command == 'quit'
-        File.write(HISTORY_FILE_NAME, Readline::HISTORY.to_a[[Readline::HISTORY.size - 1000, 0].max..-1].join("\n"))
-        exit
-      end
+    else
+      input.split(';').each do |command|
+        if command == 'exit' || command == 'quit'
+          File.write(HISTORY_FILE_NAME, Readline::HISTORY.to_a[[Readline::HISTORY.size - 1000, 0].max..-1].join("\n"))
+          exit
+        end
 
-      begin
-        @show_help = false
-        @params.verbose = 0
-        @params.force = false
-        @params.only_missing = false
-        @params.transfer_buffer = 0
-        @params.refresh = 0
-        run(command.strip.split(/\s+/))
-      rescue SystemExit
+        begin
+          @show_help = false
+          @params.verbose = 0
+          @params.force = false
+          @params.only_missing = false
+          @params.transfer_buffer = 0
+          @params.refresh = 0
+          run(command.strip.split(/\s+/))
+        rescue SystemExit
+        end
       end
     end
   end
