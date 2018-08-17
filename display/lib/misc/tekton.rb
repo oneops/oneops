@@ -226,6 +226,16 @@ def full_quota(title, limits, usage, available, available_threshold = nil)
   say
 end
 
+def full_quota_totals(title, limits, usage, available)
+  unless limits.empty?
+    totals = [limits, usage, available].inject([]) do |a, quotas|
+      a << quotas.values.inject({}) {|h, group_quotas| h.update(group_quotas) {|__, value1, value2| value1 + value2}}
+    end
+    say '=' * 80
+    full_quota(title, *totals)
+  end
+end
+
 def usage(title, oo_usage, tt_usage)
   has_diff = false
   say "#{title} =>\n"
@@ -269,7 +279,7 @@ end
 def execute(action, *args)
   result = nil
   if action == 'version'
-    say 'CLI version:    1.0.1'
+    say 'CLI version:    1.0.2'
     info = tt_request('server/version', 'Getting tekton version')
     say "Tekton version: #{info.version} (#{info.timestamp})"
 
@@ -603,12 +613,16 @@ def execute(action, *args)
     say ok['ok'] ? 'Removed'.green : 'Failed'.red
 
   elsif action == 'sub:quotas'
-    sub_name = args[0]
-    required_arg('subscription', sub_name)
-    limits = tt_request("quota/subscription/#{sub_name}", 'Getting quotas')
-    usage = tt_request("quota/usage/subscription/#{sub_name}", 'Getting usages')
-    available = tt_request("quota/available/subscription/#{sub_name}", 'Getting usages')
-    limits.keys.sort.each {|org| full_quota(org, limits[org], usage[org], available[org])} unless limits.empty?
+    subs = execute('sub:prompt', args[0])
+    subs.each do |sub_name|
+      required_arg('subscription', sub_name)
+      limits = tt_request("quota/subscription/#{sub_name}", 'Getting quotas')
+      usage = tt_request("quota/usage/subscription/#{sub_name}", 'Getting usages')
+      available = tt_request("quota/available/subscription/#{sub_name}", 'Getting usages')
+      limits.keys.sort.each {|org| full_quota(org, limits[org], usage[org], available[org])} unless limits.empty?
+
+      full_quota_totals("#{sub_name.bold} => #{'TOTAL'.bold}", limits, usage, available)
+    end
 
   elsif action == 'org:quotas'
     org = args[0]
@@ -619,6 +633,8 @@ def execute(action, *args)
       usage = tt_request("quota/usage/entity/#{org_name}", 'Getting usages')
       available = tt_request("quota/available/entity/#{org_name}", 'Getting usages')
       limits.keys.sort.each {|sub| full_quota("#{org_name.bold} => #{sub.bold}", limits[sub], usage[sub], available[sub], @params.depleted_threshold)} unless limits.empty?
+
+      full_quota_totals("#{org_name.bold} => #{'TOTAL'.bold}", limits, usage, available)
     end
 
   elsif action == 'quota'
