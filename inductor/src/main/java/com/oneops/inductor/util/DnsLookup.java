@@ -19,25 +19,28 @@ import org.xbill.DNS.SimpleResolver;
 import org.xbill.DNS.Type;
 
 /**
- * Perform DNS queries
+ * Perform DNS queries.
  *
  * @author Suresh
  */
-public class DnsUtils {
+public class DnsLookup {
 
-  private static final Logger log = Logger.getLogger(DnsUtils.class);
+  private static final Logger log = Logger.getLogger(DnsLookup.class);
 
   /** Time to wait for a response from DNS server. */
   private static final int DNS_TIMEOUT_IN_SEC = 10;
 
-  /** Retry policy for DNS lookup. */
+  /**
+   * Retry policy for DNS lookup. Maximum delay for DNS lookup retry policy is 330 (33*10) seconds,
+   * which is slightly greater than the Infoblox negative cache TTL of 5 minutes (300 seconds)
+   */
   private static final RetryPolicy RETRY_POLICY =
       new RetryPolicy()
           .retryOn(Exception.class)
           .retryWhen(Collections.emptyList())
           .retryIf(Objects::isNull)
           .withDelay(10, TimeUnit.SECONDS)
-          .withMaxRetries(18);
+          .withMaxRetries(33);
 
   /**
    * Query the DNS server for an A record of fqdn.
@@ -105,7 +108,10 @@ public class DnsUtils {
           Failsafe.with(RETRY_POLICY)
               .onRetry(
                   (res, err, ctx) ->
-                      log.warn(logKey + "Response: " + res + ", retrying #" + ctx.getExecutions()))
+                      log.warn(
+                          String.format(
+                              "%sResponse from %s: %s, retrying #%d",
+                              logKey, dnsServer, res, ctx.getExecutions())))
               .get(() -> lookupARec(fqdn, dnsServer));
 
       log.info(logKey + "dig +short A @" + dnsServer + " " + fqdn + " ->> " + addresses);

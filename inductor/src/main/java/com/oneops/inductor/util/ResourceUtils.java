@@ -21,6 +21,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 /**
  * Helper class for reading file resources.
@@ -78,6 +80,14 @@ public class ResourceUtils {
    */
   public static String readResourceAsString(String name) {
     return new String(readResourceAsBytes(name), StandardCharsets.UTF_8);
+  }
+
+  public static String readExternalFile(String filePath) {
+    String fileContent = "";
+    try {
+      fileContent = new String(Files.readAllBytes(Paths.get(filePath)), StandardCharsets.UTF_8);
+    } catch (IOException e) {}
+    return fileContent;
   }
 
 }

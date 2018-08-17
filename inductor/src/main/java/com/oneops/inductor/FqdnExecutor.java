@@ -36,7 +36,7 @@ import com.oneops.gslb.domain.Lb;
 import com.oneops.gslb.domain.Protocol;
 import com.oneops.gslb.domain.ProvisionedGslb;
 import com.oneops.gslb.domain.TorbitConfig;
-import com.oneops.inductor.util.DnsUtils;
+import com.oneops.inductor.util.DnsLookup;
 import com.oneops.infoblox.InfobloxClient;
 import com.oneops.infoblox.model.cname.CNAME;
 import com.oneops.infoblox.model.zone.Delegate;
@@ -551,7 +551,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
       throw new IllegalStateException("Can't find any DNS resolvers for gslb validation!");
     }
 
-    boolean aRecResolvable = DnsUtils.isARecResolvable(gslb.getGlb(), dnsResolvers, logKey);
+    boolean aRecResolvable = DnsLookup.isARecResolvable(gslb.getGlb(), dnsResolvers, logKey);
     if (!aRecResolvable) {
       throw new IllegalStateException("Can't resolve torbit gslb domain: " + gslb.getGlb());
     }

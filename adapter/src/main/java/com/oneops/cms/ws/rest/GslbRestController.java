@@ -20,6 +20,7 @@ import com.oneops.cms.exceptions.CmsException;
 import com.oneops.cms.execution.MigrateArg;
 import com.oneops.cms.util.CmsError;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,7 +62,8 @@ public class GslbRestController extends AbstractRestController {
       @RequestParam String nsPath,
       @RequestParam String type,
       @RequestParam(required = false) boolean force,
-      @RequestParam(required = false) boolean continueOnFailure)
+      @RequestParam(required = false) boolean continueOnFailure,
+      @RequestParam(defaultValue = "true") boolean waitForCompletion)
       throws Exception {
     type = type(type);
     List<OpsProcedureSimple> procedureList = new ArrayList<>();
@@ -82,19 +84,23 @@ public class GslbRestController extends AbstractRestController {
             // submit gslb-migration procedure for this nsPath
             CmsOpsProcedure procedure =
                 submitProcedure(bomNsPath, type, procedureCi, manifestPlatformCi);
-            CmsOpsProcedure updatedProc = waitForCompletion(procedure.getProcedureId());
-            if (updatedProc == null) updatedProc = procedure;
-            procedureList.add(procedure(updatedProc, bomNsPath));
-            // continue only if the last procedure was successful
-            if (!isSuccessful(updatedProc)) {
-              logger.info(
-                  "gslb migrate :: procedure [nsPath: "
-                      + bomNsPath
-                      + ", id: "
-                      + procedure.getProcedureId()
-                      + "] not successful. continue ? "
-                      + continueOnFailure);
-              if (!continueOnFailure) break;
+            if (waitForCompletion) {
+              CmsOpsProcedure updatedProc = waitForCompletion(procedure.getProcedureId());
+              if (updatedProc == null) updatedProc = procedure;
+              procedureList.add(procedure(updatedProc, bomNsPath));
+              // continue only if the last procedure was successful
+              if (!isSuccessful(updatedProc)) {
+                logger.info(
+                    "gslb migrate :: procedure [nsPath: "
+                        + bomNsPath
+                        + ", id: "
+                        + procedure.getProcedureId()
+                        + "] not successful. continue ? "
+                        + continueOnFailure);
+                if (!continueOnFailure) break;
+              }
+            } else {
+              procedureList.add(procedure(procedure, bomNsPath));
             }
           } else {
             logger.info("gslb migration procedure not available for this pack ns : " + packNsPath);
@@ -107,6 +113,16 @@ public class GslbRestController extends AbstractRestController {
 
   private CmsOpsProcedure submitProcedure(
       String bomNsPath, String type, CmsCI procedureCi, CmsCI manifestPlatformCi) {
+    //if a procedure is already 'active' with the same type then return that
+    List<CmsOpsProcedure> procs =
+        opsManager.getCmsOpsProcedureForCi(
+            manifestPlatformCi.getCiId(), Collections.singletonList(OpsProcedureState.active), GSLB_MIGRATION_PROC, 1);
+    if (procs != null && !procs.isEmpty()) {
+      String argList = procs.get(0).getArglist();
+      if (StringUtils.isNotBlank(argList) && argList.contains(type)) {
+        return procs.get(0);
+      }
+    }
     CmsOpsProcedure procRequest = new CmsOpsProcedure();
     procRequest.setCiId(manifestPlatformCi.getCiId());
     procRequest.setCreatedBy("oneops-system");
@@ -135,19 +151,30 @@ public class GslbRestController extends AbstractRestController {
           CmsError.CMS_EXCEPTION, "gdns not enabled for this environment, nothing to migrate");
     }
 
-    logger.info("started migrating gslb for nsPath: " + nsPath + ", force: " + force);
+    logger.info(
+        "started migrating gslb for nsPath: " + nsPath + ", force: " + force + ", type: " + type);
+    // TODO: get all bom FQDN instances using
+    // manifest.EntryPoint -> (manifest Fqdn) -> base.RealizedAs -> (bom Fqdn)
     List<CmsCI> fqdnInstances = cmsCmManager.getCiBy3NsLike(nsPath, FQDN_SHORT_CLASS, null);
+    logger.info("gslb migration :: fqdns count: " + fqdnInstances.size());
     Map<String, List<CmsCI>> instanceMap =
         fqdnInstances
             .stream()
             .filter(ci -> ci.getCiClassName().startsWith("bom."))
             .collect(Collectors.groupingBy(CmsCI::getNsPath));
 
+    logger.info("gslb migration :: instanceMap: " + instanceMap.keySet());
     List<PlatformFqdn> nsPaths = new ArrayList<>();
     for (Entry<String, List<CmsCI>> entry : instanceMap.entrySet()) {
       List<CmsCI> bomFqdns = entry.getValue();
 
-      if (!isEligibleForMigration(bomFqdns.get(0))) {
+      List<CmsCI> eligibleFqdns = new ArrayList<>();
+      for (CmsCI fqdn : bomFqdns) {
+        if (isEligibleForMigration(fqdn)) {
+          eligibleFqdns.add(fqdn);
+        }
+      }
+      if (eligibleFqdns.isEmpty()) {
         logger.info(
             "gslb migrate :: skipping platform "
                 + bomFqdns.get(0).getNsPath()
@@ -157,11 +184,15 @@ public class GslbRestController extends AbstractRestController {
 
       // continue only if there is atleast one bom instance that is not migrated or force is
       // requested
-      if (force || hasAnyNonMigratedInstance(entry.getValue(), type)) {
+      if (force || hasAnyNonMigratedInstance(eligibleFqdns, type)) {
         PlatformFqdn platformFqdn = new PlatformFqdn();
         platformFqdn.setNsPath(entry.getKey());
         platformFqdn.setEntries(attribute(bomFqdns.get(0), "entries"));
         nsPaths.add(platformFqdn);
+      } else {
+        logger.info(
+            "gslb migration :: no migrated instances available in this platform"
+                + bomFqdns.get(0).getNsPath());
       }
     }
     return nsPaths;
@@ -181,8 +212,9 @@ public class GslbRestController extends AbstractRestController {
     List<CmsCIRelation> lbRelations =
         cmsCmManager.getFromCIRelations(fqdn.getCiId(), "bom.DependsOn", null, "Lb");
     if (lbRelations != null && lbRelations.size() > 0) {
+      CmsCI lb = lbRelations.get(0).getToCi();
       return isNotTrue(attribute(fqdn, "ptr_enabled"))
-          && isNotTrue(attribute(lbRelations.get(0).getToCi(), "stickiness"));
+          && isNotTrue(attribute(lb, "stickiness"));
     }
     logger.info("gslb migrate :: no dependsOn lb found " + fqdn.getNsPath());
     return false;
@@ -204,7 +236,13 @@ public class GslbRestController extends AbstractRestController {
     if (cis == null || cis.isEmpty())
       throw new CmsException(CmsError.CMS_EXCEPTION, "No environment ci found @ " + assemblyNs);
     String value = attribute(cis.get(0), "global_dns");
-    logger.info("gslb migrate :: assembly ns : " + assemblyNs + "platform " + nsElements[2] + " gdns enabled : " + value);
+    logger.info(
+        "gslb migrate :: assembly ns : "
+            + assemblyNs
+            + "platform "
+            + nsElements[2]
+            + " gdns enabled : "
+            + value);
     return "true".equalsIgnoreCase(value);
   }
 

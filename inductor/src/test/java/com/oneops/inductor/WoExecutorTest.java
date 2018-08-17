@@ -17,12 +17,17 @@
  *******************************************************************************/
 package com.oneops.inductor;
 
+import java.io.StringReader;
 import java.util.*;
 
 import com.google.gson.Gson;
+import com.google.gson.stream.JsonReader;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
+import com.oneops.inductor.util.JSONUtils;
+import com.oneops.inductor.util.ResourceUtils;
+import org.apache.log4j.Logger;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -32,9 +37,15 @@ import junit.framework.Assert;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import static com.oneops.inductor.InductorConstants.CLOUD_CONFIG_FILE_PATH;
+import static com.oneops.inductor.util.ResourceUtils.readResourceAsString;
+
 public class WoExecutorTest {
-	
+
+	CommonCloudConfigurationsHelper commonCloudConfigurationsHelper;
+	Map<String, Object> cloudConfig;
 	WorkOrderExecutor woExecutor;
+	private static String localWo;
 	final protected Gson gson = new Gson();
 
 	@Before
@@ -42,6 +53,11 @@ public class WoExecutorTest {
 		Config config = new Config();
 		config.setCircuitDir("/opt/oneops/inductor/packer");
 		woExecutor = new WorkOrderExecutor(config, null);
+		localWo = readResourceAsString("/localWorkOrder.json");
+
+		commonCloudConfigurationsHelper = new CommonCloudConfigurationsHelper(Logger.getLogger(CommonCloudConfigurationsTest.class.getName()), "");
+		String jsonContent = ResourceUtils.readResourceAsString(CLOUD_CONFIG_FILE_PATH);
+		cloudConfig = JSONUtils.convertJsonToMap(jsonContent);
 	}
 	
 	@Test
@@ -115,4 +131,84 @@ public class WoExecutorTest {
 
 		Assert.assertEquals(gson.toJson(searchPaths), gson.toJson(expectedResult));
 	}
+
+  @Test
+  public void testWorkorderCiAttributesReplace() {
+    CmsWorkOrderSimple cmsWorkorder;
+    cmsWorkorder = (CmsWorkOrderSimple) getWorkOrderOf(localWo, CmsWorkOrderSimple.class);
+    String cloudName = getCloudName(cmsWorkorder);
+    String orgName = getOrganizationName(cmsWorkorder);
+    final Map<String, Object> servicesMap = woExecutor.getServicesMap(commonCloudConfigurationsHelper, cloudConfig, cloudName, orgName);
+    woExecutor.updateCiAttributes(cmsWorkorder, commonCloudConfigurationsHelper, servicesMap);
+    org.junit.Assert.assertEquals("service match", cmsWorkorder.getServices().get("service").get("stub-dfw2b").getCiAttributes().get("attr1"));
+  }
+
+
+  private String getOrganizationName(CmsWorkOrderSimple wo) {
+    String orgName = "";
+    if (wo.getPayLoad().containsKey("Organization")) {
+      if (!wo.getPayLoad().get("Organization").isEmpty()) {
+        orgName = wo.getPayLoad().get("Organization").get(0).getCiName();
+      }
+    }
+    return orgName;
+  }
+
+  private String getCloudName(CmsWorkOrderSimple wo) {
+    return wo.getCloud().getCiName();
+  }
+
+  private CmsWorkOrderSimpleBase getWorkOrderOf(String msgText, Class c) {
+    CmsWorkOrderSimpleBase wo;
+    JsonReader reader = new JsonReader(new StringReader(msgText));
+    reader.setLenient(true);
+    wo = gson.fromJson(reader, c);
+    return wo;
+  }
+
+  @Test
+  public void testOrgLevelWhenOrgMatchCloudExactMatch() {
+    Map<String, Object> servicesMap = commonCloudConfigurationsHelper.findServicesAtOrgLevel(cloudConfig, "org", "cloud-exact");
+    Map<String, Object> classesMap = commonCloudConfigurationsHelper.findServiceClasses(servicesMap, "service");
+    Map<String, Object> ciAttributes = commonCloudConfigurationsHelper.findClassCiAttributes(classesMap, "classname");
+    org.junit.Assert.assertEquals("org & cloud exact match", ciAttributes.get("attr1"));
+  }
+
+  @Test
+  public void testOrgLevelWhenOrgMatchCloudRegexMatch() {
+    Map<String, Object> servicesMap = commonCloudConfigurationsHelper.findServicesAtOrgLevel(cloudConfig, "org", "cloud-regex123");
+    Map<String, Object> classesMap = commonCloudConfigurationsHelper.findServiceClasses(servicesMap, "service");
+    Map<String, Object> ciAttributes = commonCloudConfigurationsHelper.findClassCiAttributes(classesMap, "classname");
+    org.junit.Assert.assertEquals("org & cloud regex match", ciAttributes.get("attr1"));
+  }
+
+  @Test
+  public void testCloudLevelWhenCloudExactMatch() {
+    Map<String, Object> servicesMap = commonCloudConfigurationsHelper.findServicesAtCloudLevel(cloudConfig, "cloud-exact");
+    Map<String, Object> classesMap = commonCloudConfigurationsHelper.findServiceClasses(servicesMap, "service");
+    Map<String, Object> ciAttributes = commonCloudConfigurationsHelper.findClassCiAttributes(classesMap, "classname");
+    org.junit.Assert.assertEquals("cloud exact match", ciAttributes.get("attr1"));
+  }
+
+  @Test
+  public void testCloudLevelWhenCloudRegexMatch() {
+    Map<String, Object> servicesMap = commonCloudConfigurationsHelper.findServicesAtCloudLevel(cloudConfig, "cloud-regex123");
+    Map<String, Object> classesMap = commonCloudConfigurationsHelper.findServiceClasses(servicesMap, "service");
+    Map<String, Object> ciAttributes = commonCloudConfigurationsHelper.findClassCiAttributes(classesMap, "classname");
+    org.junit.Assert.assertEquals("cloud regex match", ciAttributes.get("attr1"));
+  }
+
+  @Test
+  public void testServicesLevelWhenServiceMatchAndAttrMatch() {
+    Map<String, Object> classesMap = commonCloudConfigurationsHelper.findServiceClasses(cloudConfig, "service");
+    Map<String, Object> ciAttributes = commonCloudConfigurationsHelper.findClassCiAttributes(classesMap, "classname");
+    org.junit.Assert.assertEquals("service match", ciAttributes.get("attr1"));
+  }
+
+  @Test
+  public void testServicesLevelWhenServiceMatchAndAttrNotMatch() {
+    Map<String, Object> classesMap = commonCloudConfigurationsHelper.findServiceClasses(cloudConfig, "service");
+    Map<String, Object> ciAttributes = commonCloudConfigurationsHelper.findClassCiAttributes(classesMap, "classname");
+    org.junit.Assert.assertNotEquals("service not match", ciAttributes.get("attr1"));
+  }
 }
