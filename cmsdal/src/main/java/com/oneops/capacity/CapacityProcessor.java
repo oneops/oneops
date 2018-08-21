@@ -54,9 +54,7 @@ public class CapacityProcessor {
         return false;
     }
 
-    public Map<String, Map<String, Integer>> calculateCapacity(String nsPath, Collection<CmsCI> cis, Collection<CmsCIRelation> deployedToRels) {
-//        if (!isCapacityManagementEnabled(nsPath)) return null;
-
+    public Map<String, Map<String, Integer>> calculateCapacity(Collection<CmsCI> cis, Collection<CmsCIRelation> deployedToRels) {
         Map<String, Object> mappings = getCloudProviderMappings();
         if (mappings == null) return null;
 
@@ -288,9 +286,9 @@ public class CapacityProcessor {
                                                                 Collection<CmsRfcRelation> deployedToRels,
                                                                 Map<Long, CloudInfo> cloudInfoMap,
                                                                 Map<String, Object> mappings) {
-        Map<String, Map<String, Integer>> reservation = new HashMap<>();
+        Map<String, Map<String, Integer>> capacity = new HashMap<>();
 
-        if (cis == null) return reservation;
+        if (cis == null) return capacity;
 
         Map<Long, Long> ciToCloudMap = deployedToRels.stream()
                 .collect(toMap(CmsRfcRelation::getFromCiId, CmsRfcRelation::getToCiId));
@@ -299,14 +297,14 @@ public class CapacityProcessor {
             CloudInfo cloudInfo = cloudInfoMap.get(ciToCloudMap.get(rfcCI.getCiId()));
             Map<String, Integer> ciCapacity = getCapacityForCi(rfcCI, cloudInfo, mappings);
             if (!ciCapacity.isEmpty()) {
-                Map<String, Integer> subCapacity = reservation.computeIfAbsent(cloudInfo.getSubscriptionId(), (k) -> new HashMap<>());
+                Map<String, Integer> subCapacity = capacity.computeIfAbsent(cloudInfo.getSubscriptionId(), (k) -> new HashMap<>());
                 for (String resource : ciCapacity.keySet()) {
                     subCapacity.put(resource, subCapacity.computeIfAbsent(resource, (k) -> 0) + ciCapacity.get(resource));
                 }
             }
         }
 
-        return reservation;
+        return capacity;
     }
 
     private Map<String, Integer> getCapacityForCi(CmsRfcCI rfcCi, CloudInfo cloudInfo, Map<String, Object> mappings) {

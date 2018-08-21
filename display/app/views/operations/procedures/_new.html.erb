@@ -30,15 +30,18 @@
             <%= label_tag :arglist, 'Arguments', :class => 'control-label' %>
             <div class="controls ciAttributes">
               <% fixed_keys = true
+                 pattern = nil
                  arg_md = @procedure.argMd
                  if arg_md.present?
                    fixed_keys = arg_md.values.to_map_with_value {|a| [a['name'], a['description']]}
+                   pattern    = arg_md.values.to_map_with_value {|a| [a['name'], a['pattern']]}
                  end
               %>
               <%= render 'cms/cis/hash_attribute',
                          :attribute_name  => 'arglist',
                          :attribute_value => arglist,
                          :fixed_keys      => fixed_keys,
+                         :pattern         => pattern,
                          :builder         => f %>
             </div>
           </div>

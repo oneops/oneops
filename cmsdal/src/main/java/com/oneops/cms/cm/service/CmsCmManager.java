@@ -83,6 +83,7 @@ public interface CmsCmManager {
 	
 	void updateCmSimpleVar(String varName, String varValue, String criteria, String updatedBy);
 	CmsVar getCmSimpleVar(String varName);
+	CmsVar getCmSimpleVar(String varName, String criteria);
 
     void createAltNs(CmsAltNs cmsAltNs, CmsCI ci);
     void deleteAltNs(long nsId, long ciId);
