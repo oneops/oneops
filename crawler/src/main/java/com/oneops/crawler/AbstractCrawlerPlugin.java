@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 public abstract class AbstractCrawlerPlugin {
     protected abstract Logger getLogger();
@@ -125,6 +126,10 @@ public abstract class AbstractCrawlerPlugin {
 
     public boolean isEnabled() {
         return config.isEnabled();
+    }
+
+    public void configureSecrets(Properties props) {
+
     }
 }
 

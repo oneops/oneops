@@ -141,6 +141,11 @@ public class CMSCrawler {
         cmsDbUserName = props.getProperty("cms.db.user.name");
         cmsDbPassword = props.getProperty("cms.db.user.password");
         cmsDbUrl = props.getProperty("cms.db.url");
+        configurePlugins(props);
+    }
+
+    private void configurePlugins(Properties props) {
+        scaleDownPlugin.configureSecrets(props);
     }
 
     public void crawl() {
