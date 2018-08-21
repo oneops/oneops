@@ -2,7 +2,7 @@
 require 'json'
 require 'time_diff'
 
-BATCH_SIZE = 100000
+BATCH_SIZE = 20000
 
 class NilClass
   def [] (_)

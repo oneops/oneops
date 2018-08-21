@@ -19,6 +19,8 @@ public class JSONUtils {
     } catch (JsonSyntaxException e) {
       jsonMap = Collections.emptyMap();
     }
+    if(jsonMap == null)
+            jsonMap = Collections.emptyMap();
     return jsonMap;
   }
 
