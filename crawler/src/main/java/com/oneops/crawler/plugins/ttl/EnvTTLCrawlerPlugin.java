@@ -477,7 +477,8 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                 && ! envProfile.toString().toLowerCase().contains("prod")
                 && lastDeployDate.compareTo(noDeploymentDate) < 0) {
             if (! lastDeploy.getState().equalsIgnoreCase("complete")
-                    && ! lastDeploy.getState().equalsIgnoreCase("failed")) {
+                    && ! lastDeploy.getState().equalsIgnoreCase("failed")
+                    && ! lastDeploy.getState().equalsIgnoreCase("canceled")) {
                 log.warn("Deployment is in " + lastDeploy.getState() + " state for too long: ");
                 return null;
             }
