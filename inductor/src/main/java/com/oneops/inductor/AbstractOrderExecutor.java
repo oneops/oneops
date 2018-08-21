@@ -696,6 +696,22 @@ public abstract class AbstractOrderExecutor {
   }
 
   /**
+   * Check if the verify.mode is enabled for the work order
+   * The value of Environment attribute 'verify' if set trumps the config value
+   *
+   * @param wo {@code CmsWorkOrderSimple}
+   * @return <code>true</code> if the environment verify is selected, else return <code>false</code>
+   */
+  protected <T> boolean isVerifyEnabled(CmsWorkOrderSimpleBase<T> wo) {
+    if (wo.isPayloadEntryEqual(ENVIRONMENT, "verify", "default")) {
+        return config.isVerifyMode();
+    }
+    else {
+        return (wo.isPayloadEntryEqual(ENVIRONMENT, "verify", "true"));
+    }
+  }
+
+  /**
    * Check if the debug mode is enabled for the work order
    *
    * @param wo {@code CmsWorkOrderSimple}
@@ -1037,8 +1053,17 @@ public abstract class AbstractOrderExecutor {
   protected Map<String, String> runVerification(CmsWorkOrderSimpleBase wo,
       Map<String, String> responseMap) {
 
-    if (config.isVerifyMode()) {
       String logKey = getLogKey(wo) + " verify -> ";
+      Boolean VerifyEnabled = isVerifyEnabled(wo);
+
+      logger.info(
+          format("%sConfig.verify mode: '%s'", logKey, config.isVerifyMode()));
+      logger.info(
+          format("%sEnvironment.verify mode: '%s'", logKey, wo.getPayLoadAttribute(ENVIRONMENT, "verify")));
+      logger.info(
+          format("%sIsVerifyEnabled: '%s'", logKey, VerifyEnabled));
+
+    if (VerifyEnabled) {
       long start = System.currentTimeMillis();
 
       if (config.isCloudStubbed(wo)) {
@@ -1110,6 +1135,9 @@ public abstract class AbstractOrderExecutor {
         if (result.getResultCode() > 0) {
           wo.setComments("FATAL: Spec verification failed!");
           responseMap.put("task_result_code", "500");
+          if("compute".equals(compName)) {
+            responseMap.put("compute_kci_failure", "true");  
+          }
         }
 
         // Clean up working dir.
@@ -1120,10 +1148,15 @@ public abstract class AbstractOrderExecutor {
         logger.info(logKey + "Verification failed: " + t.getMessage());
         logger.error("Verification failed", t);
         responseMap.put("task_result_code", "500");
+        if("compute".equals(compName)) {
+          responseMap.put("compute_kci_failure", "true");  
+        }
       } finally {
         logger.info(logKey + " Run Verification took: "
             + MILLISECONDS.toSeconds(System.currentTimeMillis() - start) + " seconds.");
       }
+    } else {
+      responseMap.put("kci_status", "verify is disabled");
     }
 
     return responseMap;

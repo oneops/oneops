@@ -147,6 +147,7 @@
 		<property name="nsMapper" ref="nsMapper" />
 		<property name="rfcProcessor" ref="cmsRfcProcessor" />
         <property name="capacityProcessor" ref="capacityProcessor"/>
+        <property name="djMapper" ref="djMapper"/>
     </bean>
 
 
@@ -191,6 +192,7 @@
 	    <property name="offeringMatcher" ref="offeringMatcher" />
 		<property name="expressionEvaluator" ref="expressionEvaluator" />
 		<property name="controllerCache" ref="controllerCache" />
+    <property name="gslbWeightsEnabled" value="${GSLB_WEIGHTS_ENABLED:false}" />
 	</bean>
 	
 	<bean id="expressionEvaluator" class="com.oneops.controller.cms.ExpressionEvaluator">

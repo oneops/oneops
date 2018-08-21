@@ -1,0 +1,15 @@
+{
+  "dns": {
+    "azuredns": {
+    "tenant_id": "XXXXXXXXXXXXXXXXX",
+    "cloud_dns_id": "XXXXXXXXXXXXXXXXX",
+    "subscription": "XXXXXXXXXXXXXXXXX",
+    "client_id": "XXXXXXXXXXXXXXXXX",
+    "express_route_enabled": "XXXXXXXXXXXXXXXXX",
+    "zone": "XXXXXXXXXXXXXXXXX",
+    "network_address": "XXXXXXXXXXXXXXXXX",
+    "client_secret": "XXXXXXXXXXXXXXXXX",
+    "subnet_address": "XXXXXXXXXXXXXXXXX"
+    }
+  }
+}

@@ -23,6 +23,7 @@ import com.oneops.Environment;
 import com.oneops.Platform;
 import com.oneops.notification.NotificationMessage;
 import com.squareup.okhttp.*;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +38,7 @@ public class OneOpsFacade {
     private String antennaBaseUrl ;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private Gson gson;
+    OkHttpClient client = new OkHttpClient();
 
     public static final MediaType JSON
             = MediaType.parse("application/json; charset=utf-8");
@@ -95,14 +97,12 @@ public class OneOpsFacade {
                 .post(body)
                 .build();
 
-        OkHttpClient client = new OkHttpClient();
-
         Response response = client.newCall(request).execute();
         String responseBody = response.body().string();
         int responseCode = response.code();
         log.info("OO response body: " + responseBody + ", code: " + responseCode);
         if (responseCode >= 300) {
-            throw new OneOpsException("Error while doing deployment. Response fron OneOps: " + responseBody
+            throw new OneOpsException("Error while doing deployment. Response from OneOps: " + responseBody
             + " ResponseCode : " + responseCode);
         }
         return responseCode;
@@ -121,8 +121,6 @@ public class OneOpsFacade {
                 .addHeader("Content-Type", "application/json")
                 .put(body)
                 .build();
-
-        OkHttpClient client = new OkHttpClient();
 
         Response response = client.newCall(request).execute();
         String responseBody = response.body().string();
@@ -147,12 +145,11 @@ public class OneOpsFacade {
                 .post(body)
                 .build();
 
-        OkHttpClient client = new OkHttpClient();
         Response response = client.newCall(request).execute();
         String responseBody = response.body().string();
         int responseCode = response.code();
         if (responseCode >= 300) {
-            throw new OneOpsException("Error while sending notification. Response fron OneOps: " + responseBody
+            throw new OneOpsException("Error while sending notification. Response from OneOps: " + responseBody
                     + " ResponseCode : " + responseCode);
         }
 
@@ -169,7 +166,6 @@ public class OneOpsFacade {
                 .get()
                 .build();
 
-        OkHttpClient client = new OkHttpClient();
         Response response = client.newCall(request).execute();
         String responseBody = response.body().string();
         int responseCode = response.code();
@@ -177,5 +173,35 @@ public class OneOpsFacade {
         return responseCode;
     }
 
+    public Deployment scaleDown(long platformId, int scaleDownByNumber, int minComputesInEachCloud, String userId)
+            throws IOException, OneOpsException {
+        HashMap<String, String> params = new HashMap<>();
+        params.put("scaleDownByNumber", String.valueOf(scaleDownByNumber));
+        params.put("minComputesInEachCloud", String.valueOf(minComputesInEachCloud));
+
+        log.info("scaling down platform id: {}", platformId);
+        RequestBody body = RequestBody.create(JSON, gson.toJson(params));
+
+        String url = transistorBaseUrl + "/transistor/rest/platforms/{platformId}/deployments/scaledown" + platformId;
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("X-Cms-User", userId)
+                .addHeader("Content-Type", "application/json")
+                .post(body)
+                .build();
+
+        Response response = client.newCall(request).execute();
+        String responseBody = response.body().string();
+        int responseCode = response.code();
+        log.info("OO response body: {}, code: {}", responseBody, responseCode);
+        if (responseCode >= 300) {
+            throw new OneOpsException("Error while scaling down platform: " + platformId
+                    + ". Response from OneOps: " + responseBody + " ResponseCode : " + responseCode);
+        }
+        if (! StringUtils.isEmpty(responseBody)) {
+            return gson.fromJson(responseBody, Deployment.class);
+        }
+        return null;
+    }
 }
 

@@ -104,6 +104,7 @@
 		<property name="rfcProcessor" ref="cmsRfcProcessor" />
         <property name="trUtil" ref="trUtil" />
         <property name="cmsUtil" ref="cmsUtil" />
+		<property name="envManager" ref="envManager" />
     </bean>
 
 	<bean id="bomManager" class="com.oneops.transistor.service.BomManagerImpl">

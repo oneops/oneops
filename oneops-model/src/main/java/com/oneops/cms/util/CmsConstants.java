@@ -135,4 +135,10 @@ public final class CmsConstants {
 
 
     public static final String DEPLOYER_ENABLED_PROPERTY = "DEPLOYER_ENABLED";
+    public static final String PROC_DEPLOYER_ENABLED_PROPERTY = "PROC_DEPLOYER_ENABLED";
+    public static final String PLATFORM_COMMON_ACTION = "oo-action-platform";
+    public static final String BOM_FQDN = "bom.*Fqdn";
+
+    public static final String GSLB_TYPE_NETSCALER = "netscaler";
+    public static final String GSLB_TYPE_TORBIT = "torbit";
 }

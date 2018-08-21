@@ -81,6 +81,8 @@ public class CmsListener implements MessageListener {
   private CMSClient cmsClient;
   private ExecutionManager executionManager;
   private boolean isDeployerEnabled;
+  private boolean procDeployerEnabledFlag;
+  private int deploymentStepsLimit;
 
   /**
    * Inits the.
@@ -139,7 +141,8 @@ public class CmsListener implements MessageListener {
         logger.error("Got bad message:" + message.getText() + "/n end msg");
         return;
       } else {
-        if (isDeployerEnabled(dpmt.getNsPath())) {
+        if (isDeployerEnabled(dpmt.getNsPath()) &&
+                cmsClient.isDeployerStepsInLimit(deploymentStepsLimit, dpmt.getDeploymentId())) {
           notifyIfRequired(dpmt);
           logger.info("Executing deployment using Deployer : " + dpmt.getDeploymentId());
           startDeployment(dpmt);
@@ -165,7 +168,7 @@ public class CmsListener implements MessageListener {
         return;
       }
       //logger.info()
-      if (isDeployerEnabled(proc.getNsPath())) {
+      if (isProcDeployerEnabled(proc.getNsPath())) {
         logger.info("Executing procedure using ProcedureRunner : " + proc.getProcedureId());
         startProcedure(proc);
       }
@@ -249,7 +252,12 @@ public class CmsListener implements MessageListener {
         .getVarByMatchingCriteriaBoolean(CmsConstants.DEPLOYER_ENABLED_PROPERTY, nsPath);
   }
 
-  private String getOpsProcedureProcessKey(CmsOpsProcedure proc) {
+    private boolean isProcDeployerEnabled(String nsPath) {
+        return procDeployerEnabledFlag && cmsClient
+                .getVarByMatchingCriteriaBoolean(CmsConstants.PROC_DEPLOYER_ENABLED_PROPERTY, nsPath);
+    }
+
+    private String getOpsProcedureProcessKey(CmsOpsProcedure proc) {
     if (proc.getProcedureState().equals(OpsProcedureState.active)) {
       return "opsprocedure";
     } else {
@@ -310,7 +318,11 @@ public class CmsListener implements MessageListener {
     isDeployerEnabled = deployerEnabled;
   }
 
-  public void setExecutionManager(ExecutionManager executionManager) {
+  public void setProcDeployerEnabledFlag(boolean procDeployerEnabledFlag) {
+      this.procDeployerEnabledFlag = procDeployerEnabledFlag;
+  }
+
+    public void setExecutionManager(ExecutionManager executionManager) {
     this.executionManager = executionManager;
   }
 
@@ -334,6 +346,10 @@ public class CmsListener implements MessageListener {
    */
   public void setWfController(WorkflowController wfController) {
     this.wfController = wfController;
+  }
+
+  public void setDeploymentStepsLimit(int deploymentStepsLimit) {
+    this.deploymentStepsLimit = deploymentStepsLimit;
   }
 
 }

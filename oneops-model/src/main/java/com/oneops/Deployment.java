@@ -20,10 +20,11 @@ package com.oneops;
 import java.util.Date;
 
 public class Deployment {
-    long deploymentId;
-    String state;
-    String createdBy;
-    Date createdAt;
+    private long deploymentId;
+    private String state;
+    private String createdBy;
+    private Date createdAt;
+    private String nsPath;
 
     public long getDeploymentId() {
         return deploymentId;
@@ -55,5 +56,13 @@ public class Deployment {
 
     public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getNsPath() {
+        return nsPath;
+    }
+
+    public void setNsPath(String nsPath) {
+        this.nsPath = nsPath;
     }
 }

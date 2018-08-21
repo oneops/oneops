@@ -41,6 +41,9 @@ import com.oneops.transistor.service.*;
 import com.oneops.transistor.service.peristenceless.BomData;
 import com.oneops.transistor.service.peristenceless.InMemoryBomProcessor;
 import com.oneops.transistor.snapshot.domain.Snapshot;
+import org.apache.commons.lang.BooleanUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 import org.apache.log4j.Logger;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -1071,6 +1074,37 @@ public class TransistorRestController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope) throws DJException {
 
 		return dManager.createComponent(platId, relSimple, userId, scope);
+	}
+
+	@RequestMapping(value = "platforms/{platformId}/deployments/scaledown", method = RequestMethod.POST)
+	@ResponseBody
+	public CmsDeployment scaleDown(
+			@PathVariable long platformId,
+			@RequestBody Map<String, String> paramMap,
+			@RequestHeader(value = "X-Cms-User", required = false) String userId) {
+
+		int scaleDownBy = 0;
+		int minComputesInEachCloud = 3;
+		boolean ensureEvenScale = true;
+		if (paramMap != null) {
+			scaleDownBy = NumberUtils.toInt(paramMap.get("scaleDownBy"), 0);
+			minComputesInEachCloud = NumberUtils.toInt(paramMap.get("minComputesInEachCloud"), 3);
+			if (paramMap.get("ensureEvenScale") != null) {
+				ensureEvenScale = BooleanUtils.toBoolean(paramMap.get("ensureEvenScale"));
+			}
+		}
+		if (scaleDownBy < 1) {
+			throw new TransistorException(CmsError.TRANSISTOR_EXCEPTION, "scaleDownBy value must be greater than 0");
+		}
+
+		try {
+			if (userId == null) userId = "oneops-system";
+
+			return baProcessor.scaleDown(platformId, scaleDownBy, minComputesInEachCloud, ensureEvenScale, userId);
+		} catch (Exception te) {
+			logger.error("Error while submitting scale-down deployment: ", te);
+			throw te;
+		}
 	}
 
 	private Map<String,Long> toReleaseMap(long releaseId) {
