@@ -318,7 +318,7 @@ end
 def execute(action, *args)
   result = nil
   if action == 'version'
-    say 'CLI version:    1.0.3'
+    say 'CLI version:    1.0.4'
     info = tt_request('server/version', 'Getting tekton version')
     say "Tekton version: #{info.version} (#{info.timestamp})"
 
@@ -360,7 +360,7 @@ def execute(action, *args)
 
     cloud_regex = /#{cloud_name}/i
     result.select! {|sub, rels| rels.any? {|rel| rel.fromCi.ciName =~ cloud_regex}}
-    result.keys.sort.each {|o| say "#{o.bold} =>\n  #{result[o].map {|rel| rel.fromCi.ciName}.join(', ')}"}
+    result.keys.sort.each {|s| say "#{s.bold} =>\n  #{result[s].map {|rel| rel.fromCi.ciName}.join(', ')}"}
 
   elsif action == 'oo:subs:transfer'
     subs = execute!('oo:subs', *args)
@@ -473,10 +473,8 @@ def execute(action, *args)
     end
 
   elsif action == 'resources'
-    resources = tt_request('resource', 'Fetching resources')
-    resources.sort_by(&:name).each do |u|
-      say "#{u.name.bold} =>\n  #{u.description}"
-    end
+    result = tt_request('resource', 'Fetching resources')
+    result.sort_by(&:name).each {|r| say "#{r.name.bold} =>\n  #{r.description}"}
 
   elsif action == 'resources:add'
     resource_name, desc, _ = args
@@ -495,12 +493,12 @@ def execute(action, *args)
     sub_name = args[0]
     result = tt_request('subscription', 'Fetching subscriptions')
     unless sub_name.empty?
-      subs = execute('sub:prompt', *args).inject({}) {|h, o| h[o] = o; h}
+      subs = execute('sub:prompt', *args).inject({}) {|h, s| h[s] = s; h}
       result = result.select {|sub| subs.include?(sub.name)}
     end
-    result.sort_by(&:name).each do |o|
-      quota = tt_request("quota/#{o.name}/%2f", 'Fetching hard quota')
-      sub_quota(o, quota)
+    result.sort_by(&:name).each do |s|
+      quota = tt_request("quota/#{s.name}/%2f", 'Fetching hard quota')
+      sub_quota(s, quota)
     end
 
   elsif action == 'subs:add'
@@ -529,11 +527,11 @@ def execute(action, *args)
     required_arg('resources', usage)
 
     subs = execute('sub:prompt', sub_name)
-    subs.each do |o|
-      sub = tt_request("subscription/#{o}", "Fetching subscription '#{o}'")
+    subs.each do |s|
+      sub = tt_request("subscription/#{s}", "Fetching subscription '#{s}'")
       if sub
-        tt_request("quota/hard/subscription/#{o}", 'Updating hard quota', usage)
-        quota = tt_request("quota/#{o}/%2f", 'Fetching hard quota')
+        tt_request("quota/hard/subscription/#{s}", 'Updating hard quota', usage)
+        quota = tt_request("quota/#{s}/%2f", 'Fetching hard quota')
         sub_quota(sub, quota)
       else
         say "Subscription #{sub.bold} does not exist".red
@@ -564,7 +562,7 @@ def execute(action, *args)
 
   elsif action == 'admins'
     result = tt_request('user/admins', 'Getting admins').map(&:name)
-    result.sort.each {|u| say u}
+    result.sort.each {|a| say a}
 
   elsif action == 'admins:add' || action == 'admins:remove'
     *usernames = args
@@ -581,7 +579,7 @@ def execute(action, *args)
       orgs = execute('org:prompt', nil, org_name).inject({}) {|h, o| h[o] = o; h}
       result = result.select {|org| orgs.include?(org.name)}
     end
-    result.sort_by(&:name).each {|u| say u.name}
+    result.sort_by(&:name).each {|o| say o.name}
 
   elsif action == 'orgs:add'
     org_name = args[0]
@@ -595,9 +593,9 @@ def execute(action, *args)
     result = tt_request("org/#{org_name}/team", 'Fetching teams')
     unless team_regex.empty?
       team_regex = /#{team_regex}/
-      result = result.select {|u| u.name =~ team_regex}
+      result = result.select {|t| t.name =~ team_regex}
     end
-    result.sort_by(&:name).each {|u| say "#{u.name.bold} =>\n  #{u.description}"}
+    result.sort_by(&:name).each {|t| say "#{t.name.bold} =>\n  #{t.description}"}
 
   elsif action == 'teams:add'
     org_name, name, desc, _ = args
@@ -695,15 +693,15 @@ def execute(action, *args)
 
     cursor_control = ''
     subs = execute('sub:prompt', sub_name, org_name)
-    subs.each do |o|
-      orgs = execute('org:prompt', o, org_name)
-      orgs.each do |u|
+    subs.each do |s|
+      orgs = execute('org:prompt', s, org_name)
+      orgs.each do |o|
         while (true)
-          limits = tt_request("quota/#{o}/#{u}", 'Getting quota')
+          limits = tt_request("quota/#{s}/#{o}", 'Getting quota')
           unless limits.empty?
-            usage = tt_request("quota/usage/#{o}/#{u}", 'Getting usage')
-            available = tt_request("quota/available/#{o}/#{u}", 'Getting available')
-            full_quota("#{cursor_control}#{o.bold} => #{u.bold}", limits, usage, available)
+            usage = tt_request("quota/usage/#{s}/#{o}", 'Getting usage')
+            available = tt_request("quota/available/#{s}/#{o}", 'Getting available')
+            full_quota("#{cursor_control}#{s.bold} => #{o.bold}", limits, usage, available)
           end
           break if @params.refresh == 0 || subs.size > 1 || orgs.size > 1
           begin
@@ -729,17 +727,17 @@ def execute(action, *args)
     required_arg('resources', values)
 
     subs = execute('sub:prompt', sub_name, org_name)
-    subs.each do |o|
-      orgs = execute('org:prompt', o, org_name)
+    subs.each do |s|
+      orgs = execute('org:prompt', s, org_name)
       orgs.each do |o|
 
-        sub = tt_request("subscription/#{o}", "Fetching subscription '#{o}'")
-        execute!('subs:add', o) unless sub
+        sub = tt_request("subscription/#{s}", "Fetching subscription '#{s}'")
+        execute!('subs:add', s) unless sub
 
         org = tt_request("org/#{o}", "Fetching org '#{o}'")
         execute!('orgs:add', o) unless org
 
-        current = tt_request("quota/#{"usage/" if action.include?('usage:set')}#{o}/#{o}", 'Getting quota')
+        current = tt_request("quota/#{"usage/" if action.include?('usage:set')}#{s}/#{o}", 'Getting quota')
         resolved_values = values.inject({}) do |h, (resource, expr)|
           if expr[0] == '='
             value = expr[1..-1].to_i
@@ -761,8 +759,8 @@ def execute(action, *args)
           end
           h
         end
-        tt_request("quota/#{"usage/" if action.include?('usage:set')}#{o}/#{o}", 'Updating quota', resolved_values) unless resolved_values.empty?
-        execute('quota', o, o)
+        tt_request("quota/#{"usage/" if action.include?('usage:set')}#{s}/#{o}", 'Updating quota', resolved_values) unless resolved_values.empty?
+        execute('quota', s, o)
       end
     end
 
