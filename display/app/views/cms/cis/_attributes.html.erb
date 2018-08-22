@@ -99,7 +99,7 @@
                           <%= render 'cms/cis/multiselect',
                                      :attribute_name     => a.attributeName,
                                      :attribute_value    => attribute_value,
-                                     :options_for_select => form_options[:options_for_select],
+                                     :options_for_select => ci.attribute_options_for_select(a),
                                      :builder            => c %>
                         <% else %>
                           <%= render 'cms/cis/checkbox',
@@ -109,7 +109,7 @@
                                      :id => "#{a.attributeName}_#{(ci.respond_to?(:ciId) && ci.ciId) || 0}" %>
                         <% end %>
                       <% when 'select' %>
-                        <%= c.select(a.attributeName, options_for_select(form_options[:options_for_select], attribute_value), {}, :class => 'select-xlarge') %>
+                        <%= c.select(a.attributeName, options_for_select(ci.attribute_options_for_select(a), attribute_value), {}, :class => 'select-xlarge') %>
                       <% else %>
                         <%= c.text_field a.attributeName, :class => 'input-xlarge', :required => required, :placeholder => placeholder, :pattern => pattern %>
                       <% end %>

@@ -464,6 +464,13 @@ public class TransistorRestController extends AbstractRestController {
 	}
 
 
+	@RequestMapping(value="clouds/{cloudId}/capacity", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String, Integer>  getCloudCapacity(@PathVariable long cloudId){
+		return envManager.getCloudCapacity(cloudId);
+	}
+
+
 	@RequestMapping(value="environments/{envId}/capacity", method = RequestMethod.GET)
 	@ResponseBody
 	public Map<String, Map<String, Integer>>  getCapacityData(@PathVariable long envId){
