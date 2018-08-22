@@ -179,10 +179,10 @@ public class OneOpsFacade {
         params.put("scaleDownByNumber", String.valueOf(scaleDownByNumber));
         params.put("minComputesInEachCloud", String.valueOf(minComputesInEachCloud));
 
-        log.info("scaling down platform id: {}", platformId);
         RequestBody body = RequestBody.create(JSON, gson.toJson(params));
+        String url = transistorBaseUrl + "/transistor/rest/platforms/" +  + platformId + "/deployments/scaledown";
+        log.info("scaling down platform id: {} , url: {}", platformId, url);
 
-        String url = transistorBaseUrl + "/transistor/rest/platforms/{platformId}/deployments/scaledown" + platformId;
         Request request = new Request.Builder()
                 .url(url)
                 .addHeader("X-Cms-User", userId)
