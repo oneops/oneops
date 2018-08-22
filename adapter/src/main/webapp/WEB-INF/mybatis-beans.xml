@@ -151,6 +151,7 @@
     <bean id="procProcessor" class="com.oneops.cms.cm.ops.service.OpsProcedureProcessor">
         <property name="cmProcessor" ref="cmsCmProcessor"/>
         <property name="opsMapper" ref="opsMapper"/>
+        <property name="gslbMigrationEnabled" value="${GSLB_MIGRATION_ENABLED:false}"/>
     </bean>
 
 

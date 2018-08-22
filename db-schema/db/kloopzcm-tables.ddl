@@ -1240,3 +1240,10 @@ CREATE UNIQUE INDEX cm_proc_exec_idx
  ON kloopzcm.cm_procedure_execution
  ( ops_proc_id, step );
 
+
+CREATE INDEX dj_release_state_id_idx
+  ON kloopzcm.dj_releases
+  USING btree
+  (release_state_id)
+  WHERE release_state_id = 100;
+

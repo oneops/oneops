@@ -20,27 +20,10 @@ package com.oneops.inductor;
 import static com.oneops.cms.util.CmsConstants.MANAGED_VIA;
 import static com.oneops.cms.util.CmsConstants.RESPONSE_ENQUE_TS;
 import static com.oneops.cms.util.CmsConstants.SEARCH_TS_PATTERN;
-import static com.oneops.inductor.InductorConstants.ADD;
-import static com.oneops.inductor.InductorConstants.ADD_FAIL_CLEAN;
-import static com.oneops.inductor.InductorConstants.AFTER_ATTACHMENT;
-import static com.oneops.inductor.InductorConstants.ATTACHMENT;
-import static com.oneops.inductor.InductorConstants.BEFORE_ATTACHMENT;
-import static com.oneops.inductor.InductorConstants.COMPLETE;
-import static com.oneops.inductor.InductorConstants.COMPUTE;
-import static com.oneops.inductor.InductorConstants.DELETE;
-import static com.oneops.inductor.InductorConstants.ERROR_RESPONSE_CODE;
-import static com.oneops.inductor.InductorConstants.EXTRA_RUN_LIST;
-import static com.oneops.inductor.InductorConstants.FAILED;
-import static com.oneops.inductor.InductorConstants.KNOWN;
-import static com.oneops.inductor.InductorConstants.LOG;
-import static com.oneops.inductor.InductorConstants.LOGGED_BY;
-import static com.oneops.inductor.InductorConstants.MONITOR;
-import static com.oneops.inductor.InductorConstants.OK_RESPONSE_CODE;
-import static com.oneops.inductor.InductorConstants.ONEOPS_USER;
-import static com.oneops.inductor.InductorConstants.REMOTE;
-import static com.oneops.inductor.InductorConstants.REPLACE;
-import static com.oneops.inductor.InductorConstants.UPDATE;
-import static com.oneops.inductor.InductorConstants.WATCHED_BY;
+import static com.oneops.inductor.InductorConstants.*;
+import static com.oneops.inductor.util.JSONUtils.convertJsonToMap;
+import static com.oneops.inductor.util.JSONUtils.isJSONValid;
+import static com.oneops.inductor.util.ResourceUtils.readExternalFile;
 import static java.lang.String.format;
 
 import com.codahale.metrics.MetricRegistry;
@@ -64,7 +47,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import com.oneops.inductor.util.ResourceUtils;
 import org.apache.commons.httpclient.util.DateUtil;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -102,7 +89,16 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
   @Override
   public Map<String, String> process(CmsWorkOrderSimpleBase o, String correlationId) {
     CmsWorkOrderSimple wo = (CmsWorkOrderSimple) o;
-
+    Map<String, Object> cloudConfig = readCloudConfig(CLOUD_CONFIG_FILE_PATH);
+      if (cloudConfig.isEmpty()) {
+          logger.info(getLogKey(wo) + "No config found, continuing with what is provided in WO.");
+      } else {
+          String cloudName = getCloudName(wo);
+          String orgName = getOrganizationName(wo);
+          CommonCloudConfigurationsHelper commonCloudConfigurationsHelper = new CommonCloudConfigurationsHelper(logger, getLogKey(wo));
+          final Map<String, Object> servicesMap = getServicesMap(commonCloudConfigurationsHelper, cloudConfig, cloudName, orgName);
+          updateCiAttributes(wo, commonCloudConfigurationsHelper, servicesMap);
+      }
     // compute::replace will do a delete and add - only for old pre-versioned compute
     String[] classParts = wo.getRfcCi().getCiClassName().split("\\.");
     if (classParts.length < 3 && isWorkOrderOfCompute(wo) && isAction(wo, REPLACE)) {
@@ -155,8 +151,88 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     wo.putSearchTag(RESPONSE_ENQUE_TS, DateUtil.formatDate(new Date(), SEARCH_TS_PATTERN));
     return buildResponseMessage(wo, correlationId);
   }
-  
-  @Override
+
+  public void updateCiAttributes(CmsWorkOrderSimple wo, CommonCloudConfigurationsHelper commonCloudConfigurationsHelper, Map<String, Object> servicesMap) {
+    String cloudName = getCloudName(wo);
+    Map<String, Map<String, CmsCISimple>> services = wo.getServices();
+    services.forEach((serviceKey, serviceValue) -> {
+      try {
+        if (serviceValue.containsKey(cloudName)) {
+          String className = getShortenedClass(serviceValue.get(cloudName).getCiClassName());
+          Map<String, Object> cloudCommonCiAttributes = commonCloudConfigurationsHelper
+                  .findClassCiAttributes(commonCloudConfigurationsHelper.findServiceClasses(servicesMap, serviceKey), className);
+          cloudCommonCiAttributes.forEach((ciAttrKey, ciAttrValue) -> {
+            try {
+              String value = ciAttrValue.toString();
+                if (value.contains(KEYWHIZ_PREFIX)) {
+                  value = getFromKeywhiz(ciAttrKey, value);
+                }
+                if (value != null) {
+                  wo.getServices().get(serviceKey).get(cloudName).getCiAttributes().put(ciAttrKey, value);
+                }
+            } catch (Exception e) {
+              logger.info(getLogKey(wo) + e.getMessage());
+            }
+          });
+        }
+      } catch (Exception e) {
+        logger.info(getLogKey(wo) + e.getMessage());
+      }
+    });
+  }
+
+  private String getFromKeywhiz(String ciAttrKey, String ciAttrValue) {
+    String placeHolderValue = null;
+    Matcher matcher = Pattern.compile("\\((.*?)\\)").matcher(ciAttrValue);
+    if (matcher.find()) {
+      ciAttrValue = getCiAttributeValueFromKeywhiz(matcher.group(1));
+      if (!ciAttrValue.isEmpty()) {
+        Map<String, Object> secretsMap = convertJsonToMap(ciAttrValue);
+        if (secretsMap.containsKey(ciAttrKey)) {
+          placeHolderValue = secretsMap.get(ciAttrKey).toString();
+        }
+      }
+    }
+    return placeHolderValue;
+  }
+
+  public Map<String, Object> getServicesMap(CommonCloudConfigurationsHelper commonCloudConfigurationsHelper, Map<String, Object> cloudConfig, String cloudName, String orgName) {
+    Map<String, Object> servicesMap = commonCloudConfigurationsHelper.findServicesAtOrgLevel(cloudConfig,orgName, cloudName);
+    if (servicesMap.isEmpty()) {
+      servicesMap = commonCloudConfigurationsHelper.findServicesAtCloudLevel(cloudConfig, cloudName);
+      if (servicesMap.isEmpty()) {
+        servicesMap = cloudConfig;
+      }
+    }
+    return servicesMap;
+  }
+
+  private String getOrganizationName(CmsWorkOrderSimple wo) {
+    String orgName = "";
+    if (wo.getPayLoad().containsKey("Organization")) {
+      if (!wo.getPayLoad().get("Organization").isEmpty()) {
+        orgName = wo.getPayLoad().get("Organization").get(0).getCiName();
+      }
+    }
+    return orgName;
+  }
+
+  private String getCloudName(CmsWorkOrderSimple wo) {
+    return wo.getCloud().getCiName();
+  }
+
+  private Map<String, Object> readCloudConfig(String path) {
+    String confDir = System.getProperty("conf.dir", "");
+    String jsonContent = confDir.isEmpty() ? ResourceUtils.readResourceAsString(path, "") : ResourceUtils.readExternalFile(confDir + path);
+    return convertJsonToMap(jsonContent);
+  }
+
+  private String getCiAttributeValueFromKeywhiz(String secretName) {
+    return readExternalFile(KEYWHIZ_BASE_PATH + secretName);
+  }
+
+
+    @Override
   protected List<String> getRunList(CmsWorkOrderSimpleBase wo) {
     ArrayList<String> runList = new ArrayList<>();
     String appName = normalizeClassName(wo);
@@ -736,7 +812,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
       String[] rsyncCmdLineWithKey, String host, String port, String logKey, String keyFile) {
     logger.info("checking for any service cookbook to be rsynched ..");
     //rsync cloud services cookbooks
-    String cloudName = wo.getCloud().getCiName();
+    String cloudName = getCloudName(wo);
     Set<String> serviceCookbookPaths = new HashSet<>();
     Map<String, Map<String, CmsCISimple>> services = wo.getServices();
     if (services != null) {
@@ -825,7 +901,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
       String host, String port, String logKey, String keyFile) {
     long t1 = System.currentTimeMillis();
     // amazon public images use ubuntu user for ubuntu os
-    String cloudName = wo.getCloud().getCiName();
+    String cloudName = getCloudName(wo);
     String osType;
     if (wo.getPayLoad().containsKey("DependsOn")
         && wo.getPayLoad().get("DependsOn").get(0).getCiClassName()
@@ -980,7 +1056,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
   public String getProvider(CmsWorkOrderSimple wo) {
     String className = StringUtils.EMPTY;
-    String cloudName = wo.getCloud().getCiName();
+    String cloudName = getCloudName(wo);
     if (wo.getServices().containsKey("compute")
         && wo.getServices().get("compute").get(cloudName).getCiClassName() != null
         ) {
@@ -1178,7 +1254,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     ArrayList<String> proxyList = new ArrayList<String>();
 
     // use proxy_map from compute cloud service
-    String cloudName = wo.getCloud().getCiName();
+    String cloudName = getCloudName(wo);
     if (wo.getServices().containsKey("compute")
         && wo.getServices().get("compute").get(cloudName)
         .getCiAttributes().containsKey("env_vars")) {
@@ -1217,7 +1293,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     Map<String, String> proxyMap = new HashMap<>();
 
     // use proxy_map from compute cloud service
-    String cloudName = wo.getCloud().getCiName();
+    String cloudName = getCloudName(wo);
     if (wo.getServices().containsKey("compute")
         && wo.getServices().get("compute").get(cloudName)
         .getCiAttributes().containsKey("env_vars")) {
@@ -1254,7 +1330,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
    */
   private String getUserForOsAndCloud(String osType, CmsWorkOrderSimple wo) {
 
-    String cloudName = wo.getCloud().getCiName();
+    String cloudName = getCloudName(wo);
     if (wo.getServices().containsKey("compute")
         && wo.getServices().get("compute").get(cloudName)
         .getCiAttributes().containsKey("initial_user")) {

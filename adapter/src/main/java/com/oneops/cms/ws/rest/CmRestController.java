@@ -1036,4 +1036,11 @@ public class CmRestController extends AbstractRestController {
 		return  "";
 	}
 
+	@RequestMapping(value="/cm/vars/criteria", method = RequestMethod.GET)
+	@ResponseBody
+	public CmsVar getCmVarCriteria(@RequestParam String var,
+			@RequestParam String criteria){
+		return cmManager.getCmVarByLongestMatchingCriteria(var, criteria);
+	}
+
 }
