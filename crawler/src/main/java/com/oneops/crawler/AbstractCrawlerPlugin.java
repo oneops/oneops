@@ -108,7 +108,7 @@ public abstract class AbstractCrawlerPlugin {
                     }
                 }
                 if (! packToBeProcessed) {
-                    getLogger().info("pack not configured for ttl: " + platform.getPack());
+                    getLogger().info("pack not configured for processing: " + platform.getPack());
                     continue;
                 }
             }
