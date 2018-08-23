@@ -10,11 +10,11 @@ require 'readline'
 SESSION_FILE_NAME  = '.tekton'
 HISTORY_FILE_NAME  = '.tekton_hist'
 
-@use_session = true   #  Set to fails  and swtich to FQDN to disable session auth.
+@use_session = false   #  Set to fails  and swtich to FQDN to disable session auth.
 
 TEKTON_HOSTS = {:local => 'http://localhost:9000',
                 :dev   => 'http://tekton.dev.prod.walmart.com',
-                :stg   => 'http://tekton-service.stg.tekton.oneops.cdcstg2.prod.walmart.com:9000',
+                :stg   => 'http://tekton.stg.prod.walmart.com:9000',
                 :prod  => 'http://10.120.185.120:9000'}
                 # :prod  => 'http://10.227.217.183:9000'}
                 # :prod  => 'http://10.227.209.74:9000'}
@@ -318,7 +318,7 @@ end
 def execute(action, *args)
   result = nil
   if action == 'version'
-    say 'CLI version:    1.0.4'
+    say 'CLI version:    1.0.5'
     info = tt_request('server/version', 'Getting tekton version')
     say "Tekton version: #{info.version} (#{info.timestamp})"
 
@@ -543,8 +543,13 @@ def execute(action, *args)
     required_arg('username', usernames)
     usernames.each do |u|
       info = tt_request("user/#{u}", 'Getting user info')
-      blurt "#{u.ljust(25).bold} | "
-      say info.empty? ? 'not found'.red : (info.admin ? ' global admin '.blue(true) : info.orgs.map(&:name).join(', '))
+      blurt "#{u.ljust(15).bold} | "
+      if info.empty?
+        say  'not found'.red
+      else
+        blurt "#{info.email.to_s.ljust(25)}|"
+        say (info.admin ? ' global admin '.blue(true) : info.orgs.map(&:name).join(', '))
+      end
     end
 
   elsif action == 'users:delete'
@@ -561,8 +566,8 @@ def execute(action, *args)
     end
 
   elsif action == 'admins'
-    result = tt_request('user/admins', 'Getting admins').map(&:name)
-    result.sort.each {|a| say a}
+    result = tt_request('user/admins', 'Getting admins')
+    result.sort_by(&:name).each {|a| say "#{a.name.ljust(15).bold} | #{a.email.to_s.ljust(25)}"}
 
   elsif action == 'admins:add' || action == 'admins:remove'
     *usernames = args
@@ -826,17 +831,16 @@ def execute(action, *args)
     File.delete(SESSION_FILE_NAME) if File.exist?(SESSION_FILE_NAME)
 
     set_tekton_auth(username, password)
-    result = !tt_request('org', 'Checking credentials').empty?
-    # if password.empty?
-    #   result = !tt_request('org', 'Checking credentials').empty?
-    # else
-    #   api_key = tt_request('apikey', 'Getting api token', {:username => username, :name => 'CLI'})['key']
-    #   unless api_key.empty?
-    #     puts api_key
-    #     @params.tekton_auth = api_key
-    #     result = true
-    #   end
-    # end
+    # result = !tt_request('org', 'Checking credentials').empty?
+    if password.empty?
+      result = !tt_request('org', 'Checking credentials').empty?
+    else
+      api_key = tt_request('apikey', 'Getting api token', {:username => username, :name => 'CLI'})['key']
+      unless api_key.empty?
+        @params.tekton_auth = api_key
+        result = true
+      end
+    end
 
     if result
       cfg = %w(tekton_host oneops_host tekton_auth).inject({}) {|h, key| h[key] = @params[key]; h}
