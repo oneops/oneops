@@ -89,7 +89,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
   @Override
   public Map<String, String> process(CmsWorkOrderSimpleBase o, String correlationId) {
     CmsWorkOrderSimple wo = (CmsWorkOrderSimple) o;
-    Map<String, Object> cloudConfig = readCloudConfig(CLOUD_CONFIG_FILE_PATH);
+    Map<String, Object> cloudConfig = readCloudConfig(KEYWHIZ_BASE_PATH+CLOUD_CONFIG_FILE_PATH);
       if (cloudConfig.isEmpty()) {
           logger.info(getLogKey(wo) + "No config found, continuing with what is provided in WO.");
       } else {
@@ -222,8 +222,9 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
   }
 
   private Map<String, Object> readCloudConfig(String path) {
-    String confDir = System.getProperty("conf.dir", "");
-    String jsonContent = confDir.isEmpty() ? ResourceUtils.readResourceAsString(path, "") : ResourceUtils.readExternalFile(confDir + path);
+  //  String confDir = System.getProperty("conf.dir", "");
+
+    String jsonContent =  ResourceUtils.readExternalFile(path);
     return convertJsonToMap(jsonContent);
   }
 
