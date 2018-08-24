@@ -43,11 +43,11 @@ public class OneOpsPlatformScaleDownPlugin extends AbstractCrawlerPlugin {
         setPluginName(pluginName);
         ooFacade = new OneOpsFacade();
         searchDal = new SearchDal();
+        thanosClient = new ThanosClient();
         init();
         if (!isEnabled()) {
             return;
         }
-        thanosClient = new ThanosClient();
     }
 
     public void init() {

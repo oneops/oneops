@@ -54,9 +54,6 @@ public class ThanosClient {
 
     void readConfig() {
         baseUrl = System.getProperty("thanos.base.url");
-        if (StringUtils.isEmpty(baseUrl)) {
-            throw new RuntimeException("System property not found: thanos.base.url ");
-        }
     }
 
     public ArrayList<CloudResourcesUtilizationStats> getStats(String path) throws IOException {
@@ -102,7 +99,7 @@ public class ThanosClient {
         Response response = client.newCall(request).execute();
         String responseBody = response.body().string();
         int responseCode = response.code();
-        log.info("OO response body: " + responseBody + ", code: " + responseCode);
+        log.info("Thanos response body: " + responseBody + ", code: " + responseCode);
         if (responseCode >= 300) {
             throw new RuntimeException("Error while updating status on thanos. Response: " + responseBody
                     + " ResponseCode : " + responseCode);
