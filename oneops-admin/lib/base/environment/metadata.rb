@@ -38,7 +38,7 @@ attribute 'adminstatus',
   :grouping => 'manifest',
   :description => "Administrative Status",
   :required => "required",
-  :default => "preparation",
+  :default => "active",
   :format => {
     :category => '1.Global',
     :order => 2,
