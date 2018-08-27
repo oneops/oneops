@@ -15,10 +15,8 @@ HISTORY_FILE_NAME  = '.tekton_hist'
 TEKTON_HOSTS = {:local => 'http://localhost:9000',
                 :dev   => 'http://tekton.dev.prod.walmart.com',
                 :stg   => 'http://tekton.stg.prod.walmart.com:9000',
-                :prod  => 'http://10.120.185.120:9000'}
-                # :prod  => 'http://10.227.217.183:9000'}
-                # :prod  => 'http://10.227.209.74:9000'}
-                # :prod  => 'http://tekton.prod0718.walmart.com'}
+                # :prod  => 'http://10.120.220.37:9000'}
+                :prod  => 'http://tekton.prod0718.walmart.com'}
 TEKTON_HOSTS[:default] = TEKTON_HOSTS[:prod]
 
 ONEOPS_HOSTS = {:local => 'http://localhost:8080/',
@@ -47,10 +45,6 @@ class String
     define_method(name) {|background = false|
       @@with_color ? "\e[0m#{"\e[7m" if background}#{code}#{self}\e[0m" : self
     }
-  end
-
-  def start_with?(pattern)
-    pattern ? (self =~ /^#{pattern}/) == 0 : false
   end
 
   def terminate_with(string)
@@ -159,7 +153,13 @@ end
 
 def set_tekton_auth(username, password = nil)
   @tt_cookie = nil
-  @params.tekton_auth = password.empty? ? Base64.strict_encode64(username) : "#{'Basic ' unless password.empty?}#{Base64.strict_encode64("#{username}:#{password}")}"
+  @params.tekton_auth = if password.empty?
+                          Base64.strict_encode64(username)
+                        elsif username.empty?
+                          Base64.strict_encode64(password)
+                        else
+                          "#{'Basic ' unless password.empty?}#{Base64.strict_encode64("#{username}:#{password}")}"
+                        end
 end
 
 def required_arg(name, value)
@@ -295,7 +295,7 @@ end
 
 def fetch_provider_mappings
   return @mappings if @mappings
-  @mappings = oo_request('CLOUD_PROVIDER_MAPPINGS/vars', "Getting mappings")
+  @mappings = oo_request('adapter/rest/cm/simple/CLOUD_PROVIDER_MAPPINGS/vars', 'Getting mappings')
   @mappings = JSON.parse(@mappings.value)
   if @mappings.empty?
     say 'No provider mappings found'.red
@@ -318,14 +318,14 @@ end
 def execute(action, *args)
   result = nil
   if action == 'version'
-    say 'CLI version:    1.0.5'
+    say 'CLI version:    1.1.0'
     info = tt_request('server/version', 'Getting tekton version')
     say "Tekton version: #{info.version} (#{info.timestamp})"
 
   elsif action == 'oo:resources'
     result = {}
-    mappings = oo_request('CLOUD_PROVIDER_MAPPINGS/vars', 'Getting mappings')
-    JSON.parse(mappings.value).each_pair do |provider, provider_mappings|
+    mappings = fetch_provider_mappings
+    mappings.each_pair do |provider, provider_mappings|
       provider_mappings.each_pair do |component, component_mappings|
         component_mappings.each_pair do |attr, attr_mappings|
           attr_mappings.values.each do |resource_mappings|
@@ -349,7 +349,7 @@ def execute(action, *args)
     org_name, cloud_name, _ = args
     required_arg('org', org_name)
     provides_rels = %w(Azure Openstack).inject([]) do |a, clazz|
-      a += oo_request("relations?nsPath=/#{org_name}/_clouds&recursive=true&relationShortName=Provides&targetClassName=#{clazz}&includeFromCi=true&includeToCi=true", 'Getting clouds')
+      a += oo_request("adapter/rest/cm/simple/relations?nsPath=/#{org_name}/_clouds&recursive=true&relationShortName=Provides&targetClassName=#{clazz}&includeFromCi=true&includeToCi=true", 'Getting clouds')
     end
 
     result = provides_rels.inject({}) do |h, rel|
@@ -374,7 +374,7 @@ def execute(action, *args)
     subs.each do |sub_name|
       sub_or_tenant = sub_name.split(':').last
       cloud_services = {subscription: 'Azure', tenant: 'Openstack'}.inject([]) do |a, (attr_name, clazz)|
-        a += oo_request("cis?nsPath=/&recursive=true&ciClassName=#{clazz}&attr=#{attr_name}:eq:#{sub_or_tenant}", 'Getting clouds')
+        a += oo_request("adapter/rest/cm/simple/cis?nsPath=/&recursive=true&ciClassName=#{clazz}&attr=#{attr_name}:eq:#{sub_or_tenant}", 'Getting clouds')
       end
       result = {:oneops => {}, :tekton => {}}
       cloud_services.sort_by(&:nsPath).each do |cs|
@@ -412,24 +412,14 @@ def execute(action, *args)
 
       oo_usage = {}
       cloud = nil
-      provider_mappings.each_pair do |ci_class_name, class_mappings|
-        provides_rels.each do |rel|
-          cloud = rel.fromCi
-          say "  Processing #{ci_class_name} for cloud '#{cloud.ciName}'"  if @params.verbose > 0
-          deployed_tos = oo_request("relations?ciId=#{cloud.ciId}&direction=to&relationShortName=DeployedTo&targetClassName=#{ci_class_name.capitalize}&includeFromCi=true", "    Getting #{ci_class_name} for cloud '#{cloud.ciName}'")
-          say "    Found #{deployed_tos.size} #{ci_class_name} instances."  if @params.verbose > 1
-          deployed_tos.each do |u|
-            ci = u.fromCi
-            class_mappings.each_pair do |attr_name, attr_mappings|
-              resources = nil
-              attr_value = ci.ciAttributes[attr_name]
-              resources = attr_mappings[attr_value] unless attr_value.empty?
-              resources = attr_mappings['*'] if resources.empty?
-              next if resources.empty?
-              resources.each_pair do |resource, value|
-                oo_usage[resource] = (oo_usage[resource] || 0) + value
-              end
-            end
+      provides_rels.each do |rel|
+      cloud = rel.fromCi
+        capacity = oo_request("transistor/rest/clouds/#{cloud.ciId}/capacity", "    Getting capacity for cloud '#{cloud.ciName}'")
+        if oo_usage.empty?
+          oo_usage = capacity
+        else
+          capacity.each_pair do |resource, value|
+            oo_usage[resource] = (oo_usage[resource] || 0) + value
           end
         end
       end
@@ -831,8 +821,7 @@ def execute(action, *args)
     File.delete(SESSION_FILE_NAME) if File.exist?(SESSION_FILE_NAME)
 
     set_tekton_auth(username, password)
-    # result = !tt_request('org', 'Checking credentials').empty?
-    if password.empty?
+    if username.empty? || password.empty?
       result = !tt_request('org', 'Checking credentials').empty?
     else
       api_key = tt_request('apikey', 'Getting api token', {:username => username, :name => 'CLI'})['key']
@@ -870,6 +859,7 @@ def match_action(action)
 end
 
 def run(args)
+  t = Time.now
   @action, *@args = @opt_parser.parse(args)
 
   if @action.empty?
@@ -908,8 +898,7 @@ def run(args)
     @params.tekton_host = TEKTON_HOSTS[host] if TEKTON_HOSTS.include?(host)
   end
   @params.tekton_host = "https://#{@params.tekton_host}" unless @params.tekton_host.start_with?('http')
-  @params.tekton_host = "#{@params.tekton_host}/" unless @params.tekton_host.end_with?('/')
-  @params.tekton_host = @params.tekton_host.terminate_with('api/v1/')
+  @params.tekton_host = @params.tekton_host.terminate_with('/').terminate_with('api/v1/')
 
   if @params.oneops_host.empty?
     @params.oneops_host = ONEOPS_HOSTS[:default]
@@ -919,10 +908,10 @@ def run(args)
     @params.oneops_host = ONEOPS_HOSTS[host] if ONEOPS_HOSTS.include?(host)
   end
   @params.oneops_host = "https://#{@params.oneops_host}" unless @params.oneops_host.start_with?('http')
-  @params.oneops_host = "#{@params.oneops_host}/" unless @params.oneops_host.end_with?('/')
-  @params.oneops_host = @params.oneops_host.terminate_with('adapter/rest/cm/simple/')
+  @params.oneops_host = @params.oneops_host.terminate_with('/')
 
   execute(@action, *@args)
+  say "Done #{@action.bold} in #{(Time.now - t).round(1)} sec" if @params.verbose > 0
 end
 
 @actions = {
@@ -1090,13 +1079,16 @@ if @repl
         end
 
         begin
+          t = Time.now
+          cmd = command.gsub(/^time\s+/i, '')
           @show_help = false
           @params.verbose = 0
           @params.force = false
           @params.only_missing = false
           @params.transfer_buffer = 0
           @params.refresh = 0
-          run(command.strip.split(/\s+/))
+          run(cmd.strip.split(/\s+/))
+          say "Done in #{(Time.now - t).round(1).to_s.bold} sec" unless cmd == command
         rescue SystemExit
         end
       end
