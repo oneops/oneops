@@ -229,7 +229,6 @@ class Cms::Ci < Cms::Base
       if cms_var.present?
         begin
           var = Cms::Var.find(cms_var, :params => {:criteria => nsPath})
-          Rails.logger.info "===+++++++++++ #{var.value}  #{original_value(attr_md.attributeName)}"
           options_for_select = JSON.parse(var.value) if var.present?
         rescue ActiveResource::ResourceNotFound
         rescue Exception => e
@@ -237,8 +236,13 @@ class Cms::Ci < Cms::Base
         end
       end
     end
+
     attribute_value = original_value(attr_md.attributeName)
-    options_for_select += [attribute_value] if attribute_value.present? && options_for_select.none? {|e| attribute_value == (e.is_a?(Array) ? e.last : e)}
+    if attribute_value.present?
+      vals = field_type == 'select' ? [attribute_value] : attribute_value.split(',')
+      vals.each {|val| options_for_select += [val] if val.present? && options_for_select.none? {|e| val == (e.is_a?(Array) ? e.last : e)}}
+    end
+
     return options_for_select
   end
 
@@ -302,8 +306,12 @@ class Cms::Ci < Cms::Base
           else
             errors.add(:base, "'#{a.description}' is invalid [expected: #{pattern_desc(pattern)}].") if pattern.present? && !check_pattern(pattern, value)
             options_for_select = attribute_options_for_select(a)
-            if options_for_select.present? && options_for_select.none? {|e| value == (e.is_a?(Array) ? e.last : e)}
-              errors.add(:base, "'#{a.description}' is invalid [expected: #{options_for_select_desc(options_for_select)}].")
+            if options_for_select.present?
+              (a.options[:form][:field] == 'select' ? [value] : value.split(',')).each do |val|
+                if options_for_select.none? {|e| val == (e.is_a?(Array) ? e.last : e)}
+                  errors.add(:base, "'#{a.description}' is invalid [expected: #{options_for_select_desc(options_for_select)}].")
+                end
+              end
             end
           end
         elsif a.isMandatory
