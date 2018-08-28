@@ -1315,6 +1315,14 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return list;
   }
 
+  /**
+   * Returns the DC level A record entries for the lb. There is at most one DC level VIP per LB.
+   *
+   * @param context executor context
+   * @param wo wo/ao
+   * @param logKey inductor log key
+   * @return list of DC level A records
+   */
   @SuppressWarnings("unchecked")
   private List<DcARecord> getDcDnsEntries(
       Context context, CmsWorkOrderSimpleBase wo, String logKey) {
@@ -1369,6 +1377,14 @@ public class FqdnExecutor implements ComponentWoExecutor {
             .toLowerCase());
   }
 
+  /**
+   * Return all the LB instances for the fqdn to update the torbit config. Don't include the current
+   * cloud's LB instance if it'a delete work order.
+   *
+   * @param wo work order
+   * @param context executor context
+   * @return list of lb instances.
+   */
   private List<Lb> lbTargets(CmsWorkOrderSimple wo, Context context) {
     Map<Long, Cloud> cloudMap = getPlatformClouds(wo);
     List<CmsRfcCISimple> deployedLbs = wo.getPayLoad().get(LB_PAYLOAD);
@@ -1391,6 +1407,21 @@ public class FqdnExecutor implements ComponentWoExecutor {
         .collect(Collectors.toList());
   }
 
+  /**
+   * Return all the LB instances for the fqdn from the action order.
+   *
+   * @return list of lb instances.
+   */
+  private List<Lb> lbTargets(CmsActionOrderSimple ao) {
+    Map<Long, Cloud> cloudMap = getPlatformClouds(ao);
+    List<CmsCISimple> deployedLbs = ao.getPayLoad().get(LB_PAYLOAD);
+    return deployedLbs
+        .stream()
+        .filter(lb -> isNotBlank(lb.getCiAttributes().get(ATTRIBUTE_DNS_RECORD)))
+        .map(lb -> lbTarget(lb, cloudMap, Optional.empty()))
+        .collect(Collectors.toList());
+  }
+
   private Optional<Map<String, Integer>> weights(CmsWorkOrderSimple wo) {
     Map<String, String> config = wo.getConfig();
     if (config != null && config.containsKey("weights")) {
@@ -1402,16 +1433,6 @@ public class FqdnExecutor implements ComponentWoExecutor {
       }
     }
     return Optional.empty();
-  }
-
-  private List<Lb> lbTargets(CmsActionOrderSimple ao) {
-    Map<Long, Cloud> cloudMap = getPlatformClouds(ao);
-    List<CmsCISimple> deployedLbs = ao.getPayLoad().get(LB_PAYLOAD);
-    return deployedLbs
-        .stream()
-        .filter(lb -> isNotBlank(lb.getCiAttributes().get(ATTRIBUTE_DNS_RECORD)))
-        .map(lb -> lbTarget(lb, cloudMap, Optional.empty()))
-        .collect(Collectors.toList());
   }
 
   private Lb lbTarget(
@@ -1553,7 +1574,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
       String iPort = cfg[3];
 
       String ecv = ecvMap.get(iPort);
-      String ecvPath = null;
+      String ecvPath = "";
 
       if (ecv != null) {
         // ECV format is `iPort : GET /ecvPath`
@@ -1647,14 +1668,14 @@ public class FqdnExecutor implements ComponentWoExecutor {
       case "tls":
       case "ssl_bridge":
         protocol = TCP;
-        path = null;
+        path = "";
         status = 0;
         tls = true;
 
         break;
       default:
         protocol = TCP;
-        path = null;
+        path = "";
         status = 0;
         tls = false;
 
@@ -1763,6 +1784,12 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return service(wo, SERVICE_TYPE_GDNS);
   }
 
+  /**
+   * Returns the short cname alias from fqdn attributes.
+   *
+   * @param fqdnAttrs fqdn attributes
+   * @return list of short cnames.
+   */
   private List<String> getShortAliases(Map<String, String> fqdnAttrs) {
     List<String> list = new ArrayList<>();
     String aliases = fqdnAttrs.get(ATTRIBUTE_ALIAS);
@@ -1770,20 +1797,29 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return list;
   }
 
-  private void parseAndAdd(String aliases, List<String> list) {
-    if (isNotBlank(aliases)) {
-      JsonArray aliasArray = (JsonArray) jsonParser.parse(aliases);
-      for (JsonElement alias : aliasArray) {
-        list.add(alias.getAsString());
-      }
-    }
-  }
-
+  /**
+   * Returns the full cname alias for the fqdn.
+   *
+   * @param fqdnAttrs fqdn attributes.
+   * @return list of full cnames.
+   */
   private List<String> getFullAliases(Map<String, String> fqdnAttrs) {
     List<String> list = new ArrayList<>();
     String aliases = fqdnAttrs.get(ATTRIBUTE_FULL_ALIAS);
     parseAndAdd(aliases, list);
     return list;
+  }
+
+  private void parseAndAdd(String aliases, List<String> list) {
+    if (isNotBlank(aliases)) {
+      JsonArray aliasArray = (JsonArray) jsonParser.parse(aliases);
+      for (JsonElement element : aliasArray) {
+        String alias = element.getAsString();
+        if (isNotBlank(alias)) {
+          list.add(alias.trim());
+        }
+      }
+    }
   }
 
   private Context context(CmsWorkOrderSimple wo, InfobloxConfig infobloxConfig) {

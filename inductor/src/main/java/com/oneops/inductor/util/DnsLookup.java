@@ -103,24 +103,34 @@ public class DnsLookup {
    */
   public static boolean isARecResolvable(String fqdn, List<String> dnsServers, String logKey) {
     log.info(logKey + "Resolving A record for '" + fqdn + "' using all name servers.");
+
+    if (dnsServers.isEmpty()) {
+      log.error(logKey + "Name server list is empty!");
+      return false;
+    }
+
     for (String dnsServer : dnsServers) {
       List<String> addresses =
           Failsafe.with(RETRY_POLICY)
               .onRetry(
                   (res, err, ctx) ->
                       log.warn(
-                          String.format(
-                              "%sResponse from %s: %s, retrying #%d",
-                              logKey, dnsServer, res, ctx.getExecutions())))
+                          logKey
+                              + "DNS response from "
+                              + dnsServer
+                              + ": "
+                              + res
+                              + ", retrying #"
+                              + ctx.getExecutions()))
               .get(() -> lookupARec(fqdn, dnsServer));
 
-      log.info(logKey + "dig +short A @" + dnsServer + " " + fqdn + " ->> " + addresses);
-
+      log.info(logKey + "dig +short A @" + dnsServer + " " + fqdn + " -> " + addresses);
       if (addresses.isEmpty()) {
         log.error(logKey + "Dns resolution failed on " + dnsServer);
         return false;
       }
     }
+
     return true;
   }
 }
