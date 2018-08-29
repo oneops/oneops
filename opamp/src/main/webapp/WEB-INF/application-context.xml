@@ -149,6 +149,7 @@
        	<property name="startExponentialDelayAfterProcedures" value="${startExponentialDelayAfterProcedures:4}"/>
        	<property name="exponentialBackoffFactor" value="${exponentialBackoffFactor:2}"/>
        	<property name="maxDaysRepair" value="${maxDaysRepair:11}"/>
+		<property name="checkOpsStateBeforeTriggeringRepair" value="${checkOpsStateBeforeTriggeringRepair:true}"/>
 		<property name="maxPastDaysForProcedureCount" value="${maxPastDaysForProcedureCount:15}"/>
 	</bean>
 
