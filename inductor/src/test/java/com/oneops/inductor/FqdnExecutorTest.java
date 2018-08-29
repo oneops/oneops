@@ -153,7 +153,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
@@ -226,7 +226,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
 
     List<DcARecord> dcARecords = request.dcARecords();
@@ -331,7 +331,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
@@ -419,7 +419,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
@@ -487,7 +487,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
@@ -512,9 +512,9 @@ public class FqdnExecutorTest {
   }
 
   private void addDependsOn(CmsWorkOrderSimple wo, Map<String, String> classMap) {
-    CmsRfcCISimple bomLb = new CmsRfcCISimple();
-    bomLb.setCiClassName(classMap.get(BOM_LB));
-    bomLb.setCiId(650L);
+    CmsRfcCISimple bomLb;
+    List<CmsRfcCISimple> list = wo.getPayLoadEntry("lb");
+    bomLb = (list != null && !list.isEmpty()) ? list.get(0) : new CmsRfcCISimple();
     bomLb.addCiAttribute("listeners", "['http 80 http 80']");
     bomLb.addCiAttribute("ecv_map", "{'80':'GET /'}");
     wo.addPayLoadEntry("DependsOn", bomLb);
@@ -701,7 +701,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
@@ -754,7 +754,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
@@ -845,9 +845,9 @@ public class FqdnExecutorTest {
   }
 
   private void addDependsOn(CmsActionOrderSimple wo, Map<String, String> classMap) {
-    CmsCISimple bomLb = new CmsCISimple();
-    bomLb.setCiClassName(classMap.get(BOM_LB));
-    bomLb.setCiId(650L);
+    CmsCISimple bomLb;
+    List<CmsCISimple> list = wo.getPayLoadEntry("lb");
+    bomLb = (list != null && !list.isEmpty()) ? list.get(0) : new CmsCISimple();
     bomLb.addCiAttribute("listeners", "['http 80 http 80']");
     bomLb.addCiAttribute("ecv_map", "{'80':'GET /'}");
     wo.addPayLoadEntry("DependsOn", bomLb);
