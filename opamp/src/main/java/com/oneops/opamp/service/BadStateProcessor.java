@@ -178,6 +178,8 @@ public class BadStateProcessor {
 
 		if (unhealthySinceMillis > repairRetriesMaxDaysMillis) { //unhealthy since more than "maxDaysRepair" days
 			logger.info("CI " + ciId + " unhealthy since " + maxDaysRepair + " days - not doing auto-repair");
+			logger.info("Unhealthy Start Time in Milliseconds: " + unhealthyStartTime + " for ci Id: " + ciId);
+			logger.info("Unhealthy Since (Current Time - Start Time) Time in Milliseconds: " + unhealthySinceMillis + " for ci Id: " + ciId);
 			return;
 		}
 		String ciOpsState = coProcessor.getCIstate(ciId);
