@@ -781,8 +781,14 @@ public class BomRfcBulkProcessor {
 
 		if (rfc.getCiId() == 0) {
 			rfc.setRfcAction("add");
-		} else if (!needUpdateRfc(rfc, existingCi)) {
-			return rfc;
+		} else {
+			// Remove bom-only attributes so they are not compared against their default values and
+			// thus cause an unnecessary update RFC on its own without actual changes in manifest attributes.
+			rfc.getAttributes().keySet().retainAll(mfstAttrs.keySet());
+
+			if (!needUpdateRfc(rfc, existingCi)) {
+				return rfc;
+			}
 		}
 
 		rfc.setIsActiveInRelease(true);

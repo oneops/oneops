@@ -276,8 +276,9 @@ def full_quota_totals(title, limits, usage, available)
 end
 
 def usage(title, oo_usage, tt_usage)
+  tt_usage ||= {}
   has_diff = false
-  say "#{title} =>\n"
+  say "#{title} =>"
   say '  Resource                      | OneOps    | Tekton    | Diff      '
   say '  ------------------------------|-----------|-----------|-----------'
   (oo_usage.keys + tt_usage.keys).uniq.sort.each do |r|
@@ -318,7 +319,7 @@ end
 def execute(action, *args)
   result = nil
   if action == 'version'
-    say 'CLI version:    1.1.0'
+    say 'CLI version:    1.1.1'
     info = tt_request('server/version', 'Getting tekton version')
     say "Tekton version: #{info.version} (#{info.timestamp})"
 
@@ -370,23 +371,32 @@ def execute(action, *args)
   elsif action == 'oo:sub:usage'
     sub = args[0]
     required_arg('subscription', sub)
+
+    result = {}
     subs = execute('sub:prompt', sub)
     subs.each do |sub_name|
+      tt_usage = tt_request("quota/usage/subscription/#{sub_name}", 'Getting usages in Tekton')
       sub_or_tenant = sub_name.split(':').last
       cloud_services = {subscription: 'Azure', tenant: 'Openstack'}.inject([]) do |a, (attr_name, clazz)|
         a += oo_request("adapter/rest/cm/simple/cis?nsPath=/&recursive=true&ciClassName=#{clazz}&attr=#{attr_name}:eq:#{sub_or_tenant}", 'Getting clouds')
       end
-      result = {:oneops => {}, :tekton => {}}
-      cloud_services.sort_by(&:nsPath).each do |cs|
+      result[sub_name] = {:oneops => {}, :tekton => {}}
+      clouds_by_org = cloud_services.inject({}) do |h, cs|
         _, org, _, cloud, _ = cs.nsPath.split('/')
-        next if org == 'public'
-        org_usage = execute('oo:usage', org, cloud)
-        result[:oneops][org] = org_usage[:oneops].values.first || {}
-        result[:tekton][org] = org_usage[:tekton].values.first || {}
+        next h if org == 'public'
+        (h[org] ||=[]) << oo_request("adapter/rest/cm/simple/cis?nsPath=/#{org}/_clouds&ciName=#{cloud}", "Loading cloud CI for #{cloud}").first
+        h
+      end
+      oo_org_usage = {}
+      clouds_by_org.keys.sort.each do |org|
+        result[sub_name][:oneops][org] = execute('oo:cloud:usage:internal', clouds_by_org[org])
+        result[sub_name][:tekton][org] = tt_usage[org] || {}
+        has_diff = usage("#{sub_name.bold} => #{org.bold}", result[sub_name][:oneops][org], result[sub_name][:tekton][org])
+        say
       end
 
-      totals = result.keys.inject({}) do |h, source|
-        h[source] = result[source].values.inject({}) {|hh, usage| hh.update(usage) {|__, value1, value2| value1 + value2}}
+      totals = result[sub_name].inject({}) do |h, (source, usage)|
+        h[source] = usage.values.inject({}) {|hh, org_usage| hh.update(org_usage) {|_, value1, value2| value1 + value2}}
         h
       end
       say '=' * 68
@@ -397,41 +407,33 @@ def execute(action, *args)
     org_name, cloud_name, _ = args
     required_arg('org', org_name)
 
-    mappings = fetch_provider_mappings
+    tt_org_usage = tt_request("quota/usage/entity/#{org_name}", 'Getting usage in Tekton')
     result = {:oneops => {}, :tekton => {}}
     subs = execute!('oo:subs', org_name, cloud_name)
     subs.keys.sort.each do |sub|
       provides_rels = subs[sub]
       say "Processing clouds for subscription '#{sub.bold}' (#{provides_rels.map {|u| u.fromCi.ciName}.join(', )')})" if @params.verbose > 0
-      provider = provides_rels.first.toCi.ciClassName.split('.').last.downcase
-      provider_mappings = mappings[provider]
-      if provider_mappings.empty?
-        say "  No mappings found for provider #{provider}".yellow
-        next
-      end
 
-      oo_usage = {}
-      cloud = nil
-      provides_rels.each do |rel|
-      cloud = rel.fromCi
-        capacity = oo_request("transistor/rest/clouds/#{cloud.ciId}/capacity", "    Getting capacity for cloud '#{cloud.ciName}'")
-        if oo_usage.empty?
-          oo_usage = capacity
-        else
-          capacity.each_pair do |resource, value|
-            oo_usage[resource] = (oo_usage[resource] || 0) + value
-          end
+      clouds = provides_rels.map(&:fromCi)
+      result[:oneops][sub] = execute('oo:cloud:usage:internal', clouds)
+      result[:tekton][sub] = tt_org_usage[sub]
+      has_diff = usage("#{sub.bold} => #{org_name.bold}", result[:oneops][sub], result[:tekton][sub])
+      say "  Fix this with:\n    #{"oo:usage:transfer -f #{org_name} #{clouds.first.ciName}".yellow}" if has_diff
+      say
+    end
+
+  elsif action == 'oo:cloud:usage:internal'
+    result = {}
+    clouds = args[0]
+    clouds.each do |cloud|
+      capacity = oo_request("transistor/rest/clouds/#{cloud.ciId}/capacity", "    Getting capacity for cloud '#{cloud.ciName}'")
+      if result.empty?
+        result = capacity
+      else
+        capacity.each_pair do |resource, value|
+          result[resource] = (result[resource] || 0) + value
         end
       end
-
-      result[:oneops][sub] = oo_usage
-      tt_usage = tt_request("quota/usage/#{sub}/#{org_name}", 'Getting usage')
-      result[:tekton][sub] = tt_usage
-      has_diff = usage("#{sub.bold} => #{org_name.bold}", oo_usage, tt_usage)
-      if has_diff
-        say "  Fix this with:\n    #{"oo:usage:transfer -f #{org_name} #{cloud.ciName}".yellow}"
-      end
-      say
     end
 
   elsif action == 'oo:usage:transfer'
@@ -930,7 +932,7 @@ end
   'orgs:add'              => ['orgs:add ORG', 'add org'],
   'teams'                 => ['teams ORG [TEAM_REGEX]', 'list teams'],
   'teams:add'             => ['teams:add ORG TEAM_NAME [TEAM_DESCRIPTION]', 'add team'],
-  'teams:remove'           => ['teams:add ORG TEAM_NAME', 'remove team'],
+  'teams:remove'          => ['teams:add ORG TEAM_NAME', 'remove team'],
 
   'team:users'            => ['team:users ORG TEAM [TEAM_REGEX]', 'list team users (both regular and admin usres)'],
   'team:users:add'        => ['users:add ORG TEAM USERNAME...', 'add users (regular, non-admin) to team (resets team admin status if user is team admin)'],
