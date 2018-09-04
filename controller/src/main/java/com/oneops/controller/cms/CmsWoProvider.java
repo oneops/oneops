@@ -69,14 +69,9 @@ import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.cms.util.domain.CmsVar;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -89,6 +84,7 @@ public class CmsWoProvider {
 
   private static final Logger logger = Logger.getLogger(CmsWoProvider.class);
   private static final String REQUIRES_COMPUTES_PAYLOAD_NAME = "RequiresComputes";
+  private static final String REQUIRES_COMPUTES = "REQUIRES_COMPUTES";
   private static final String OFFERING = "offerings";
   private static final String IS_PLATFORM_ENABLED_ATTR = "is_platform_enabled";
   private static final String IS_PLATFORM_ENABLED_REL_ATTR = "enabled";
@@ -114,6 +110,8 @@ public class CmsWoProvider {
   private static final String GSLB_WEIGHTS_ENABLED_VAR = "GSLB_WEIGHTS_ENABLED";
 
   private boolean isGslbWeightsEnabled;
+
+  private boolean requiresComputesCheckEnabled;
 
   /**
    * Sets the cms util.
@@ -523,7 +521,7 @@ public class CmsWoProvider {
       workOrder.putPayLoadEntry(SERVICED_BY, getServicedBy(workOrder.getRfcCi()));
     }
     //put RequiresComputes
-    if (!workOrder.getPayLoad().containsKey(REQUIRES_COMPUTES_PAYLOAD_NAME)) {
+    if (isClassEligibleForRequiresComputes(workOrder.getRfcCi().getCiClassName()) && !workOrder.getPayLoad().containsKey(REQUIRES_COMPUTES_PAYLOAD_NAME)) {
       workOrder.putPayLoadEntry(REQUIRES_COMPUTES_PAYLOAD_NAME,
           getRequiresComputes(workOrder.getRfcCi()));
     }
@@ -1295,6 +1293,22 @@ public class CmsWoProvider {
     }
   }
 
+  public boolean isClassEligibleForRequiresComputes(String inClass){
+    if(!requiresComputesCheckEnabled){
+      return true;
+    }
+    CmsVar var = cmProcessor.getCmSimpleVar(REQUIRES_COMPUTES);
+    if(inClass != null && var != null && var.getValue() != null){
+      String[] classNames = var.getValue().split(",");
+      for(String sT: classNames){
+        if(sT.trim().equals(inClass)){
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   public OfferingsMatcher getOfferingMatcher() {
     return offeringMatcher;
   }
@@ -1313,6 +1327,10 @@ public class CmsWoProvider {
 
   public void setGslbWeightsEnabled(boolean gslbWeightsEnabled) {
     isGslbWeightsEnabled = gslbWeightsEnabled;
+  }
+
+  public void setRequiresComputesCheckEnabled(boolean requiresComputesCheckEnabled) {
+    this.requiresComputesCheckEnabled = requiresComputesCheckEnabled;
   }
 
   class CloudWeight {
