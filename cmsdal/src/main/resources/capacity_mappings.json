@@ -1,0 +1,264 @@
+{
+  "azure": {
+    "secgroup": {
+      "*": {
+        "*": {
+          "availability_set": 1
+        }
+      }
+    },
+    "lb": {
+      "*": {
+        "*": {
+          "lb": 1
+        }
+      }
+    },
+    "storage": {
+      "volume_type": {
+        "IOPS2": {
+          "ssd": 1
+        },
+        "*": {
+          "hdd": 1
+        }
+      }
+    },
+    "compute": {
+      "size": {
+        "S": {
+          "Dv2_vCPU": 1,
+          "vm": 1
+        },
+        "M": {
+          "Dv2_vCPU": 2,
+          "vm": 1
+        },
+        "L": {
+          "Dv2_vCPU": 4,
+          "vm": 1
+        },
+        "XL": {
+          "Dv2_vCPU": 8,
+          "vm": 1
+        },
+        "XXL": {
+          "DSv3_vCPU": 32,
+          "vm": 1
+        },
+        "3XL": {
+          "Ev3_vCPU": 32,
+          "vm": 1
+        },
+        "4XL": {
+          "Av2_vCPU": 8,
+          "vm": 1
+        },
+        "S-CPU": {
+          "Dv2_vCPU": 1,
+          "vm": 1
+        },
+        "M-CPU": {
+          "Dv2_vCPU": 2,
+          "vm": 1
+        },
+        "L-CPU": {
+          "Dv2_vCPU": 4,
+          "vm": 1
+        },
+        "XL-CPU": {
+          "Dv2_vCPU": 8,
+          "vm": 1
+        },
+        "8XL-CPU": {
+          "Dv2_vCPU": 2,
+          "vm": 1
+        },
+        "9XL-CPU": {
+          "Dv2_vCPU": 4,
+          "vm": 1
+        },
+        "10XL-CPU": {
+          "Dv2_vCPU": 8,
+          "vm": 1
+        },
+        "11XL-CPU": {
+          "Dv2_vCPU": 16,
+          "vm": 1
+        },
+        "S-MEM": {
+          "Dv2_vCPU": 2,
+          "vm": 1
+        },
+        "M-MEM": {
+          "DSv2_vCPU": 2,
+          "vm": 1
+        },
+        "L-MEM": {
+          "Dv2_vCPU": 16,
+          "vm": 1
+        },
+        "XL-MEM": {
+          "DSv2_vCPU": 8,
+          "vm": 1
+        },
+        "8XL-MEM": {
+          "DSv2_vCPU": 2,
+          "vm": 1
+        },
+        "9XL-MEM": {
+          "DSv2_vCPU": 4,
+          "vm": 1
+        },
+        "10XL-MEM": {
+          "DSv2_vCPU": 8,
+          "vm": 1
+        },
+        "11XL-MEM": {
+          "DSv2_vCPU": 16,
+          "vm": 1
+        },
+        "3XL-IO": {
+          "Esv3_vCPU": 32,
+          "vm": 1
+        },
+        "L-BD": {
+          "DSv2_vCPU": 16,
+          "vm": 1
+        },
+        "XL-BD": {
+          "DSv2_vCPU": 20,
+          "vm": 1
+        },
+        "L-NoSQL": {
+          "DSv2_vCPU": 8,
+          "vm": 1
+        },
+        "XL-NoSQL": {
+          "DSv2_vCPU": 16,
+          "vm": 1
+        },
+        "L-IO": {
+          "DSv2_vCPU": 8,
+          "vm": 1
+        },
+        "XL-IO": {
+          "DSv2_vCPU": 16,
+          "vm": 1
+        },
+        "XXL-IO": {
+          "DSv2_vCPU": 16,
+          "vm": 1
+        }
+      },
+      "*": {
+        "*": {
+          "hdd": 1,
+          "nic": 1
+        }
+      }
+    }
+  },
+  "openstack": {
+    "compute": {
+      "size": {
+        "XS": {
+          "core": 1,
+          "vm": 1
+        },
+        "S": {
+          "core": 2,
+          "vm": 1
+        },
+        "M": {
+          "core": 3,
+          "vm": 1
+        },
+        "L": {
+          "core": 4,
+          "vm": 1
+        },
+        "XL": {
+          "core": 5,
+          "vm": 1
+        },
+        "XXL": {
+          "core": 12,
+          "vm": 1
+        },
+        "3XL": {
+          "core": 11,
+          "vm": 1
+        },
+        "3XL-IO": {
+          "core": 15,
+          "vm": 1
+        },
+        "L-IO": {
+          "core": 21,
+          "vm": 1
+        },
+        "XL-IO": {
+          "core": 22,
+          "vm": 1
+        },
+        "XXL-IO": {
+          "core": 23,
+          "vm": 1
+        },
+        "S-MEM": {
+          "core": 33,
+          "vm": 1
+        },
+        "L-MEM": {
+          "core": 34,
+          "vm": 1
+        },
+        "L-IO-LXD": {
+          "core": 35,
+          "vm": 1
+        },
+        "XL-IO-LXD": {
+          "core": 36,
+          "vm": 1
+        },
+        "XXL-IO-LXD": {
+          "core": 37,
+          "vm": 1
+        },
+        "S-MEM-LXD": {
+          "core": 38,
+          "vm": 1
+        },
+        "L-MEM-LXD": {
+          "core": 39,
+          "vm": 1
+        },
+        "L-BD": {
+          "core": 40,
+          "vm": 1
+        },
+        "XL-BD": {
+          "core": 42,
+          "vm": 1
+        },
+        "M-WIN": {
+          "core": 51,
+          "vm": 1
+        },
+        "L-WIN": {
+          "core": 52,
+          "vm": 1
+        },
+        "XL-WIN": {
+          "core": 53,
+          "vm": 1
+        },
+        "XL-WIN-LDO": {
+          "core": 54,
+          "vm": 1
+        }
+      }
+    }
+  }
+}
