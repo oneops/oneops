@@ -27,10 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class OneOpsPlatformScaleDownPlugin extends AbstractCrawlerPlugin {
     public static final String SCALE_DOWN_USER_ID = "OneOps-ScaleDown";
@@ -40,18 +37,17 @@ public class OneOpsPlatformScaleDownPlugin extends AbstractCrawlerPlugin {
     private SearchDal searchDal;
     private ThanosClient thanosClient;
     private boolean esEnabled = false;
-
     private String indexName = "ooscaledown";
 
     public OneOpsPlatformScaleDownPlugin() {
         setPluginName(pluginName);
         ooFacade = new OneOpsFacade();
         searchDal = new SearchDal();
+        thanosClient = new ThanosClient();
         init();
         if (!isEnabled()) {
             return;
         }
-        thanosClient = new ThanosClient();
     }
 
     public void init() {
@@ -94,6 +90,11 @@ public class OneOpsPlatformScaleDownPlugin extends AbstractCrawlerPlugin {
         readConfig(configJson);
 
         indexName = System.getProperty("scaledown.index.name", "ooscaledown");
+    }
+
+    @Override
+    public void configureSecrets(Properties props) {
+        thanosClient.configure(props);
     }
 
     @Override
@@ -146,6 +147,15 @@ public class OneOpsPlatformScaleDownPlugin extends AbstractCrawlerPlugin {
         log.info("processing cloudStats: " + new Gson().toJson(cloudResourcesUtilizationStats));
         //Now for each cloud in that platform, process the stats and call scale-down oo api if eligible
         for (ThanosClient.CloudResourcesUtilizationStats stats : cloudResourcesUtilizationStats) {
+
+            if (! stats.shouldReclaim()) {
+                log.info("no reclaim becuase thanos api response says not to. For platform: " + platform.getPath());
+                return;
+            }
+            if (ThanosClient.STATUS_EXECUTED.equalsIgnoreCase(stats.getReclaimStatus())) {
+                log.info("scale down already executed, not doing again: {} {}", platform.getPath(), platform.getId());
+                return;
+            }
             int reclaimCountForThisCloud = (int) Math.ceil(stats.getReclaimVms());
             int reclaimCoresForThisCloud = (int) Math.ceil(stats.getReclaimCores());
             int minComputesForThisCloud = (int) Math.ceil(stats.getMinClusterSize());
@@ -190,7 +200,9 @@ public class OneOpsPlatformScaleDownPlugin extends AbstractCrawlerPlugin {
                 Deployment deployment = ooFacade.scaleDown(platform.getId(), scaleDownByNumber,
                         minComputesInEachCloud, SCALE_DOWN_USER_ID);
                 if (deployment != null && deployment.getDeploymentId() > 0) {
-                    log.info("Deployment submitted for platform {} id: {}" + platform.getPath(), platform.getId());
+                    log.info("Deployment submitted for platform {} id: {} , deployment id: "
+                            + platform.getPath(), platform.getId(), deployment.getDeploymentId());
+                    thanosClient.updateStatus(platform.getPath(), ThanosClient.STATUS_EXECUTED);
                 } else {
                     throw new RuntimeException("Deployment id not valid or deployment not submitted for platform: "
                             + platform.getPath());

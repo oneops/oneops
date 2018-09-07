@@ -63,11 +63,13 @@ public class GslbRestController extends AbstractRestController {
       @RequestParam String type,
       @RequestParam(required = false) boolean force,
       @RequestParam(required = false) boolean continueOnFailure,
-      @RequestParam(defaultValue = "true") boolean waitForCompletion)
+      @RequestParam(defaultValue = "true") boolean waitForCompletion,
+      @RequestParam(required = false) boolean excludeCloudVip)
       throws Exception {
     type = type(type);
     List<OpsProcedureSimple> procedureList = new ArrayList<>();
-    List<PlatformFqdn> platformNsPaths = platformFqdnsThatCanBeMigrated(nsPath, type, force);
+    List<PlatformFqdn> platformNsPaths =
+        platformFqdnsThatCanBeMigrated(nsPath, type, force, excludeCloudVip);
     Map<String, CmsCI> procedureCiMap = new HashMap<>();
     for (PlatformFqdn platformFqdn : platformNsPaths) {
       String bomNsPath = platformFqdn.getNsPath();
@@ -113,10 +115,13 @@ public class GslbRestController extends AbstractRestController {
 
   private CmsOpsProcedure submitProcedure(
       String bomNsPath, String type, CmsCI procedureCi, CmsCI manifestPlatformCi) {
-    //if a procedure is already 'active' with the same type then return that
+    // if a procedure is already 'active' with the same type then return that
     List<CmsOpsProcedure> procs =
         opsManager.getCmsOpsProcedureForCi(
-            manifestPlatformCi.getCiId(), Collections.singletonList(OpsProcedureState.active), GSLB_MIGRATION_PROC, 1);
+            manifestPlatformCi.getCiId(),
+            Collections.singletonList(OpsProcedureState.active),
+            GSLB_MIGRATION_PROC,
+            1);
     if (procs != null && !procs.isEmpty()) {
       String argList = procs.get(0).getArglist();
       if (StringUtils.isNotBlank(argList) && argList.contains(type)) {
@@ -139,7 +144,7 @@ public class GslbRestController extends AbstractRestController {
   }
 
   private List<PlatformFqdn> platformFqdnsThatCanBeMigrated(
-      String nsPath, String type, boolean force) {
+      String nsPath, String type, boolean force, boolean excludeCloudVip) {
     type = type(type);
     String[] nsElements = nsPath.split("/");
     if (!isAtleastEnvironmentLevelNs(nsElements)) {
@@ -170,7 +175,7 @@ public class GslbRestController extends AbstractRestController {
 
       List<CmsCI> eligibleFqdns = new ArrayList<>();
       for (CmsCI fqdn : bomFqdns) {
-        if (isEligibleForMigration(fqdn)) {
+        if (isEligibleForMigration(fqdn, excludeCloudVip)) {
           eligibleFqdns.add(fqdn);
         }
       }
@@ -203,18 +208,20 @@ public class GslbRestController extends AbstractRestController {
   public List<PlatformFqdn> getEligiblePlatforms(
       @RequestParam String nsPath,
       @RequestParam String type,
-      @RequestParam(required = false) boolean force)
+      @RequestParam(required = false) boolean force,
+      @RequestParam(required = false) boolean excludeCloudVip)
       throws Exception {
-    return platformFqdnsThatCanBeMigrated(nsPath, type, force);
+    return platformFqdnsThatCanBeMigrated(nsPath, type, force, excludeCloudVip);
   }
 
-  private boolean isEligibleForMigration(CmsCI fqdn) {
+  private boolean isEligibleForMigration(CmsCI fqdn, boolean excludeCloudVip) {
     List<CmsCIRelation> lbRelations =
         cmsCmManager.getFromCIRelations(fqdn.getCiId(), "bom.DependsOn", null, "Lb");
     if (lbRelations != null && lbRelations.size() > 0) {
       CmsCI lb = lbRelations.get(0).getToCi();
       return isNotTrue(attribute(fqdn, "ptr_enabled"))
-          && isNotTrue(attribute(lb, "stickiness"));
+          && isNotTrue(attribute(lb, "stickiness"))
+          && (!excludeCloudVip || isNotTrue(attribute(lb, "create_cloud_level_vips")));
     }
     logger.info("gslb migrate :: no dependsOn lb found " + fqdn.getNsPath());
     return false;

@@ -79,6 +79,7 @@ public class BadStateProcessor {
 	private int maxDaysRepair = 11;
 
 	private int maxPastDaysForProcedureCount = 15;
+	private boolean checkOpsStateBeforeTriggeringRepair = true;
 
 	/**
 	 * Sets the ops proc processor.
@@ -177,12 +178,21 @@ public class BadStateProcessor {
 
 		if (unhealthySinceMillis > repairRetriesMaxDaysMillis) { //unhealthy since more than "maxDaysRepair" days
 			logger.info("CI " + ciId + " unhealthy since " + maxDaysRepair + " days - not doing auto-repair");
+			logger.info("Unhealthy Start Time in Milliseconds: " + unhealthyStartTime + " for ci Id: " + ciId);
+			logger.info("Unhealthy Since (Current Time - Start Time) Time in Milliseconds: " + unhealthySinceMillis + " for ci Id: " + ciId);
 			return;
 		}
 		String ciOpsState = coProcessor.getCIstate(ciId);
-		if (!CI_OPS_STATE_UNHEALTHY.equalsIgnoreCase(ciOpsState)) {
-			logger.info("CmsCi id - " + ciId + " already good.");
-			return;
+
+
+		if(getCheckOpsStateBeforeTriggeringRepair()){
+			logger.info("State computed from opsDB - " + ciOpsState);
+			if (!CI_OPS_STATE_UNHEALTHY.equalsIgnoreCase(ciOpsState)) {
+				logger.info("CmsCi id - " + ciId + " already good.");
+				return;
+			}
+		}else {
+			logger.info("Skipping recheck of opsState.");
 		}
 		if (envProcessor.isAutorepairEnabled(ciId)) {
 			List<CmsCIRelation> deployedToRels = envProcessor.fetchDeployedToRelations(ciId);
@@ -624,5 +634,13 @@ public class BadStateProcessor {
 
 	public void setMaxPastDaysForProcedureCount(int maxPastDaysForProcedureCount) {
 		this.maxPastDaysForProcedureCount = maxPastDaysForProcedureCount;
+	}
+
+	public void setCheckOpsStateBeforeTriggeringRepair(Boolean checkOpsStateBeforeTriggeringRepair) {
+		this.checkOpsStateBeforeTriggeringRepair = checkOpsStateBeforeTriggeringRepair;
+	}
+
+	public boolean getCheckOpsStateBeforeTriggeringRepair() {
+		return checkOpsStateBeforeTriggeringRepair;
 	}
 }

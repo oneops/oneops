@@ -192,7 +192,8 @@
 	    <property name="offeringMatcher" ref="offeringMatcher" />
 		<property name="expressionEvaluator" ref="expressionEvaluator" />
 		<property name="controllerCache" ref="controllerCache" />
-    <property name="gslbWeightsEnabled" value="${GSLB_WEIGHTS_ENABLED:false}" />
+        <property name="gslbWeightsEnabled" value="${GSLB_WEIGHTS_ENABLED:false}" />
+        <property name="requiresComputesCheckEnabled" value="${REQUIRES_COMPUTES_CHECK_ENABLED:false}" />
 	</bean>
 	
 	<bean id="expressionEvaluator" class="com.oneops.controller.cms.ExpressionEvaluator">

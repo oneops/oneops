@@ -102,11 +102,14 @@ public class ScaleDownTest {
         cloudStats_dal_Platform_1.setReclaimVms(3);
         cloudStats_dfw_Platform_1.setReclaimVms(2);
         cloudStats_dal_Platform_1.setMinClusterSize(4);
+        cloudStats_dal_Platform_1.setReclaim("yes");
         cloudStats_dfw_Platform_1.setMinClusterSize(5);
 
         cloudStats_dfw_Platform_2.setReclaimVms(0);
         cloudStats_dfw_Platform_2.setMinClusterSize(4);
 
+        cloudStats_dal_Platform_1.setReclaim("yes");
+        cloudStats_dfw_Platform_1.setReclaim("yes");
 
         ArrayList<CloudResourcesUtilizationStats> cloudStats_1 = new ArrayList<CloudResourcesUtilizationStats>();
         cloudStats_1.add(cloudStats_dal_Platform_1);

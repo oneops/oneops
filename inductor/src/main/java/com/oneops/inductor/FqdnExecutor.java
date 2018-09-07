@@ -4,6 +4,7 @@ import static com.oneops.gslb.domain.Protocol.HTTP;
 import static com.oneops.gslb.domain.Protocol.HTTPS;
 import static com.oneops.gslb.domain.Protocol.TCP;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 import com.google.common.base.Stopwatch;
@@ -112,6 +113,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
   /** Config variable to enable GSLB cname cut over. */
   public static final String GSLB_MIGRATION_CUTOVER = "GSLB_MIGRATION_CUTOVER_ENABLED";
 
+  public static final String ATTRIBUTE_LB_VNAMES = "vnames";
+
   private static final Logger logger = Logger.getLogger(FqdnExecutor.class);
 
   @Autowired WoHelper woHelper;
@@ -189,7 +192,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
       String logKey) {
     Context context = context(wo, infobloxConfig);
     List<String> aliases = new ArrayList<>(getAliasesWithDefault(context));
-    List<CloudARecord> cloudEntries = getCloudDnsEntries(context, wo);
+    List<CloudARecord> cloudEntries = getCloudDnsEntries(context, wo, logKey);
     List<DcARecord> dcARecords = getDcDnsEntries(context, wo, logKey);
 
     return ProvisionedGslb.builder()
@@ -979,7 +982,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
         .torbitConfig(torbitConfig)
         .infobloxConfig(infobloxConfig)
         .logContextId(logKey)
-        .lbs(lbTargets(ao))
+        .lbs(lbTargets(ao, context, logKey))
         .healthChecks(healthChecks(context, logKey))
         .cnames(Collections.emptyList())
         .cloudARecords(Collections.emptyList())
@@ -1193,7 +1196,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     Map<String, String> fqdnBaseAttrs = wo.getRfcCi().getCiBaseAttributes();
 
     Set<String> aliases = getAliasesWithDefault(context);
-    List<CloudARecord> cloudEntries = getCloudDnsEntries(context, wo);
+    List<CloudARecord> cloudEntries = getCloudDnsEntries(context, wo, logKey);
     List<DcARecord> dcARecords = getDcDnsEntries(context, wo, logKey);
     // TODO: also create cloud-level cnames (using short alias) to the cloud dns entry
 
@@ -1211,7 +1214,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
       newEntries = cloudEntries;
     }
 
-    List<Lb> lbTargets = lbTargets(wo, context);
+    List<Lb> lbTargets = lbTargets(wo, context, logKey);
     logger.info(logKey + "Mtd LbTargets :: " + lbTargets);
     List<HealthCheck> healthChecks = healthChecks(context, logKey);
     logger.info(logKey + "Mtd healthChecks :: " + healthChecks);
@@ -1242,7 +1245,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     Map<String, String> fqdnAttrs = ao.getCi().getCiAttributes();
 
     List<String> aliases = new ArrayList<>(getAliasesWithDefault(context));
-    List<CloudARecord> cloudEntries = getCloudDnsEntries(context, ao);
+    List<CloudARecord> cloudEntries = getCloudDnsEntries(context, ao, logKey);
     List<DcARecord> dcARecords = getDcDnsEntries(context, ao, logKey);
 
     return Gslb.builder()
@@ -1252,7 +1255,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
         .torbitConfig(torbitConfig)
         .infobloxConfig(infobloxConfig)
         .logContextId(logKey)
-        .lbs(lbTargets(ao))
+        .lbs(lbTargets(ao, context, logKey))
         .healthChecks(healthChecks(context, logKey))
         .cnames(aliases)
         .cloudARecords(cloudEntries)
@@ -1302,19 +1305,36 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return String.join(".", alias, context.subdomain, context.infobloxConfig.zone());
   }
 
-  private List<CloudARecord> getCloudDnsEntries(Context context, CmsWorkOrderSimpleBase wo) {
+  private List<CloudARecord> getCloudDnsEntries(
+      Context context, CmsWorkOrderSimpleBase wo, String logKey) {
     CmsCISimple dnsService = dnsService(wo);
     List<CloudARecord> list = new ArrayList<>();
     if (dnsService != null) {
       Map<String, String> attributes = dnsService.getCiAttributes();
       if (attributes.containsKey("cloud_dns_id")) {
         String cloudDnsId = attributes.get("cloud_dns_id");
-        list.add(cloudARecord(context, wo.getCloud(), context.platform, cloudDnsId));
+        Instance lb = context.lb;
+        if (lb == null) {
+          throw new RuntimeException("DependsOn Lb is empty");
+        }
+        String lbVip = lb.getCiAttributes().get(ATTRIBUTE_DNS_RECORD);
+        if (isNotBlank(lbVip)) {
+          logger.info(logKey + "cloud dns entry for cloud: " + cloudDnsId + ", vip: " + lbVip);
+          list.add(cloudARecord(context, lbVip, context.platform, cloudDnsId));
+        }
       }
     }
     return list;
   }
 
+  /**
+   * Returns the DC level A record entries for the lb. There is at most one DC level VIP per LB.
+   *
+   * @param context executor context
+   * @param wo wo/ao
+   * @param logKey inductor log key
+   * @return list of DC level A records
+   */
   @SuppressWarnings("unchecked")
   private List<DcARecord> getDcDnsEntries(
       Context context, CmsWorkOrderSimpleBase wo, String logKey) {
@@ -1331,17 +1351,16 @@ public class FqdnExecutor implements ComponentWoExecutor {
           throw new RuntimeException("DependsOn Lb is empty");
         }
 
-        String vnames = lb.getCiAttributes().get("vnames");
+        String vnames = lb.getCiAttributes().get(ATTRIBUTE_LB_VNAMES);
         if (isNotBlank(vnames)) {
           Map<String, String> vnameMap = gson.fromJson(vnames, Map.class);
           String dcDnsEntry =
               String.join(
-                      ".",
-                      context.platform,
-                      context.subdomain,
-                      datacenter,
-                      context.infobloxConfig.zone())
-                  .toLowerCase();
+                  ".",
+                  context.platform,
+                  context.subdomain,
+                  datacenter,
+                  context.infobloxConfig.zone());
           String lbVnamePrefix = dcDnsEntry + "-";
           logger.info(
               logKey
@@ -1351,6 +1370,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
                   + lbVnamePrefix);
           for (Entry<String, String> vname : vnameMap.entrySet()) {
             if (vname.getKey().startsWith(lbVnamePrefix)) {
+              dcDnsEntry = dcDnsEntry.toLowerCase();
+              logger.info(logKey + "DC dns entry: " + dcDnsEntry + ", vip: " + vname.getValue());
               dcARecords.add(DcARecord.create(vname.getValue(), dcDnsEntry));
               break;
             }
@@ -1361,15 +1382,22 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return dcARecords;
   }
 
-  private CloudARecord cloudARecord(
-      Context context, CmsCISimple cloud, String prefix, String cloudDnsId) {
+  private CloudARecord cloudARecord(Context context, String vip, String prefix, String cloudDnsId) {
     return CloudARecord.create(
-        cloud.getCiName(),
+        vip,
         String.join(".", prefix, context.subdomain, cloudDnsId, context.infobloxConfig.zone())
             .toLowerCase());
   }
 
-  private List<Lb> lbTargets(CmsWorkOrderSimple wo, Context context) {
+  /**
+   * Return all the LB instances for the fqdn to update the torbit config. Don't include the current
+   * cloud's LB instance if it'a delete work order.
+   *
+   * @param wo work order
+   * @param context executor context
+   * @return list of lb instances.
+   */
+  private List<Lb> lbTargets(CmsWorkOrderSimple wo, Context context, String logKey) {
     Map<Long, Cloud> cloudMap = getPlatformClouds(wo);
     List<CmsRfcCISimple> deployedLbs = wo.getPayLoad().get(LB_PAYLOAD);
     if (woHelper.isDeleteAction(wo)) {
@@ -1387,7 +1415,22 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return deployedLbs
         .stream()
         .filter(lb -> isNotBlank(lb.getCiAttributes().get(ATTRIBUTE_DNS_RECORD)))
-        .map(lb -> lbTarget(lb, cloudMap, weightsMap))
+        .map(lb -> lbTarget(lb, cloudMap, weightsMap, context, logKey))
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * Return all the LB instances for the fqdn from the action order.
+   *
+   * @return list of lb instances.
+   */
+  private List<Lb> lbTargets(CmsActionOrderSimple ao, Context context, String logKey) {
+    Map<Long, Cloud> cloudMap = getPlatformClouds(ao);
+    List<CmsCISimple> deployedLbs = ao.getPayLoad().get(LB_PAYLOAD);
+    return deployedLbs
+        .stream()
+        .filter(lb -> isNotBlank(lb.getCiAttributes().get(ATTRIBUTE_DNS_RECORD)))
+        .map(lb -> lbTarget(lb, cloudMap, Optional.empty(), context, logKey))
         .collect(Collectors.toList());
   }
 
@@ -1404,18 +1447,13 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return Optional.empty();
   }
 
-  private List<Lb> lbTargets(CmsActionOrderSimple ao) {
-    Map<Long, Cloud> cloudMap = getPlatformClouds(ao);
-    List<CmsCISimple> deployedLbs = ao.getPayLoad().get(LB_PAYLOAD);
-    return deployedLbs
-        .stream()
-        .filter(lb -> isNotBlank(lb.getCiAttributes().get(ATTRIBUTE_DNS_RECORD)))
-        .map(lb -> lbTarget(lb, cloudMap, Optional.empty()))
-        .collect(Collectors.toList());
-  }
-
   private Lb lbTarget(
-      Instance lbCi, Map<Long, Cloud> cloudMap, Optional<Map<String, Integer>> weightsMapOpt) {
+      Instance lbCi,
+      Map<Long, Cloud> cloudMap,
+      Optional<Map<String, Integer>> weightsMapOpt,
+      Context context,
+      String logKey) {
+
     String lbName = lbCi.getCiName();
     String[] elements = lbName.split("-");
     String cloudId = elements[elements.length - 2];
@@ -1425,11 +1463,45 @@ public class FqdnExecutor implements ComponentWoExecutor {
       Map<String, Integer> weightsMap = weightsMapOpt.get();
       weightPercent = weightsMap.getOrDefault(cloud.name, 0);
     }
+
     return Lb.create(
-        cloud.name,
-        lbCi.getCiAttributes().get(ATTRIBUTE_DNS_RECORD),
-        isEnabledForTraffic(cloud),
-        weightPercent);
+        cloud.name, vip(lbCi, context, logKey), isEnabledForTraffic(cloud), weightPercent);
+  }
+
+  private String vip(Instance lbCi, Context context, String logKey) {
+    String vip = null;
+    Map<String, String> attrs = lbCi.getCiAttributes();
+    if ("true".equals(attrs.getOrDefault("create_cloud_level_vips", "false"))) {
+      logger.info(
+          logKey
+              + "cloud vip enabled for lb "
+              + lbCi.getCiId()
+              + ":"
+              + lbCi.getCiName()
+              + ", getting dc level vip from vnames");
+      String vnames = attrs.get(ATTRIBUTE_LB_VNAMES);
+      if (isNotBlank(vnames)) {
+        Map<String, String> vnameMap = gson.fromJson(vnames, Map.class);
+        String dcVipPrefix = context.platform + "." + context.subdomain;
+        logger.info(logKey + "getting vip for lb, dc level vip prefix - " + dcVipPrefix);
+        for (Entry<String, String> vname : vnameMap.entrySet()) {
+          if (vname.getKey().startsWith(dcVipPrefix)) {
+            vip = vname.getValue();
+            break;
+          }
+        }
+      }
+      if (isBlank(vip)) {
+        throw new RuntimeException(
+            "lb dc level vip could not be obtained for lb ci: "
+                + lbCi.getCiId()
+                + ", ci-name: "
+                + lbCi.getCiName());
+      }
+    } else {
+      vip = attrs.get(ATTRIBUTE_DNS_RECORD);
+    }
+    return vip;
   }
 
   private boolean isEnabledForTraffic(Cloud cloud) {
@@ -1553,7 +1625,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
       String iPort = cfg[3];
 
       String ecv = ecvMap.get(iPort);
-      String ecvPath = null;
+      String ecvPath = "";
 
       if (ecv != null) {
         // ECV format is `iPort : GET /ecvPath`
@@ -1647,14 +1719,14 @@ public class FqdnExecutor implements ComponentWoExecutor {
       case "tls":
       case "ssl_bridge":
         protocol = TCP;
-        path = null;
+        path = "";
         status = 0;
         tls = true;
 
         break;
       default:
         protocol = TCP;
-        path = null;
+        path = "";
         status = 0;
         tls = false;
 
@@ -1670,7 +1742,6 @@ public class FqdnExecutor implements ComponentWoExecutor {
   }
 
   private Map<Long, Cloud> getPlatformClouds(CmsWorkOrderSimple wo) {
-    System.out.println(wo.getPayLoad().get(CLOUDS_PAYLOAD));
     List<Cloud> clouds = getPlatformClouds(wo.getPayLoad().get(CLOUDS_PAYLOAD));
     return clouds.stream().collect(Collectors.toMap(Cloud::getCiId, Function.identity()));
   }
@@ -1763,6 +1834,12 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return service(wo, SERVICE_TYPE_GDNS);
   }
 
+  /**
+   * Returns the short cname alias from fqdn attributes.
+   *
+   * @param fqdnAttrs fqdn attributes
+   * @return list of short cnames.
+   */
   private List<String> getShortAliases(Map<String, String> fqdnAttrs) {
     List<String> list = new ArrayList<>();
     String aliases = fqdnAttrs.get(ATTRIBUTE_ALIAS);
@@ -1770,20 +1847,29 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return list;
   }
 
-  private void parseAndAdd(String aliases, List<String> list) {
-    if (isNotBlank(aliases)) {
-      JsonArray aliasArray = (JsonArray) jsonParser.parse(aliases);
-      for (JsonElement alias : aliasArray) {
-        list.add(alias.getAsString());
-      }
-    }
-  }
-
+  /**
+   * Returns the full cname alias for the fqdn.
+   *
+   * @param fqdnAttrs fqdn attributes.
+   * @return list of full cnames.
+   */
   private List<String> getFullAliases(Map<String, String> fqdnAttrs) {
     List<String> list = new ArrayList<>();
     String aliases = fqdnAttrs.get(ATTRIBUTE_FULL_ALIAS);
     parseAndAdd(aliases, list);
     return list;
+  }
+
+  private void parseAndAdd(String aliases, List<String> list) {
+    if (isNotBlank(aliases)) {
+      JsonArray aliasArray = (JsonArray) jsonParser.parse(aliases);
+      for (JsonElement element : aliasArray) {
+        String alias = element.getAsString();
+        if (isNotBlank(alias)) {
+          list.add(alias.trim());
+        }
+      }
+    }
   }
 
   private Context context(CmsWorkOrderSimple wo, InfobloxConfig infobloxConfig) {

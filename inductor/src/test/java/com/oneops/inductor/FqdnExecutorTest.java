@@ -153,7 +153,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
@@ -226,7 +226,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
 
     List<DcARecord> dcARecords = request.dcARecords();
@@ -331,7 +331,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
@@ -419,7 +419,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
@@ -487,7 +487,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
@@ -512,9 +512,9 @@ public class FqdnExecutorTest {
   }
 
   private void addDependsOn(CmsWorkOrderSimple wo, Map<String, String> classMap) {
-    CmsRfcCISimple bomLb = new CmsRfcCISimple();
-    bomLb.setCiClassName(classMap.get(BOM_LB));
-    bomLb.setCiId(650L);
+    CmsRfcCISimple bomLb;
+    List<CmsRfcCISimple> list = wo.getPayLoadEntry("lb");
+    bomLb = (list != null && !list.isEmpty()) ? list.get(0) : new CmsRfcCISimple();
     bomLb.addCiAttribute("listeners", "['http 80 http 80']");
     bomLb.addCiAttribute("ecv_map", "{'80':'GET /'}");
     wo.addPayLoadEntry("DependsOn", bomLb);
@@ -701,7 +701,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
@@ -754,7 +754,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
@@ -845,9 +845,9 @@ public class FqdnExecutorTest {
   }
 
   private void addDependsOn(CmsActionOrderSimple wo, Map<String, String> classMap) {
-    CmsCISimple bomLb = new CmsCISimple();
-    bomLb.setCiClassName(classMap.get(BOM_LB));
-    bomLb.setCiId(650L);
+    CmsCISimple bomLb;
+    List<CmsCISimple> list = wo.getPayLoadEntry("lb");
+    bomLb = (list != null && !list.isEmpty()) ? list.get(0) : new CmsCISimple();
     bomLb.addCiAttribute("listeners", "['http 80 http 80']");
     bomLb.addCiAttribute("ecv_map", "{'80':'GET /'}");
     wo.addPayLoadEntry("DependsOn", bomLb);
@@ -883,7 +883,7 @@ public class FqdnExecutorTest {
     assertEquals(2, hcList.size());
 
     HealthCheck hc11 = newHealthCheck(HTTP, 80, "/", false, 200);
-    HealthCheck hc12 = newHealthCheck(HTTP, 8080, null, false, 200);
+    HealthCheck hc12 = newHealthCheck(HTTP, 8080, "", false, 200);
     assertTrue(hcList.containsAll(Arrays.asList(hc11, hc12)));
 
     // 2. No listener and ecv
@@ -915,7 +915,7 @@ public class FqdnExecutorTest {
     assertEquals(3, hcList.size());
 
     HealthCheck hc21 = newHealthCheck(HTTP, 80, "/health", false, 200);
-    HealthCheck hc22 = newHealthCheck(HTTPS, 443, null, true, 200);
+    HealthCheck hc22 = newHealthCheck(HTTPS, 443, "", true, 200);
     HealthCheck hc23 = newHealthCheck(HTTPS, 8443, "/health", true, 200);
     assertTrue(hcList.containsAll(Arrays.asList(hc21, hc22, hc23)));
 
@@ -930,12 +930,12 @@ public class FqdnExecutorTest {
     hcList = argument.getValue().healthChecks();
     assertEquals(6, hcList.size());
 
-    HealthCheck hc31 = newHealthCheck(TCP, 443, null, true, 0);
-    HealthCheck hc32 = newHealthCheck(TCP, 1443, null, true, 0);
+    HealthCheck hc31 = newHealthCheck(TCP, 443, "", true, 0);
+    HealthCheck hc32 = newHealthCheck(TCP, 1443, "", true, 0);
     HealthCheck hc33 = newHealthCheck(HTTPS, 8443, "/health", true, 200);
-    HealthCheck hc34 = newHealthCheck(TCP, 8444, null, false, 0);
-    HealthCheck hc35 = newHealthCheck(TCP, 8445, null, false, 0);
-    HealthCheck hc36 = newHealthCheck(TCP, 8446, null, false, 0);
+    HealthCheck hc34 = newHealthCheck(TCP, 8444, "", false, 0);
+    HealthCheck hc35 = newHealthCheck(TCP, 8445, "", false, 0);
+    HealthCheck hc36 = newHealthCheck(TCP, 8446, "", false, 0);
     assertTrue(hcList.containsAll(Arrays.asList(hc31, hc32, hc33, hc34, hc35, hc36)));
 
     // 6. TLS
@@ -947,8 +947,8 @@ public class FqdnExecutorTest {
     hcList = argument.getValue().healthChecks();
     assertEquals(2, hcList.size());
 
-    HealthCheck hc41 = newHealthCheck(TCP, 443, null, true, 0);
-    HealthCheck hc42 = newHealthCheck(TCP, 1443, null, true, 0);
+    HealthCheck hc41 = newHealthCheck(TCP, 443, "", true, 0);
+    HealthCheck hc42 = newHealthCheck(TCP, 1443, "", true, 0);
     assertTrue(hcList.containsAll(Arrays.asList(hc41, hc42)));
 
     // 7. Invalid ECV
@@ -960,8 +960,8 @@ public class FqdnExecutorTest {
     hcList = argument.getValue().healthChecks();
     assertEquals(2, hcList.size());
 
-    HealthCheck hc51 = newHealthCheck(HTTPS, 443, null, true, 200);
-    HealthCheck hc52 = newHealthCheck(HTTP, 80, null, false, 200);
+    HealthCheck hc51 = newHealthCheck(HTTPS, 443, "", true, 200);
+    HealthCheck hc52 = newHealthCheck(HTTP, 80, "", false, 200);
     assertTrue(hcList.containsAll(Arrays.asList(hc51, hc52)));
   }
 

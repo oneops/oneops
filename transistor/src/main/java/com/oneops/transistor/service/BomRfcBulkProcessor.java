@@ -1469,10 +1469,19 @@ public class BomRfcBulkProcessor {
 			logger.info(errorMessage);
 			throw new TransistorException(CmsError.TRANSISTOR_EXCEPTION, errorMessage);
 		}
+		int maxCloudScale = getMaxCloudScale(platformCi);
+		if (maxCloudScale > 100) {
+			throw new TransistorException(CmsError.TRANSISTOR_EXCEPTION,
+					"Can't scale down because the cloud scale found to be " + maxCloudScale + "%");
+		}
 		String bomNsPath = env.getNsPath() + "/" + env.getCiName() + "/bom";
 		//TODO: cancel failed deployment
 		envManager.discardEnvBom(env.getCiId());
 		long releaseId = rfcProcessor.createRelease(bomNsPath, null, user);
+
+		List<CmsCIRelation> dependsOnRelations = cmProcessor.getCIRelations(platformCi.getNsPath(),
+				"manifest.DependsOn", null, null, null);
+		reduceScaleNumber(platformCi, dependsOnRelations, scaleDownBy);
 
 		Map<Long, Integer> deploymentOrder = getScaleDownDeploymentOrder(platformCi);
 		Map<Long, Long> bomToManifestMap = getBomToManifestMap(platformCi);
@@ -1503,8 +1512,6 @@ public class BomRfcBulkProcessor {
 		}
 
 		List<Long> processedPropagations = new ArrayList<>();
-		List<CmsCIRelation> dependsOnRelations = cmProcessor.getCIRelations(platformCi.getNsPath(),
-				"manifest.DependsOn", null, null, null);
 
 		Map<Long, List<Long>> propagationMap = mapPropagations(platformCi, dependsOnRelations);
 
@@ -1519,7 +1526,6 @@ public class BomRfcBulkProcessor {
 		for (CmsCI ci : cisInRfcs) {
 			propagateUpdate(ci, maxDeploymentOrder, bomToManifestMap, processedPropagations, propagationMap, releaseId, user);
 		}
-		reduceScaleNumber(platformCi, dependsOnRelations, scaleDownBy);
 		CmsDeployment deployment = new CmsDeployment();
 		deployment.setNsPath(bomNsPath);
 		deployment.setReleaseId(releaseId);
@@ -1530,6 +1536,19 @@ public class BomRfcBulkProcessor {
 				+ (endTimeMillis - startTimeMillis)/1000);
 
 		return deployment;
+	}
+
+	private int getMaxCloudScale(CmsCI platformCi) {
+		int maxScale = 100;
+		List<CmsCIRelation> consumesRelations = cmProcessor.getCIRelations(platformCi.getNsPath(),
+				"base.Consumes", null, null, "account.Cloud");
+		for (CmsCIRelation rel : consumesRelations) {
+			int cloudScale = Integer.parseInt(rel.getAttribute("pct_scale").getDfValue());
+			if (cloudScale > maxScale) {
+				maxScale = cloudScale;
+			}
+		}
+		return maxScale;
 	}
 
 	boolean hasSufficientComputes(Map<String, List<CmsCI>> computesWithClouds, int scaleDownBy,
@@ -1546,6 +1565,7 @@ public class BomRfcBulkProcessor {
 		return true;
 	}
 
+	//changes the "current" scale configuration for flex relation
 	private void reduceScaleNumber(CmsCI platformCi, List<CmsCIRelation> dependsOnRelations, int scaleDownBy) {
 		boolean scaleNumberUpdated = false;
 		for (CmsCIRelation rel : dependsOnRelations) {

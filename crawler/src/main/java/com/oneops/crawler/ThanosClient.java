@@ -19,10 +19,7 @@ package com.oneops.crawler;
 
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
-import com.squareup.okhttp.MediaType;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.Response;
+import com.squareup.okhttp.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,13 +27,17 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Properties;
 
 public class ThanosClient {
+    public static final String STATUS_EXECUTED = "executed";
     private String baseUrl ;
     private OkHttpClient client;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private Gson gson;
+    private String authToken;
 
     public static final MediaType JSON
             = MediaType.parse("application/json; charset=utf-8");
@@ -53,9 +54,6 @@ public class ThanosClient {
 
     void readConfig() {
         baseUrl = System.getProperty("thanos.base.url");
-        if (StringUtils.isEmpty(baseUrl)) {
-            throw new RuntimeException("System property not found: thanos.base.url ");
-        }
     }
 
     public ArrayList<CloudResourcesUtilizationStats> getStats(String path) throws IOException {
@@ -82,6 +80,38 @@ public class ThanosClient {
         log.info("response body: " + responseBody);
         ThanosServerResponse thanosServerResponse = gson.fromJson(responseBody, ThanosServerResponse.class);
         return thanosServerResponse.getCloudResourcesUtilizationStats();
+    }
+
+    public void updateStatus(String path, String status) throws IOException {
+        HashMap payload = new HashMap();
+        payload.put("nspath", path);
+        payload.put("status", status);
+
+        RequestBody body = RequestBody.create(JSON, gson.toJson(payload));
+
+        Request request = new Request.Builder()
+                .url(baseUrl)
+                .addHeader("Authorization", "Bearer " + getAuthToken())
+                .addHeader("Content-Type", "application/json")
+                .post(body)
+                .build();
+
+        Response response = client.newCall(request).execute();
+        String responseBody = response.body().string();
+        int responseCode = response.code();
+        log.info("Thanos response body: " + responseBody + ", code: " + responseCode);
+        if (responseCode >= 300) {
+            throw new RuntimeException("Error while updating status on thanos. Response: " + responseBody
+                    + " ResponseCode : " + responseCode);
+        }
+    }
+
+    public String getAuthToken() {
+        return authToken;
+    }
+
+    public void configure(Properties props) {
+        authToken = props.getProperty("thanos.auth.token");
     }
 
     public static class ThanosServerResponse implements Serializable {
@@ -112,6 +142,11 @@ public class ThanosClient {
 
         @SerializedName("cloud_vms")
         int Vms;
+
+        @SerializedName("reclaim_status")
+        String reclaimStatus;
+
+        String reclaim;
 
         public String getCloudName() {
             return cloudName;
@@ -151,6 +186,26 @@ public class ThanosClient {
 
         public void setVms(int vms) {
             Vms = vms;
+        }
+
+        public String getReclaimStatus() {
+            return reclaimStatus;
+        }
+
+        public void setReclaimStatus(String reclaimStatus) {
+            this.reclaimStatus = reclaimStatus;
+        }
+
+        public String getReclaim() {
+            return reclaim;
+        }
+
+        public void setReclaim(String reclaim) {
+            this.reclaim = reclaim;
+        }
+
+        public boolean shouldReclaim() {
+            return "yes".equalsIgnoreCase(reclaim)?true:false;
         }
     }
 }

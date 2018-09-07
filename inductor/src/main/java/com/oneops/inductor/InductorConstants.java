@@ -66,7 +66,7 @@ public interface InductorConstants {
   List<String> SEARCH_TS_FORMATS = Collections.singletonList(SEARCH_TS_PATTERN);
 
   String CLOUD_CONFIG_FILE_PATH =  "/cloud-conf.json";
-  String KEYWHIZ_BASE_PATH = "/secrets/";
+  String KEYWHIZ_BASE_PATH = "/secrets";
   String KEYWHIZ_PREFIX = "keywhiz.lookup(";
 
 }
