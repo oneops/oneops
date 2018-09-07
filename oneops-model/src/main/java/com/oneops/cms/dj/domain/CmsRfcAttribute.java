@@ -44,10 +44,18 @@ public class CmsRfcAttribute extends CmsRfcBasicAttribute implements Serializabl
 
   /**
    * Convenience constructor for a typical operation of adding a RFC attribute specified by name
-   * with a given value.
+   * with a given new value.
    */
   public CmsRfcAttribute(String attributeName, String newValue) {
     super(attributeName, newValue);
+  }
+
+  /**
+   * Convenience constructor for a typical operation of adding a RFC attribute specified by name
+   * with given new and old values.
+   */
+  public CmsRfcAttribute(String attributeName, String newValue, String oldValue) {
+    super(attributeName, newValue, oldValue);
   }
 
   /**
