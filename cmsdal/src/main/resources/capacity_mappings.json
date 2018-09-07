@@ -16,137 +16,168 @@
     },
     "storage": {
       "volume_type": {
-        "IOPS2": {
-          "ssd": 1
+        "IOPS1": {
+          "ssd": "new Integer(getAttribute(\"slice_count\")?.getNewValue()?: 0) + 1"
         },
         "*": {
-          "hdd": 1
+          "hdd": "new Integer(getAttribute(\"slice_count\")?.getNewValue()?: 0) + 1"
         }
       }
     },
     "compute": {
       "size": {
         "S": {
+          "vCPU": 1,
           "Dv2_vCPU": 1,
           "vm": 1
         },
         "M": {
+          "vCPU": 2,
           "Dv2_vCPU": 2,
           "vm": 1
         },
         "L": {
+          "vCPU": 4,
           "Dv2_vCPU": 4,
           "vm": 1
         },
         "XL": {
+          "vCPU": 8,
           "Dv2_vCPU": 8,
           "vm": 1
         },
         "XXL": {
+          "vCPU": 32,
           "DSv3_vCPU": 32,
           "vm": 1
         },
         "3XL": {
+          "vCPU": 32,
           "Ev3_vCPU": 32,
           "vm": 1
         },
         "4XL": {
+          "vCPU": 8,
           "Av2_vCPU": 8,
           "vm": 1
         },
         "S-CPU": {
+          "vCPU": 1,
           "Dv2_vCPU": 1,
           "vm": 1
         },
         "M-CPU": {
+          "vCPU": 2,
           "Dv2_vCPU": 2,
           "vm": 1
         },
         "L-CPU": {
+          "vCPU": 4,
           "Dv2_vCPU": 4,
           "vm": 1
         },
         "XL-CPU": {
+          "vCPU": 8,
           "Dv2_vCPU": 8,
           "vm": 1
         },
         "8XL-CPU": {
+          "vCPU": 2,
           "Dv2_vCPU": 2,
           "vm": 1
         },
         "9XL-CPU": {
+          "vCPU": 4,
           "Dv2_vCPU": 4,
           "vm": 1
         },
         "10XL-CPU": {
+          "vCPU": 8,
           "Dv2_vCPU": 8,
           "vm": 1
         },
         "11XL-CPU": {
+          "vCPU": 16,
           "Dv2_vCPU": 16,
           "vm": 1
         },
         "S-MEM": {
+          "vCPU": 2,
           "Dv2_vCPU": 2,
           "vm": 1
         },
         "M-MEM": {
+          "vCPU": 2,
           "DSv2_vCPU": 2,
           "vm": 1
         },
         "L-MEM": {
+          "vCPU": 16,
           "Dv2_vCPU": 16,
           "vm": 1
         },
         "XL-MEM": {
+          "vCPU": 8,
           "DSv2_vCPU": 8,
           "vm": 1
         },
         "8XL-MEM": {
+          "vCPU": 2,
           "DSv2_vCPU": 2,
           "vm": 1
         },
         "9XL-MEM": {
+          "vCPU": 4,
           "DSv2_vCPU": 4,
           "vm": 1
         },
         "10XL-MEM": {
+          "vCPU": 8,
           "DSv2_vCPU": 8,
           "vm": 1
         },
         "11XL-MEM": {
+          "vCPU": 16,
           "DSv2_vCPU": 16,
           "vm": 1
         },
         "3XL-IO": {
+          "vCPU": 32,
           "Esv3_vCPU": 32,
           "vm": 1
         },
         "L-BD": {
+          "vCPU": 16,
           "DSv2_vCPU": 16,
           "vm": 1
         },
         "XL-BD": {
+          "vCPU": 20,
           "DSv2_vCPU": 20,
           "vm": 1
         },
         "L-NoSQL": {
+          "vCPU": 8,
           "DSv2_vCPU": 8,
           "vm": 1
         },
         "XL-NoSQL": {
+          "vCPU": 16,
           "DSv2_vCPU": 16,
           "vm": 1
         },
         "L-IO": {
+          "vCPU": 8,
           "DSv2_vCPU": 8,
           "vm": 1
         },
         "XL-IO": {
+          "vCPU": 16,
           "DSv2_vCPU": 16,
           "vm": 1
         },
         "XXL-IO": {
+          "vCPU": 16,
           "DSv2_vCPU": 16,
           "vm": 1
         }
@@ -163,99 +194,119 @@
     "compute": {
       "size": {
         "XS": {
-          "core": 1,
+          "vCPU": 1,
           "vm": 1
         },
         "S": {
-          "core": 2,
+          "vCPU": 1,
           "vm": 1
         },
         "M": {
-          "core": 3,
+          "vCPU": 2,
           "vm": 1
         },
         "L": {
-          "core": 4,
+          "vCPU": 4,
           "vm": 1
         },
         "XL": {
-          "core": 5,
+          "vCPU": 8,
           "vm": 1
         },
         "XXL": {
-          "core": 12,
+          "vCPU": 16,
           "vm": 1
         },
         "3XL": {
-          "core": 11,
+          "vCPU": 32,
           "vm": 1
         },
         "3XL-IO": {
-          "core": 15,
+          "vCPU": 32,
           "vm": 1
         },
         "L-IO": {
-          "core": 21,
+          "vCPU": 6,
           "vm": 1
         },
         "XL-IO": {
-          "core": 22,
+          "vCPU": 12,
           "vm": 1
         },
         "XXL-IO": {
-          "core": 23,
+          "vCPU": 16,
           "vm": 1
         },
         "S-MEM": {
-          "core": 33,
+          "vCPU": 2,
           "vm": 1
         },
         "L-MEM": {
-          "core": 34,
+          "vCPU": 8,
           "vm": 1
         },
         "L-IO-LXD": {
-          "core": 35,
+          "vCPU": 16,
           "vm": 1
         },
         "XL-IO-LXD": {
-          "core": 36,
+          "vCPU": 24,
           "vm": 1
         },
         "XXL-IO-LXD": {
-          "core": 37,
+          "vCPU": 32,
           "vm": 1
         },
         "S-MEM-LXD": {
-          "core": 38,
+          "vCPU": 8,
           "vm": 1
         },
         "L-MEM-LXD": {
-          "core": 39,
+          "vCPU": 16,
           "vm": 1
         },
         "L-BD": {
-          "core": 40,
+          "vCPU": 16,
           "vm": 1
         },
         "XL-BD": {
-          "core": 42,
+          "vCPU": 24,
           "vm": 1
         },
         "M-WIN": {
-          "core": 51,
+          "vCPU": 2,
           "vm": 1
         },
         "L-WIN": {
-          "core": 52,
+          "vCPU": 4,
           "vm": 1
         },
         "XL-WIN": {
-          "core": 53,
+          "vCPU": 8,
           "vm": 1
         },
         "XL-WIN-LDO": {
-          "core": 54,
+          "vCPU": 8,
+          "vm": 1
+        },
+        "L-NoSQL": {
+          "vCPU": 6,
+          "vm": 1
+        },
+        "XL-NoSQL": {
+          "vCPU": 12,
+          "vm": 1
+        },
+        "BM": {
+          "vCPU": 56,
+          "vm": 1
+        },
+        "BM-V1-56": {
+          "vCPU": 56,
+          "vm": 1
+        },
+        "BM-V2-56": {
+          "vCPU": 56,
           "vm": 1
         }
       }

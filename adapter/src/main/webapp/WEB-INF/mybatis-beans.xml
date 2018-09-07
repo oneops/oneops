@@ -175,9 +175,12 @@
 
     <bean id="tektonClient" class="com.oneops.capacity.TektonClient"/>
 
+    <bean id="exprParser" class="org.springframework.expression.spel.standard.SpelExpressionParser" />
+
     <bean id="capacityProcessor" class="com.oneops.capacity.CapacityProcessor">
         <property name="cmProcessor" ref="cmsCmProcessor" />
         <property name="rfcProcessor" ref="cmsRfcProcessor" />
         <property name="tektonClient" ref="tektonClient" />
+        <property name="exprParser" ref="exprParser"/>
     </bean>
 </beans>

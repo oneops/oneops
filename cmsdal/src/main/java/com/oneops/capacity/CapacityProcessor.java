@@ -10,6 +10,9 @@ import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.cms.util.domain.CmsVar;
 import org.apache.log4j.Logger;
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.transaction.support.TransactionSynchronizationAdapter;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -27,8 +30,10 @@ public class CapacityProcessor {
     private CmsCmProcessor cmProcessor;
     private CmsRfcProcessor rfcProcessor;
     private TektonClient tektonClient;
+    private ExpressionParser exprParser;
 
     private Gson gson = new Gson();
+    private Map<String, Expression> expressionCache = new HashMap<>();
 
     public void setCmProcessor(CmsCmProcessor cmProcessor) {
         this.cmProcessor = cmProcessor;
@@ -40,6 +45,10 @@ public class CapacityProcessor {
 
     public void setTektonClient(TektonClient tektonClient) {
         this.tektonClient = tektonClient;
+    }
+
+    public void setExprParser(ExpressionParser exprParser) {
+        this.exprParser = exprParser;
     }
 
     public boolean isCapacityManagementEnabled(String nsPath) {
@@ -177,7 +186,7 @@ public class CapacityProcessor {
 
         if (!capacity.isEmpty()) {
             String subscriptionId = cloudInfo.getSubscriptionId();
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+            afterCommit(new TransactionSynchronizationAdapter() {
                 @Override
                 public void afterCommit() {
                     tektonClient.commitReservation(capacity, nsPath, subscriptionId);
@@ -200,13 +209,17 @@ public class CapacityProcessor {
 
         if (!capacity.isEmpty()) {
             String subscriptionId = cloudInfo.getSubscriptionId();
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+            afterCommit(new TransactionSynchronizationAdapter() {
                 @Override
                 public void afterCommit() {
                     tektonClient.releaseResources(capacity, nsPath, subscriptionId);
                 }
             });
         }
+    }
+
+    void afterCommit(TransactionSynchronizationAdapter adapter) {
+        TransactionSynchronizationManager.registerSynchronization(adapter);
     }
 
     private String getReservationNsPath(String fullNsPath) {
@@ -322,6 +335,7 @@ public class CapacityProcessor {
         Map<String, Object> classMappings = (Map<String, Object>) providerMappings.get(classNameSplit[classNameSplit.length - 1].toLowerCase());
         if (classMappings == null) return capacity;
 
+        StandardEvaluationContext exprContext = null;
         for (String attrName : classMappings.keySet()) {
             Map<String, Object> attrMappings = (Map<String, Object>) classMappings.get(attrName);
             Map<String, Object> resources = null;
@@ -341,7 +355,37 @@ public class CapacityProcessor {
 
             if (resources == null) continue;
             for (String resource : resources.keySet()) {
-                capacity.put(resource, capacity.computeIfAbsent(resource, (k) -> 0) + ((Double) resources.get(resource)).intValue());
+                Object resourceMapping = resources.get(resource);
+                if (resourceMapping instanceof String) {
+
+                    String expressionString = (String) resourceMapping;
+                    try {
+                        Expression expression = expressionCache.get(expressionString);
+                        if (expression == null) {
+                            expression = exprParser.parseExpression(expressionString);
+                            expressionCache.put(expressionString, expression);
+                        }
+                        if (exprContext == null) {
+                            exprContext = new StandardEvaluationContext(rfcCi);
+                        }
+                        resourceMapping = expression.getValue(exprContext);
+                    } catch (Exception e) {
+                        logger.error("Failed to parse/evaluate expression '" + expressionString + "': " + e.getMessage());
+                    }
+                }
+
+                Integer resourceValue;
+                if (resourceMapping instanceof Double) {
+                    resourceValue = ((Double) resourceMapping).intValue();
+                } else if (resourceMapping instanceof Integer) {
+                    resourceValue = (Integer) resourceMapping;
+                } else {
+                    continue;
+                }
+
+                if (resourceValue > 0) {
+                    capacity.put(resource, capacity.computeIfAbsent(resource, (k) -> 0) + resourceValue);
+                }
             }
         }
 
