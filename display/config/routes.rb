@@ -568,7 +568,7 @@ Display::Application.routes.draw do
           get 'health',         :on => :member
         end
 
-        resources :instances, :only => :none do
+        resources :instances, :only => [:update] do
           put 'state', :on => :member
           put 'state', :on => :collection
         end

@@ -1,8 +1,8 @@
 class Operations::InstancesController < ApplicationController
   include ::RfcHistory
 
-  before_filter :find_parents, :except => [:state]
-  before_filter :find_instance, :except => [:index, :state, :destroy]
+  before_filter :find_parents, :except => [:state, :update]
+  before_filter :find_instance, :except => [:index, :state, :update, :destroy]
   before_filter :weak_ci_relation_data_consistency, :only => [:index, :show, :notifications]
 
   CustomAction = Struct.new(:actionId, :actionName, :description)
@@ -151,6 +151,23 @@ class Operations::InstancesController < ApplicationController
         render_json_ci_response(true, @instance)
       end
     end
+  end
+
+  def update
+    @assembly = locate_assembly(params[:assembly_id])
+    unauthorized unless has_operations?(@assembly.ciId)   # Has to have operations privilleges org scope.
+    @instance = Cms::Ci.find(params[:id])
+    ci_attrs = params[:ciAttributes] || {}
+    update_attrs = ci_attrs.slice(*%w(hypervisor))
+    ok = false
+    if update_attrs.blank?
+      @instance.errors.add(:base, 'Specify ci attributes to update.')
+    elsif @instance.ciClassName.end_with?('.Compute') && update_attrs.size == ci_attrs.size
+      ok = execute(@instance, :update_attributes, {:ciAttributes => update_attrs})
+    else
+      @instance.errors.add(:base, "Not allowed to update #{'some of ' if update_attrs.size > 0}specified ci attributes.")
+    end
+    render_json_ci_response(ok, @instance)
   end
 
   def destroy
