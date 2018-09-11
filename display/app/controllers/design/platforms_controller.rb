@@ -73,7 +73,7 @@ class Design::PlatformsController < Base::PlatformsController
   def create
     platform_hash = params[:cms_dj_ci].merge(:nsPath => assembly_ns_path(@assembly), :ciClassName => 'catalog.Platform')
     attrs = platform_hash[:ciAttributes]
-    attrs[:major_version] = 1
+    attrs[:major_version] = attrs[:version]
     attrs[:description] ||= ''
     attr_props = platform_hash.delete(:ciAttrProps)
 
