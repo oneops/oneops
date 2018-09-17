@@ -43,7 +43,10 @@ class String
 
   [[:bold, "\e[1m"], [:invert, "\e[7m"], [:red, "\e[31m"], [:green, "\e[32m"], [:yellow, "\e[33m"], [:blue, "\e[34m"]].each do |(name, code)|
     define_method(name) {|background = false|
-      @@with_color ? "\e[0m#{"\e[7m" if background}#{code}#{self}\e[0m" : self
+      @@with_color ? "#{send("#{name}!", background)}\e[0m" : self
+    }
+    define_method("#{name}!".to_sym) {|background = false|
+      @@with_color ? "\e[0m#{"\e[7m" if background}#{code}#{self}" : self
     }
   end
 
@@ -276,6 +279,7 @@ def full_quota_totals(title, limits, usage, available)
 end
 
 def usage(title, oo_usage, tt_usage, diff_only = false)
+  oo_usage ||= {}
   tt_usage ||= {}
   diffs = []
   output = "#{title}\n"
@@ -320,7 +324,7 @@ end
 def execute(action, *args)
   result = nil
   if action == 'version'
-    say 'CLI version:    1.1.2'
+    say 'CLI version:    1.1.3'
     info = tt_request('server/version', 'Getting tekton version')
     say "Tekton version: #{info.version} (#{info.timestamp})"
 
@@ -342,6 +346,9 @@ def execute(action, *args)
       result[u] = result[u].keys.join(', ')
       say "#{u.bold} =>\n  #{result[u]}"
     end
+
+  elsif action == 'oo:resource:mappings'
+    say JSON.pretty_unparse(fetch_provider_mappings)
 
   elsif action == 'oo:resources:transfer'
     resources = execute!('oo:resources')
@@ -369,20 +376,16 @@ def execute(action, *args)
     subs.each_pair {|name, _| execute('subs:add', name, name.split(':').first)}
     execute('resources')
 
-  elsif action == 'oo:sub:usage:mismatch'
-    execute('oo:sub:usage:internal', args[0], args[1], true, @params.fix_mismatch)
-
   elsif action == 'oo:sub:usage'
-    execute('oo:sub:usage:internal', args[0], args[1])
-
-  elsif action == 'oo:sub:usage:internal'
-    sub_name, orgs, mismatch_only, fix, _ = args
+    sub_name, orgs, _ = args
     required_arg('subscription', sub_name)
-
+    fix = @params.fix_mismatch
+    mismatch_only = @params.mismatch_only
     result = {}
     subs = execute('sub:prompt', sub_name)
     org_names = orgs.empty? ? nil : orgs.split(',').inject({}) {|h, o| h[o] = o; h}
     subs.each do |sub|
+      blurt("#{sub}\r") if mismatch_only
       tt_usage = tt_request("quota/usage/subscription/#{sub}", 'Getting usages in Tekton')
       sub_or_tenant = sub.split(':').last
       cloud_services = {subscription: 'Azure', tenant: 'Openstack'}.inject([]) do |a, (attr_name, clazz)|
@@ -398,17 +401,21 @@ def execute(action, *args)
       end
       oo_org_usage = {}
       clouds_by_org.keys.sort.each do |org|
+        blurt("#{"#{sub} => #{org}"}\r") if mismatch_only
         clouds = clouds_by_org[org]
         oo_org_usage = execute('oo:cloud:usage:internal', clouds)
         tt_org_usage = tt_usage[org] || {}
         diff = usage("#{sub.bold} => #{org.bold}", oo_org_usage, tt_org_usage, mismatch_only)
-        next if mismatch_only && !diff
+        if mismatch_only && !diff
+          blurt("#{' ' * (sub.size + org.size + 5)} \r")
+          next
+        end
         result[sub][:oneops][org] = oo_org_usage
         result[sub][:tekton][org] = tt_org_usage
         if diff && fix
           resources = diff.map {|r| "#{r}=#{oo_org_usage[r]}"}
-          say "  Fixing usage mismatch with:\n    #{"quota:usage:set #{sub} #{org} #{resources.join(' ')}".yellow}"
-          execute('quota:usage:set', sub, org, *resources)
+          say "  Fixing usage mismatch with:\n    #{"usage:set #{sub} #{org} #{resources.join(' ')}".yellow}\n"
+          execute('usage:set', sub, org, *resources)
         end
         say
       end
@@ -423,7 +430,7 @@ def execute(action, *args)
       end
     end
 
-  elsif action == 'oo:usage'
+  elsif action == 'oo:org:usage' || action == 'oo:usage'
     org, cloud_name, _ = args
     required_arg('org', org)
 
@@ -438,7 +445,7 @@ def execute(action, *args)
       result[:oneops][sub] = execute('oo:cloud:usage:internal', clouds)
       result[:tekton][sub] = tt_org_usage[sub]
       has_diff = usage("#{sub.bold} => #{org.bold}", result[:oneops][sub], result[:tekton][sub])
-      say "  Fix this with:\n    #{"oo:usage:transfer -f #{org} #{clouds.first.ciName}".yellow}" if has_diff
+      say "  Fix this with:\n    #{"oo:org:usage:transfer -f #{org} #{clouds.first.ciName}".yellow}" if has_diff
       say
     end
 
@@ -456,11 +463,11 @@ def execute(action, *args)
       end
     end
 
-  elsif action == 'oo:usage:transfer'
+  elsif action == 'oo:org:usage:transfer' || action == 'oo:usage:transfer'
     org, cloud_name, _ = args
     required_arg('org', org)
 
-    usage = execute!('oo:usage', org, cloud_name)[:oneops]
+    usage = execute!('oo:org:usage', org, cloud_name)[:oneops]
     usage.each_pair do |sub, sub_usage|
       next if sub_usage.empty?
       limits = tt_request("quota/#{sub}/#{org}", 'Getting quota')
@@ -477,7 +484,7 @@ def execute(action, *args)
           say "Quota for #{sub.bold} in #{org.bold} already exists, will set usage only, use #{"'quota:set'".blue} action to set total quota values.".yellow
           sub_usage.delete_if {|u| limits[u]} if @params.only_missing
         end
-        execute('quota:usage:set', sub, org, *sub_usage.to_a.map {|u, v| "#{u}=#{v}"})
+        execute('usage:set', sub, org, *sub_usage.to_a.map {|u, v| "#{u}=#{v}"})
       else
         say "Quota for #{sub.bold} in #{org.bold} already exists, use '-f' option to force update.".yellow
       end
@@ -731,7 +738,7 @@ def execute(action, *args)
       end
     end
 
-  elsif action == 'quota:set' || action == 'quota:usage:set' || action == 'usage:set'
+  elsif action == 'quota:set' || action == 'usage:set'
     sub_name, org, *resources = args
     required_arg('subscription', sub_name)
     required_arg('org', org)
@@ -882,7 +889,12 @@ end
 
 def run(args)
   t = Time.now
-  @action, *@args = @opt_parser.parse(args)
+  begin
+    @action, *@args = @opt_parser.parse(args)
+  rescue OptionParser::ParseError => e
+      say e.message.red
+      exit(1)
+  end
 
   if @action.empty?
     general_help if @show_help
@@ -950,6 +962,7 @@ end
 
   'orgs'                  => ['orgs ORG,...|?[ORG_REGEX]|*[ORG_REGEX]', 'list orgs'],
   'orgs:add'              => ['orgs:add ORG', 'add org'],
+
   'teams'                 => ['teams ORG [TEAM_REGEX]', 'list teams'],
   'teams:add'             => ['teams:add ORG TEAM_NAME [TEAM_DESCRIPTION]', 'add team'],
   'teams:remove'          => ['teams:add ORG TEAM_NAME', 'remove team'],
@@ -970,17 +983,16 @@ end
   'org:quotas'            => ['org:quotas ORG,...|?[ORG_REGEX]|*[ORG_REGEX] [--depleted [THRESHOLD_%]]', 'list all quotas for org'],
 
   'quota'                 => ['quota SUB,...|?[SUB_REGEX]|*[SUB_REGEX] ORG,...|?[ORG_REGEX]|*[ORG_REGEX]', 'show quota'],
-  'quota:set'             => ['quota:set SUB,...|?[SUB_REGEX]|*[SUB_REGEX] ORG,...|?[ORG_REGEX]|*[ORG_REGEX] RESOURCE[+|-]=VALUE[%]...', 'update quota limits: directly set with \'=\' or increment with \'+=\' or decrement with \'-=\'; specify absolute value or percentage of current value with \'%\''],
-  'quota:usage:set'       => ['quota:usage:set SUB,...|?[SUB_REGEX]|*[SUB_REGEX] ORG,...|?[ORG_REGEX]|*[ORG_REGEX] RESOURCE=VALUE...', "update quota limits\n"],
+  # 'usage:set'             => ['usage:set SUB,...|?[SUB_REGEX]|*[SUB_REGEX] ORG,...|?[ORG_REGEX]|*[ORG_REGEX] RESOURCE=VALUE...', 'update quota usage'],
+  'quota:set'             => ['quota:set SUB,...|?[SUB_REGEX]|*[SUB_REGEX] ORG,...|?[ORG_REGEX]|*[ORG_REGEX] RESOURCE[+|-]=VALUE[%]...', "'update quota limits: directly set with \'=\' or increment with \'+=\' or decrement with \'-=\'; specify absolute value or percentage of current value with \'%\''\n"],
 
   'oo:resources'          => ['oo:resources', 'list resource types in OneOps'],
   'oo:resources:transfer' => ['oo:resources:transfer [-f]', 'transfer resources types in OneOps to Tekton (idempotent!)'],
   'oo:subs'               => ['oo:subs ORG [CLOUD_REGEX]', 'list subsctiptions in OneOps'],
   'oo:subs:transfer'      => ['oo:subs:transfer  [-f] ORG [CLOUD_REGEX]', 'transfer subsctiptions in OneOps to Tekton  (idempotent!)'],
-  'oo:sub:usage'          => ['oo:sub:usage SUB,...|?[SUB_REGEX]|*[SUB_REGEX] [ORG,...]', 'list usage in OneOps for a given subscription for all orgs or specified orgs only'],
-  'oo:sub:usage:mismatch' => ['oo:sub:usage:mismatch [--fix] SUB,...|?[SUB_REGEX]|*[SUB_REGEX] [ORG,...]', 'list mismatched usage between OneOps and Tekton for a given subscription for all orgs or specified orgs only'],
-  'oo:usage'              => ['oo:usage ORG [CLOUD_REGEX]', 'list usage in OneOps and compares with usage in Tekton'],
-  'oo:usage:transfer'     => ['oo:usage:transfer [-f [--omr]] [-b BUFFER_%] ORG [CLOUD_REGEX]', "convert current usage in OneOps into quota in Tekton or update usage for existing Tekton quota with the current ussage in OneOps  (idempotent!)\n"]
+  'oo:sub:usage'          => ['oo:sub:usage [--mismatch [--fix]] SUB,...|?[SUB_REGEX]|*[SUB_REGEX] [ORG,...]', 'For a given subscription list usage in OneOps and compare with usage in Tekton'],
+  'oo:org:usage'          => ['oo:org:usage ORG [CLOUD_REGEX]', 'For a given org list usage in OneOps and compare with usage in Tekton'],
+  'oo:org:usage:transfer' => ['oo:org:usage:transfer [-f [--omr]] [-b BUFFER_%] ORG [CLOUD_REGEX]', "convert current usage in OneOps into quota in Tekton or update usage for existing Tekton quota with the current ussage in OneOps (idempotent!)\n"]
 }
 
 @usage = <<-USAGE
@@ -1023,7 +1035,7 @@ USAGE
     
        Alternatively, add/set quota manually:
          #{__FILE__} quota:set azure-southcentralus-wm:102e961b-18a2-4ff0-a03e-c58794d04d55 some-org vm=100 Dv2_vCPU=250
-         #{__FILE__} quota:usage:set azure-southcentralus-wm:102e961b-18a2-4ff0-a03e-c58794d04d55 some-org vm=37 Dv2_vCPU=128
+         #{__FILE__} usage:set azure-southcentralus-wm:102e961b-18a2-4ff0-a03e-c58794d04d55 some-org vm=37 Dv2_vCPU=128
     
     4. List all exising quotas for a given org in Tekton:
          #{__FILE__} org:quotas some-org
@@ -1037,7 +1049,14 @@ FOOTER
 # Start here.
 #------------------------------------------------------------------------------------------------
 __COLOR = true
-@params = OpenStruct.new(:verbose => 0, :force => false, :only_missing => false, :transfer_buffer => 0, :depleted_threshold => nil, :refresh => 0, :fix_mismatch => false)
+@params = OpenStruct.new(:verbose            => 0,
+                         :force              => false,
+                         :only_missing       => false,
+                         :transfer_buffer    => 0,
+                         :depleted_threshold => nil,
+                         :refresh            => 0,
+                         :mismatch_only      => false,
+                         :fix_mismatch       => false)
 
 @show_help = false
 @opt_parser = OptionParser.new do |opts|
@@ -1061,6 +1080,7 @@ __COLOR = true
 
   opts.on('-f', '--force', 'Force update if already exists') {@params.force = true}
   opts.on('--omr', '--only-missing-resources', "Transfer usage only for resources missing quota (when there is already quota set up for at least one other resource (for a given subscription and org); use with '-f' option") {@params.only_missing = true}
+  opts.on('--mismatch', 'Show usage mismatch only') {@params.mismatch_only = true}
   opts.on('--fix', 'Fix usage mismatch by transfering usage number from OneOps to the corresponding soft quotas in Tekton') {@params.fix_mismatch = true}
 
   opts.on('--no-color', 'No output coloring or font formatting.') {String.with_color = false}
@@ -1088,8 +1108,9 @@ if @repl
     File.read(HISTORY_FILE_NAME).split("\n").each {|c| Readline::HISTORY << c}
   end
 
-  prompt = "#{'>>>'.invert} "
+  prompt = "#{'>>> '.invert!}"
   while input = Readline.readline(prompt, true).strip
+    blurt ''.invert
     if input.empty?
       Readline::HISTORY.pop
     elsif input.start_with?('hist')
@@ -1111,6 +1132,8 @@ if @repl
           @params.only_missing = false
           @params.transfer_buffer = 0
           @params.refresh = 0
+          @params.mismatch_only = false
+          @params.fix_mismatch = false
           run(cmd.strip.split(/\s+/))
           say "Done in #{(Time.now - t).round(1).to_s.bold} sec" unless cmd == command
         rescue SystemExit

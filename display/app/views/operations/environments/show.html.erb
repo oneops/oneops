@@ -20,4 +20,5 @@
                       {:label => 'graph',      :url => graph_assembly_operations_environment_path(@assembly, @environment), :reload => true},
                       {:label => 'health',     :url => assembly_operations_environment_instances_path(@assembly, @environment, :instances_state => params[:instances_state] || 'unhealthy,notify')},
                       {:label => 'procedures', :url => operations_procedures_path(:ciId => @environment.ciId), :reload => true},
+                      {:label => 'timeline',   :url => assembly_operations_environment_timeline_path(@assembly, @environment)},
                       {:label => icon('search'), :id => 'search', :template => 'search'}] %>
