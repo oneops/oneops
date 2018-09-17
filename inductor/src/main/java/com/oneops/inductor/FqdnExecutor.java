@@ -146,7 +146,11 @@ public class FqdnExecutor implements ComponentWoExecutor {
   @Override
   public Response execute(CmsWorkOrderSimple wo, String dataDir) {
     String logKey = woHelper.getLogKey(wo);
-    if (isFqdnInstance(wo) && isLocalWo(wo) && isGdnsEnabled(wo) && isTorbitServiceType(wo)) {
+    if (isFqdnInstance(wo)
+        && isLocalWo(wo)
+        && isGdnsEnabled(wo)
+        && isTorbitServiceType(wo)
+        && isLbPresent(wo)) {
       if (isPTREnabled(wo)) {
         woHelper.failWo(
             wo, logKey, "Fqdn with PTR is not currently supported for Torbit service_type", null);
@@ -173,7 +177,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
         logKey
             + "not executing by FqdnExecutor as these conditions are not met :: "
             + "[fqdn service_type set as torbit && gdns enabled for env && local workorder &&"
-            + " torbit cloud service configured]");
+            + " dependsOn lb is present && torbit cloud service configured]");
     return Response.getNotMatchingResponse();
   }
 
@@ -1080,6 +1084,10 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return woHelper.getLbFromDependsOn(ao) == null;
   }
 
+  private boolean isLbPresent(CmsWorkOrderSimple wo) {
+    return woHelper.getLbFromDependsOn(wo) != null;
+  }
+
   /**
    * Fqdn executor context for migrate action order.
    *
@@ -1093,6 +1101,13 @@ public class FqdnExecutor implements ComponentWoExecutor {
     Map<String, List<CmsCISimple>> payload = ao.getPayLoad();
     CmsCISimple env = payload.get("Environment").get(0);
     context.subdomain = env.getCiAttributes().get("subdomain");
+    String[] nsElements = ao.getNsPath().split("/");
+    if (nsElements.length < 3) {
+      throw new RuntimeException("Invalid nsPath in action order, it does not have required elements");
+    }
+    context.org = nsElements[1];
+    context.assembly = nsElements[2];
+    context.env = env.getCiName();
     context.lb = woHelper.getLbFromDependsOn(ao);
     Map<String, String> fqdnAttrs = ao.getCi().getCiAttributes();
     context.shortAliases = getShortAliases(fqdnAttrs);
@@ -1361,15 +1376,26 @@ public class FqdnExecutor implements ComponentWoExecutor {
                   context.subdomain,
                   datacenter,
                   context.infobloxConfig.zone());
+          String dcDnsEntryFull =
+              String.join(
+                  ".",
+                  context.platform,
+                  context.env,
+                  context.assembly,
+                  context.org,
+                  datacenter,
+                  context.infobloxConfig.zone());
           String lbVnamePrefix = dcDnsEntry + "-";
+          String lbVnamePrefixFull = dcDnsEntryFull + "-";
           logger.info(
               logKey
-                  + "DC Level dns entry - dcDnsEntry : "
-                  + dcDnsEntry
-                  + ", lbVnamePrefix: "
-                  + lbVnamePrefix);
+                  + "DC Level dns entry - lbVnamePrefix: "
+                  + lbVnamePrefix
+                  + ", lbVnamePrefixFull : "
+                  + lbVnamePrefixFull);
           for (Entry<String, String> vname : vnameMap.entrySet()) {
-            if (vname.getKey().startsWith(lbVnamePrefix)) {
+            if (vname.getKey().startsWith(lbVnamePrefix)
+                || vname.getKey().startsWith(lbVnamePrefixFull)) {
               dcDnsEntry = dcDnsEntry.toLowerCase();
               logger.info(logKey + "DC dns entry: " + dcDnsEntry + ", vip: " + vname.getValue());
               dcARecords.add(DcARecord.create(vname.getValue(), dcDnsEntry));
@@ -1471,6 +1497,11 @@ public class FqdnExecutor implements ComponentWoExecutor {
   private String vip(Instance lbCi, Context context, String logKey) {
     String vip = null;
     Map<String, String> attrs = lbCi.getCiAttributes();
+    // we need to get the dc vip from the lb attributes.
+    // if cloud vip is disabled the dns_record attribute value would have the dc vip
+    // if cloud vip is enabled it would have the cloud level vip, so we need to get the dc vip
+    // from vnames attribute, the dc vip name in vnames would have the prefix
+    // <platform>.<env>.<assembly>.<org>
     if ("true".equals(attrs.getOrDefault("create_cloud_level_vips", "false"))) {
       logger.info(
           logKey
@@ -1483,9 +1514,17 @@ public class FqdnExecutor implements ComponentWoExecutor {
       if (isNotBlank(vnames)) {
         Map<String, String> vnameMap = gson.fromJson(vnames, Map.class);
         String dcVipPrefix = context.platform + "." + context.subdomain;
-        logger.info(logKey + "getting vip for lb, dc level vip prefix - " + dcVipPrefix);
+        String dcVipPrefixFull =
+            String.join(".", context.platform, context.env, context.assembly, context.org);
+        logger.info(
+            logKey
+                + "getting vip for lb, dcVipPrefix : "
+                + dcVipPrefix
+                + ", dcVipPrefixFull : "
+                + dcVipPrefixFull);
         for (Entry<String, String> vname : vnameMap.entrySet()) {
-          if (vname.getKey().startsWith(dcVipPrefix)) {
+          if (vname.getKey().startsWith(dcVipPrefix)
+              || vname.getKey().startsWith(dcVipPrefixFull)) {
             vip = vname.getValue();
             break;
           }
@@ -1884,6 +1923,9 @@ public class FqdnExecutor implements ComponentWoExecutor {
         isNotBlank(customSubDomain)
             ? customSubDomain
             : String.join(".", env.getCiName(), assembly, org);
+    context.org = org;
+    context.assembly = assembly;
+    context.env = env.getCiName();
     context.lb = woHelper.getLbFromDependsOn(wo);
     Map<String, String> fqdnAttrs = wo.getRfcCi().getCiAttributes();
     context.shortAliases = getShortAliases(fqdnAttrs);
@@ -1911,6 +1953,9 @@ public class FqdnExecutor implements ComponentWoExecutor {
           isNotBlank(customSubDomain)
               ? customSubDomain
               : String.join(".", env.getCiName(), assembly, org);
+      context.org = org;
+      context.assembly = assembly;
+      context.env = env.getCiName();
       context.lb = woHelper.getLbFromDependsOn(ao);
       Map<String, String> fqdnAttrs = ao.getCi().getCiAttributes();
       context.shortAliases = getShortAliases(fqdnAttrs);
@@ -1930,6 +1975,9 @@ public class FqdnExecutor implements ComponentWoExecutor {
   class Context {
     String platform;
     String subdomain;
+    String env;
+    String assembly;
+    String org;
     InfobloxConfig infobloxConfig;
     Instance lb;
     List<String> shortAliases = new ArrayList<>();

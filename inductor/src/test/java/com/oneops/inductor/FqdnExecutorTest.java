@@ -236,6 +236,103 @@ public class FqdnExecutorTest {
     assertThat(dcARecord.vip(), is("10.100.100.101"));
   }
 
+  @Test
+  public void lbWithCloudVipEnabled() {
+    CmsWorkOrderSimple wo = woWith2Clouds();
+    wo.getRfcCi().setRfcAction("add");
+    addGdnsService(wo);
+    addLbVnames(wo, "10.100.100.102");
+    setLbVnamesForCloudVips(wo, "10.100.100.102", "10.100.101.103");
+    fqdnExecutor.execute(wo, "/tmp");
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
+
+    Gslb request = argument.getValue();
+
+    Set<String> cnames = new HashSet<>(request.cnames());
+    assertThat(cnames.size(), is(3));
+    assertTrue(cnames.contains("plt.stg.coll.org.stg.cloud.xyz.com"));
+    assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
+    assertTrue(cnames.contains("p1.stg.coll.org.stg.cloud.xyz.com"));
+
+    List<Lb> lbs = request.lbs();
+    assertThat(lbs.size(), is(2));
+    assertThat(lbs.get(0).vip(), is("10.100.100.102"));
+    assertThat(lbs.get(0).cloud(), is("cl1"));
+    assertThat(lbs.get(0).enabledForTraffic(), is(true));
+
+    assertThat(lbs.get(1).vip(), is("10.100.101.103"));
+    assertThat(lbs.get(1).cloud(), is("cl2"));
+    assertThat(lbs.get(1).enabledForTraffic(), is(true));
+
+    List<CloudARecord> cloudARecords = request.cloudARecords();
+    assertThat(cloudARecords.size(), is(1));
+    CloudARecord cloudARecord = cloudARecords.get(0);
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
+    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
+
+    List<DcARecord> dcARecords = request.dcARecords();
+    assertThat(dcARecords.size(), is(1));
+    DcARecord dcARecord = dcARecords.get(0);
+    assertThat(dcARecord.aRecord(), is("plt.stg.coll.org.c1.stg.cloud.xyz.com"));
+    assertThat(dcARecord.vip(), is("10.100.100.102"));
+  }
+
+  @Test
+  public void lbWithCloudVipEnabledAndDifferentSubdomain() {
+    CmsWorkOrderSimple wo = woWith2Clouds();
+    wo.getRfcCi().setRfcAction("add");
+    addGdnsService(wo);
+    addLbVnames(wo, "10.100.100.102");
+    setLbVnamesForCloudVips(wo, "10.100.100.102", "10.100.101.103");
+    wo.getPayLoadEntry("Environment").get(0).addCiAttribute("subdomain", "coll.org");
+    fqdnExecutor.execute(wo, "/tmp");
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
+
+    Gslb request = argument.getValue();
+
+    Set<String> cnames = new HashSet<>(request.cnames());
+    assertThat(cnames.size(), is(3));
+    assertTrue(cnames.contains("plt.coll.org.stg.cloud.xyz.com"));
+    assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
+    assertTrue(cnames.contains("p1.coll.org.stg.cloud.xyz.com"));
+
+    List<Lb> lbs = request.lbs();
+    assertThat(lbs.size(), is(2));
+    assertThat(lbs.get(0).vip(), is("10.100.100.102"));
+    assertThat(lbs.get(0).cloud(), is("cl1"));
+    assertThat(lbs.get(0).enabledForTraffic(), is(true));
+
+    assertThat(lbs.get(1).vip(), is("10.100.101.103"));
+    assertThat(lbs.get(1).cloud(), is("cl2"));
+    assertThat(lbs.get(1).enabledForTraffic(), is(true));
+
+    List<CloudARecord> cloudARecords = request.cloudARecords();
+    assertThat(cloudARecords.size(), is(1));
+    CloudARecord cloudARecord = cloudARecords.get(0);
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
+    assertThat(cloudARecord.aRecord(), is("plt.coll.org.cloud1.stg.cloud.xyz.com"));
+
+    List<DcARecord> dcARecords = request.dcARecords();
+    assertThat(dcARecords.size(), is(1));
+    DcARecord dcARecord = dcARecords.get(0);
+    assertThat(dcARecord.aRecord(), is("plt.coll.org.c1.stg.cloud.xyz.com"));
+    assertThat(dcARecord.vip(), is("10.100.100.102"));
+  }
+
+  private void setLbVnamesForCloudVips(CmsWorkOrderSimple wo, String... vips) {
+    List<CmsRfcCISimple> lbs = wo.payLoad.get("lb");
+    int i = 0;
+    for (CmsRfcCISimple lb : lbs) {
+      Map<String, String> attributes = lb.getCiAttributes();
+      attributes.put("create_cloud_level_vips", "true");
+      String attribute =
+          "{\"plt.stg.coll.org.c1.stg.cloud.xyz.com-HTTP_80tcp-123214-lb\":\"" + vips[i++] + "\"}";
+      attributes.put("vnames", attribute);
+    }
+  }
+
   private void addLbVnames(CmsWorkOrderSimple wo, String dcVip) {
     Map<String, String> attributes = wo.getPayLoadEntry("DependsOn").get(0).getCiAttributes();
     String attribute =
@@ -963,6 +1060,14 @@ public class FqdnExecutorTest {
     HealthCheck hc51 = newHealthCheck(HTTPS, 443, "", true, 200);
     HealthCheck hc52 = newHealthCheck(HTTP, 80, "", false, 200);
     assertTrue(hcList.containsAll(Arrays.asList(hc51, hc52)));
+  }
+
+  @Test
+  public void shouldNotMatchIfLbIsMissing() {
+    CmsWorkOrderSimple wo = woWith2Clouds();
+    wo.payLoad.remove("DependsOn");
+    Response response = fqdnExecutor.execute(wo, "/tmp");
+    assertThat(response.getResult(), is(Result.NOT_MATCHED));
   }
 
   /** A helper method to create HealthCheck value class. */
