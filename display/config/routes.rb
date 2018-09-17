@@ -511,6 +511,14 @@ Display::Application.routes.draw do
 
       namespace :operations do
         resources :environments, :only => [:index, :show] do
+          get 'graph',          :on => :member
+          get 'notifications',  :on => :member
+          get 'search',         :on => :member
+          get 'cost',           :on => :member
+          get 'cost_rate',      :on => :member
+          get 'cost_estimate',  :on => :member
+          get 'health',         :on => :member
+
           resources :platforms, :only => [:index, :show] do
             resources :components, :only => [:index, :show] do
               get  'actions', :on => :member
@@ -559,13 +567,12 @@ Display::Application.routes.draw do
 
           resources :instances, :only => [:index]
 
-          get 'graph',          :on => :member
-          get 'notifications',  :on => :member
-          get 'search',         :on => :member
-          get 'cost',           :on => :member
-          get 'cost_rate',      :on => :member
-          get 'cost_estimate',  :on => :member
-          get 'health',         :on => :member
+          resource :timeline, :controller => '/timeline', :only => [:show] do
+            get 'page', :on => :member
+
+            resources :releases, :only => [:show]
+            resources :deployments, :only => [:show]
+          end
         end
 
         resources :instances, :only => [:update] do
