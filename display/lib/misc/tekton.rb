@@ -324,7 +324,7 @@ end
 def execute(action, *args)
   result = nil
   if action == 'version'
-    say 'CLI version:    1.1.3'
+    say 'CLI version:    1.1.4'
     info = tt_request('server/version', 'Getting tekton version')
     say "Tekton version: #{info.version} (#{info.timestamp})"
 
@@ -479,7 +479,10 @@ def execute(action, *args)
           elsif @params.transfer_buffer == 0
             say 'Buffer % is not set, will set total quota to the same value as usage.'.yellow
           end
+          force = @params.force
+          @params.force = true
           execute!('quota:set', sub, org, *sub_usage.to_a.map {|u, v| "#{u}=#{(v + v * @params.transfer_buffer).to_i}"}) if @params.transfer_buffer > 0
+          @params.force = force
         else
           say "Quota for #{sub.bold} in #{org.bold} already exists, will set usage only, use #{"'quota:set'".blue} action to set total quota values.".yellow
           sub_usage.delete_if {|u| limits[u]} if @params.only_missing
@@ -761,7 +764,18 @@ def execute(action, *args)
         org = tt_request("org/#{o}", "Fetching org '#{o}'")
         execute!('orgs:add', o) unless org
 
-        current = tt_request("quota/#{"usage/" if action.include?('usage:set')}#{s}/#{o}", 'Getting quota')
+        setting_usage = action.include?('usage:set')
+        unless setting_usage || @params.force
+          usage = tt_request("quota/usage/#{s}/#{o}", 'Getting quota')
+          no_usage_res = values.keys - usage.keys
+          if no_usage_res.size > 0
+            say "Some resources [#{no_usage_res.join(',')}] have no usage set.\nWill NOT set limits for these resources. Use '-f' to force limit update for all specified resources.".yellow
+            say 'Do you need to transfer usage first?'.bold
+            values.delete_if {|r| no_usage_res.include?(r)}
+          end
+        end
+
+        current = tt_request("quota/#{"usage/" if setting_usage}#{s}/#{o}", 'Getting quota')
         resolved_values = values.inject({}) do |h, (resource, expr)|
           if expr[0] == '='
             value = expr[1..-1].to_i
@@ -783,7 +797,7 @@ def execute(action, *args)
           end
           h
         end
-        tt_request("quota/#{"usage/" if action.include?('usage:set')}#{s}/#{o}", 'Updating quota', resolved_values) unless resolved_values.empty?
+        tt_request("quota/#{"usage/" if setting_usage}#{s}/#{o}", 'Updating quota', resolved_values) unless resolved_values.empty?
         execute('quota', s, o)
       end
     end
@@ -965,12 +979,12 @@ end
 
   'teams'                 => ['teams ORG [TEAM_REGEX]', 'list teams'],
   'teams:add'             => ['teams:add ORG TEAM_NAME [TEAM_DESCRIPTION]', 'add team'],
-  'teams:remove'          => ['teams:add ORG TEAM_NAME', 'remove team'],
+  'teams:remove'          => ['teams:remove ORG TEAM_NAME', 'remove team'],
 
   'team:users'            => ['team:users ORG TEAM [TEAM_REGEX]', 'list team users (both regular and admin usres)'],
-  'team:users:add'        => ['users:add ORG TEAM USERNAME...', 'add users (regular, non-admin) to team (resets team admin status if user is team admin)'],
-  'team:users:remove'     => ['users:remove ORG TEAM USERNAME...', 'remove users from team'],
-  'team:admins:add'       => ['users:add ORG TEAM USERNAME...', "add team admin user to team (makes user a team admin if user is alrady on the team)\n"],
+  'team:users:add'        => ['team:users:add ORG TEAM USERNAME...', 'add users (regular, non-admin) to team (resets team admin status if user is team admin)'],
+  'team:users:remove'     => ['team:users:remove ORG TEAM USERNAME...', 'remove users from team'],
+  'team:admins:add'       => ['team:users:add ORG TEAM USERNAME...', "add team admin user to team (makes user a team admin if user is alrady on the team)\n"],
 
   'resources'             => ['resources', 'list resource types'],
   'resources:add'         => ['resources:add  [-f]', "add resource type\n"],
@@ -1078,7 +1092,7 @@ __COLOR = true
 
   opts.on('-r', '--refresh [SECONDS]', 'Refresh interval for quota commands') {|i| @params.refresh = i.to_i; @params.refresh = 10 if @params.refresh == 0}
 
-  opts.on('-f', '--force', 'Force update if already exists') {@params.force = true}
+  opts.on('-f', '--force', 'Force operation to overwrite warnings (used in the context of certain actions)') {@params.force = true}
   opts.on('--omr', '--only-missing-resources', "Transfer usage only for resources missing quota (when there is already quota set up for at least one other resource (for a given subscription and org); use with '-f' option") {@params.only_missing = true}
   opts.on('--mismatch', 'Show usage mismatch only') {@params.mismatch_only = true}
   opts.on('--fix', 'Fix usage mismatch by transfering usage number from OneOps to the corresponding soft quotas in Tekton') {@params.fix_mismatch = true}
@@ -1108,7 +1122,7 @@ if @repl
     File.read(HISTORY_FILE_NAME).split("\n").each {|c| Readline::HISTORY << c}
   end
 
-  prompt = "#{'>>> '.invert!}"
+  prompt = "#{">>>#{' ' * 60}\r>>> ".invert!}"
   while input = Readline.readline(prompt, true).strip
     blurt ''.invert
     if input.empty?
