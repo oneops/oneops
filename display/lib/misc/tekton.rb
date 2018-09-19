@@ -324,7 +324,7 @@ end
 def execute(action, *args)
   result = nil
   if action == 'version'
-    say 'CLI version:    1.1.4'
+    say 'CLI version:    1.1.6'
     info = tt_request('server/version', 'Getting tekton version')
     say "Tekton version: #{info.version} (#{info.timestamp})"
 
@@ -609,9 +609,9 @@ def execute(action, *args)
     result.sort_by(&:name).each {|o| say o.name}
 
   elsif action == 'orgs:add'
-    org = args[0]
-    org = tt_request("org/#{org}", "Fetching org '#{org}'")
-    tt_request('org', "Org #{org} is missing, creating", {:name => org}) unless org
+    org_name = args[0]
+    org = tt_request("org/#{org_name}", "Fetching org '#{org_name}'")
+    tt_request('org', "Org #{org_name} is missing, creating", {:name => org_name}) unless org
 
   elsif action == 'teams'
     org, team_regex, _ = args
@@ -622,7 +622,7 @@ def execute(action, *args)
       team_regex = /#{team_regex}/
       result = result.select {|t| t.name =~ team_regex}
     end
-    result.sort_by(&:name).each {|t| say "#{t.name.bold} =>\n  #{t.description}"}
+    result.sort_by(&:name).each {|t| say "#{t.name.bold} #{"(#{t.description})" unless t.description.empty?}"}
 
   elsif action == 'teams:add'
     org, name, desc, _ = args
@@ -663,13 +663,13 @@ def execute(action, *args)
     org, team_name, *usernames = args
     required_arg('username', usernames)
     users = usernames.map {|u| {:username => u}}
-    execute('users:add:internal', org, team_name, users)
+    execute('team:users:add:internal', org, team_name, users)
 
   elsif action == 'team:admins:add'
     org, team_name, *usernames = args
     required_arg('username', usernames)
     admins = usernames.map {|u| {:username => u, :role => 'MAINTAINER'}}
-    execute('users:add:internal', org, team_name, admins)
+    execute('team:users:add:internal', org, team_name, admins)
 
   elsif action == 'team:users:add:internal'
     org, team_name, users = args
@@ -742,9 +742,9 @@ def execute(action, *args)
     end
 
   elsif action == 'quota:set' || action == 'usage:set'
-    sub_name, org, *resources = args
+    sub_name, org_name, *resources = args
     required_arg('subscription', sub_name)
-    required_arg('org', org)
+    required_arg('org', org_name)
     values = resources && resources.inject({}) do |h, u|
       name, _ = u.split(/[+-]?[=]/, 2)
       expr = u[name.size..-1]
@@ -753,9 +753,9 @@ def execute(action, *args)
     end
     required_arg('resources', values)
 
-    subs = execute('sub:prompt', sub_name, org)
+    subs = execute('sub:prompt', sub_name, org_name)
     subs.each do |s|
-      orgs = execute('org:prompt', s, org)
+      orgs = execute('org:prompt', s, org_name)
       orgs.each do |o|
 
         sub = tt_request("subscription/#{s}", "Fetching subscription '#{s}'")
@@ -984,7 +984,7 @@ end
   'team:users'            => ['team:users ORG TEAM [TEAM_REGEX]', 'list team users (both regular and admin usres)'],
   'team:users:add'        => ['team:users:add ORG TEAM USERNAME...', 'add users (regular, non-admin) to team (resets team admin status if user is team admin)'],
   'team:users:remove'     => ['team:users:remove ORG TEAM USERNAME...', 'remove users from team'],
-  'team:admins:add'       => ['team:users:add ORG TEAM USERNAME...', "add team admin user to team (makes user a team admin if user is alrady on the team)\n"],
+  'team:admins:add'       => ['team:admins:add ORG TEAM USERNAME...', "add team admin user to team (makes user a team admin if user is alrady on the team)\n"],
 
   'resources'             => ['resources', 'list resource types'],
   'resources:add'         => ['resources:add  [-f]', "add resource type\n"],
@@ -1122,9 +1122,8 @@ if @repl
     File.read(HISTORY_FILE_NAME).split("\n").each {|c| Readline::HISTORY << c}
   end
 
-  prompt = "#{">>>#{' ' * 60}\r>>> ".invert!}"
+  prompt = "#{'>>>'.invert} "
   while input = Readline.readline(prompt, true).strip
-    blurt ''.invert
     if input.empty?
       Readline::HISTORY.pop
     elsif input.start_with?('hist')
