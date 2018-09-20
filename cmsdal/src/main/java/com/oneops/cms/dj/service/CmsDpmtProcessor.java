@@ -50,7 +50,7 @@ import java.util.stream.Stream;
  */
 public class CmsDpmtProcessor {
 
-  public static final String OPEN_DEPLOYMENT_REGEXP = "active|failed|paused";
+  public static final String OPEN_DEPLOYMENT_REGEXP = "active|failed|paused|pending";
   static Logger logger = Logger.getLogger(CmsDpmtProcessor.class);
 
   private DJMapper djMapper;
