@@ -258,6 +258,9 @@ public class Listener implements MessageListener, ApplicationContextAware {
   private Response runWoWithMatchingExecutor(CmsWorkOrderSimple wo) {
     preExecTags(wo);
     Response response;
+    if (config.isCloudStubbed(wo)) {
+      return Response.getNotMatchingResponse();
+    }
     if (config.isVerifyMode()) {
       response = classMatchingWoExecutor.executeAndVerify(wo, config.getDataDir());
     }
@@ -269,6 +272,9 @@ public class Listener implements MessageListener, ApplicationContextAware {
 
   private Response runAoWithMatchingExecutor(CmsActionOrderSimple ao) {
     preExecTags(ao);
+    if (config.isCloudStubbed(ao)) {
+      return Response.getNotMatchingResponse();
+    }
     return classMatchingWoExecutor.execute(ao, config.getDataDir());
   }
 
