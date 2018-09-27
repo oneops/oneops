@@ -36,6 +36,7 @@ public class OneOpsFacade {
 
     private String adapterBaseUrl ;
     private String antennaBaseUrl ;
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private Gson gson;
     OkHttpClient client = new OkHttpClient();
@@ -173,13 +174,16 @@ public class OneOpsFacade {
         return responseCode;
     }
 
-    public Deployment scaleDown(long platformId, int scaleDownByNumber, String userId) throws IOException, OneOpsException {
+    public Deployment scaleDown(long platformId, int scaleDownByNumber, int minComputesInEachCloud, String userId)
+            throws IOException, OneOpsException {
         HashMap<String, String> params = new HashMap<>();
+        params.put("scaleDownBy", String.valueOf(scaleDownByNumber));
+        params.put("minComputesInEachCloud", String.valueOf(minComputesInEachCloud));
 
-        log.info("scaling down platform id: {}", platformId);
         RequestBody body = RequestBody.create(JSON, gson.toJson(params));
+        String url = transistorBaseUrl + "/transistor/rest/platforms/" +  + platformId + "/deployments/scaledown";
+        log.info("scaling down platform id: {} , url: {}", platformId, url);
 
-        String url = transistorBaseUrl + "/transistor/rest/platforms/{platformId}/deployments/scaledown" + platformId;
         Request request = new Request.Builder()
                 .url(url)
                 .addHeader("X-Cms-User", userId)
@@ -199,6 +203,51 @@ public class OneOpsFacade {
             return gson.fromJson(responseBody, Deployment.class);
         }
         return null;
+    }
+
+    public int disableVerify(Environment env, String userName) throws IOException, OneOpsException {
+
+        String envCiJson = getCiJson(env.getId());
+        envCiJson = envCiJson.replace("\"verify\":\"default\"", "\"verify\":\"false\"");
+        envCiJson = envCiJson.replace("\"verify\":\"true\"", "\"verify\":\"false\"");
+
+        RequestBody body = RequestBody.create(JSON, envCiJson);
+
+        String url = adapterBaseUrl + "/adapter/rest/cm/simple/cis/" + env.getId();
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("X-Cms-User", userName)
+                .addHeader("Content-Type", "application/json")
+                .put(body)
+                .build();
+
+        Response response = client.newCall(request).execute();
+        String responseBody = response.body().string();
+        int responseCode = response.code();
+        log.info("OO response body: " + responseBody + ", code: " + responseCode);
+        if (! response.isSuccessful()) {
+            throw new OneOpsException("Error while disabling verify. Response from OneOps: " + responseBody
+                    + " ResponseCode : " + responseCode);
+        }
+        return responseCode;
+    }
+
+    public String getCiJson(long ciId) throws IOException {
+        String url = adapterBaseUrl + "/adapter/rest/cm/simple/cis/" + ciId;
+
+        Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .build();
+
+        Response response = client.newCall(request).execute();
+        String responseBody = response.body().string();
+        int responseCode = response.code();
+        if (! response.isSuccessful()) {
+            throw new RuntimeException("Error in getCi api. Response from OneOps: " + responseBody
+                    + " ResponseCode : " + responseCode);
+        }
+        return responseBody;
     }
 }
 

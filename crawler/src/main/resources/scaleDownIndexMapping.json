@@ -1,120 +1,120 @@
 {
   "mappings": {
-    "platform": {
+    "scaleDownDetails" : {
       "properties": {
-        "environmentId": {
-          "type": "integer"
-        },
-        "envProfile": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "createdTS": {
-          "type": "date",
-          "format": "yyyy-MM-dd:HH:mm:ss z",
-          "index": "not_analyzed"
-        },
-        "nsPath": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
         "platform": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "ooUrl": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "assembly": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "env": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "pack": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "org": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "packVersion": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "source": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "sourcePack": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "primaryClouds": {
-          "type": "string"
-        },
-        "secondaryClouds": {
-          "type": "string"
-        },
-        "activeClouds": {
-          "type": "string"
-        },
-        "offlineClouds": {
-          "type": "string"
-        },
-        "totalCores": {
-          "type": "integer"
-        },
-        "totalComputes": {
-          "type": "integer"
-        },
-        "organization": {
           "properties": {
-            "full_name": {
+            "environmentId": {
+              "type": "integer"
+            },
+            "envProfile": {
               "type": "string",
               "index": "not_analyzed"
             },
-            "owner": {
+            "createdTS": {
+              "type": "date",
+              "format": "yyyy-MM-dd:HH:mm:ss z",
+              "index": "not_analyzed"
+            },
+            "nsPath": {
               "type": "string",
               "index": "not_analyzed"
             },
-            "description": {
+            "ooUrl": {
               "type": "string",
               "index": "not_analyzed"
             },
-            "tags": {
+            "assembly": {
+              "type": "string",
+              "index": "not_analyzed"
+            },
+            "env": {
+              "type": "string",
+              "index": "not_analyzed"
+            },
+            "pack": {
+              "type": "string",
+              "index": "not_analyzed"
+            },
+            "org": {
+              "type": "string",
+              "index": "not_analyzed"
+            },
+            "packVersion": {
+              "type": "string",
+              "index": "not_analyzed"
+            },
+            "source": {
+              "type": "string",
+              "index": "not_analyzed"
+            },
+            "sourcePack": {
+              "type": "string",
+              "index": "not_analyzed"
+            },
+            "primaryClouds": {
+              "type": "string"
+            },
+            "secondaryClouds": {
+              "type": "string"
+            },
+            "activeClouds": {
+              "type": "string"
+            },
+            "offlineClouds": {
+              "type": "string"
+            },
+            "totalCores": {
+              "type": "integer"
+            },
+            "totalComputes": {
+              "type": "integer"
+            },
+            "organization": {
               "properties": {
-                "CCCID": {
+                "full_name": {
                   "type": "string",
                   "index": "not_analyzed"
                 },
-                "VP": {
+                "owner": {
                   "type": "string",
                   "index": "not_analyzed"
                 },
-                "pillar": {
+                "description": {
                   "type": "string",
                   "index": "not_analyzed"
                 },
-                "dept": {
-                  "type": "string",
-                  "index": "not_analyzed"
-                },
-                "costcenter": {
-                  "type": "string",
-                  "index": "not_analyzed"
-                },
-                "CTOdirect": {
-                  "type": "string",
-                  "index": "not_analyzed"
-                },
-                "CTO": {
-                  "type": "string",
-                  "index": "not_analyzed"
+                "tags": {
+                  "properties": {
+                    "CCCID": {
+                      "type": "string",
+                      "index": "not_analyzed"
+                    },
+                    "VP": {
+                      "type": "string",
+                      "index": "not_analyzed"
+                    },
+                    "pillar": {
+                      "type": "string",
+                      "index": "not_analyzed"
+                    },
+                    "dept": {
+                      "type": "string",
+                      "index": "not_analyzed"
+                    },
+                    "costcenter": {
+                      "type": "string",
+                      "index": "not_analyzed"
+                    },
+                    "CTOdirect": {
+                      "type": "string",
+                      "index": "not_analyzed"
+                    },
+                    "CTO": {
+                      "type": "string",
+                      "index": "not_analyzed"
+                    }
+                  }
                 }
               }
             }

@@ -27,10 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class OneOpsPlatformScaleDownPlugin extends AbstractCrawlerPlugin {
     public static final String SCALE_DOWN_USER_ID = "OneOps-ScaleDown";
@@ -40,18 +37,17 @@ public class OneOpsPlatformScaleDownPlugin extends AbstractCrawlerPlugin {
     private SearchDal searchDal;
     private ThanosClient thanosClient;
     private boolean esEnabled = false;
-
     private String indexName = "ooscaledown";
 
     public OneOpsPlatformScaleDownPlugin() {
         setPluginName(pluginName);
+        ooFacade = new OneOpsFacade();
+        searchDal = new SearchDal();
+        thanosClient = new ThanosClient();
         init();
         if (!isEnabled()) {
             return;
         }
-        ooFacade = new OneOpsFacade();
-        searchDal = new SearchDal();
-        thanosClient = new ThanosClient();
     }
 
     public void init() {
@@ -61,6 +57,7 @@ public class OneOpsPlatformScaleDownPlugin extends AbstractCrawlerPlugin {
         }
     }
 
+    @Override
     public void cleanup() {
         try {
             searchDal.flush(indexName);
@@ -96,6 +93,11 @@ public class OneOpsPlatformScaleDownPlugin extends AbstractCrawlerPlugin {
     }
 
     @Override
+    public void configureSecrets(Properties props) {
+        thanosClient.configure(props);
+    }
+
+    @Override
     public void processEnvironment(Environment env, Map<String, Organization> organizations) {
         log.info("Got environment : " + env.getId() + " path: " + env.getPath() + "/" + env.getName()
                 + " Total platforms: " + env.getPlatforms().size());
@@ -118,58 +120,95 @@ public class OneOpsPlatformScaleDownPlugin extends AbstractCrawlerPlugin {
         }
     }
 
+    @Override
+    protected boolean isPlatformEligible(Platform platform) {
+        if (shouldCheckForAutoReplace()) {
+            log.info("platform {} auto-replace flag is {}", platform.getPath(), platform.isAutoReplaceEnabled());
+            return platform.isAutoReplaceEnabled();
+        }
+        return true;
+    }
+
     private void processCloudStats(Platform platform,
                                    ArrayList<ThanosClient.CloudResourcesUtilizationStats> cloudResourcesUtilizationStats)
             throws IOException, OneOpsException {
 
-        if (cloudResourcesUtilizationStats.size() == 0) {
+        if (cloudResourcesUtilizationStats == null || cloudResourcesUtilizationStats.size() == 0) {
             log.info(platform.getId() + " platform has no cloudStats to process");
             return;
         }
 
         int scaleDownByNumber = 0;
-        int totalReclaim = 0;
+        int scaleDownByCores = 0;
+        int totalReclaimVms = 0;
+        int totalReclaimCores = 0;
+        int minComputesInEachCloud = 0;
 
         log.info("processing cloudStats: " + new Gson().toJson(cloudResourcesUtilizationStats));
         //Now for each cloud in that platform, process the stats and call scale-down oo api if eligible
         for (ThanosClient.CloudResourcesUtilizationStats stats : cloudResourcesUtilizationStats) {
-            int reclaimCountForThisCloud = stats.getReclaim_vms();
+
+            if (! stats.shouldReclaim()) {
+                log.info("no reclaim becuase thanos api response says not to. For platform: " + platform.getPath());
+                return;
+            }
+            if (ThanosClient.STATUS_EXECUTED.equalsIgnoreCase(stats.getReclaimStatus())) {
+                log.info("scale down already executed, not doing again: {} {}", platform.getPath(), platform.getId());
+                return;
+            }
+            int reclaimCountForThisCloud = (int) Math.ceil(stats.getReclaimVms());
+            int reclaimCoresForThisCloud = (int) Math.ceil(stats.getReclaimCores());
+            int minComputesForThisCloud = (int) Math.ceil(stats.getMinClusterSize());
+
             if ( reclaimCountForThisCloud > 0) {
                 if (scaleDownByNumber == 0) {
                     scaleDownByNumber = reclaimCountForThisCloud;
+                    scaleDownByCores = reclaimCoresForThisCloud;
                 } else if (reclaimCountForThisCloud < scaleDownByNumber) {
                     log.info("The reclaim count is not even for this platform: "
                             + platform.getPath() + " id: " + platform.getId() + ". Will use min of all");
                     scaleDownByNumber = reclaimCountForThisCloud;
+                    scaleDownByCores = reclaimCoresForThisCloud;
                 }
-                totalReclaim = totalReclaim + scaleDownByNumber;
+                totalReclaimVms = totalReclaimVms + scaleDownByNumber;
+                totalReclaimCores = totalReclaimCores + scaleDownByCores;
+            }
+            if (minComputesForThisCloud > minComputesInEachCloud) {
+                minComputesInEachCloud = minComputesForThisCloud;
             }
         }
         if (scaleDownByNumber > 0) {
-            scaleDown(scaleDownByNumber, totalReclaim, platform, cloudResourcesUtilizationStats);
+            scaleDown(scaleDownByNumber, minComputesInEachCloud, totalReclaimVms, totalReclaimCores,
+                    platform, cloudResourcesUtilizationStats);
         }
     }
 
-    private void scaleDown(int scaleDownByNumber, int totalReclaim, Platform platform,
+    private void scaleDown(int scaleDownByNumber, int minComputesInEachCloud, int totalReclaimVms, int totalReclaimCores,
+                           Platform platform,
                            ArrayList<ThanosClient.CloudResourcesUtilizationStats> cloudResourcesUtilizationStats)
             throws IOException, OneOpsException {
 
         if (scaleDownByNumber != 0) {
             log.info("will scale down for this platform: " + platform.getPath() + " id: " + platform.getId());
-            PlatformRecord record = new PlatformRecord();
+            ScaleDownDetails record = new ScaleDownDetails();
             record.setCloudResourcesUtilizationStats(cloudResourcesUtilizationStats);
             record.setPlatform(platform);
-            record.setPotentialReclaimCount(totalReclaim);
+            record.setVmReclaimCount(totalReclaimVms);
+            record.setCoresReclaimCount(totalReclaimCores);
             if (isScaleDownEnabled()) {
                 log.warn("Doing actual scale down for platform " + platform.getId());
-                Deployment deployment = ooFacade.scaleDown(platform.getId(), scaleDownByNumber, SCALE_DOWN_USER_ID);
+                Deployment deployment = ooFacade.scaleDown(platform.getId(), scaleDownByNumber,
+                        minComputesInEachCloud, SCALE_DOWN_USER_ID);
                 if (deployment != null && deployment.getDeploymentId() > 0) {
-                    log.info("Deployment submitted for platform {} id: {}" + platform.getPath(), platform.getId());
-                    searchDal.post(getIndexName(), "platform", record);
+                    log.info("Deployment submitted for platform {} id: {} , deployment id: "
+                            + platform.getPath(), platform.getId(), deployment.getDeploymentId());
+                    thanosClient.updateStatus(platform.getPath(), ThanosClient.STATUS_EXECUTED);
                 } else {
                     throw new RuntimeException("Deployment id not valid or deployment not submitted for platform: "
                             + platform.getPath());
                 }
+            } else {
+                searchDal.post(getIndexName(), "scaleDownDetails", record);
             }
         }
     }
@@ -183,6 +222,17 @@ public class OneOpsPlatformScaleDownPlugin extends AbstractCrawlerPlugin {
             }
         }
         return false;
+    }
+
+    private boolean shouldCheckForAutoReplace() {
+        HashMap<String, String> customConfigs = getConfig().getCustomConfigs();
+        if (customConfigs != null) {
+            String autoReplaceCheck = customConfigs.get("checkAutoReplace");
+            if (autoReplaceCheck != null) {
+                return Boolean.parseBoolean(autoReplaceCheck);
+            }
+        }
+        return true;
     }
 
     private void analyzeLastScaleDownRun(Environment env) {

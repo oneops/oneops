@@ -49,6 +49,7 @@ public class ScaleDownTest {
         platform_1.setTotalComputes(10);
         platform_1.setTotalCores(40);
         platform_1.setEnable("enable");
+        platform_1.setAutoReplaceEnabled(true);
 
         ArrayList<String> clouds = new ArrayList<>();
         clouds.add("cdc1");
@@ -62,6 +63,7 @@ public class ScaleDownTest {
         platform_2.setTotalComputes(100);
         platform_2.setTotalCores(400);
         platform_2.setEnable("enable");
+        platform_2.setAutoReplaceEnabled(true);
 
         clouds = new ArrayList<>();
         clouds.add("testCloud");
@@ -97,10 +99,17 @@ public class ScaleDownTest {
         CloudResourcesUtilizationStats cloudStats_dfw_Platform_2 = new CloudResourcesUtilizationStats();
 
 
-        cloudStats_dal_Platform_1.setReclaim_vms(3);
-        cloudStats_dfw_Platform_1.setReclaim_vms(2);
+        cloudStats_dal_Platform_1.setReclaimVms(3);
+        cloudStats_dfw_Platform_1.setReclaimVms(2);
+        cloudStats_dal_Platform_1.setMinClusterSize(4);
+        cloudStats_dal_Platform_1.setReclaim("yes");
+        cloudStats_dfw_Platform_1.setMinClusterSize(5);
 
-        cloudStats_dfw_Platform_2.setReclaim_vms(0);
+        cloudStats_dfw_Platform_2.setReclaimVms(0);
+        cloudStats_dfw_Platform_2.setMinClusterSize(4);
+
+        cloudStats_dal_Platform_1.setReclaim("yes");
+        cloudStats_dfw_Platform_1.setReclaim("yes");
 
         ArrayList<CloudResourcesUtilizationStats> cloudStats_1 = new ArrayList<CloudResourcesUtilizationStats>();
         cloudStats_1.add(cloudStats_dal_Platform_1);
@@ -118,11 +127,49 @@ public class ScaleDownTest {
 
         //make sure the scale down was called for platform having non-zero reclaim number returned by thanos
         Mockito.verify(ooFacade, Mockito.times(1)).scaleDown(platform_1.getId(),
-                2, OneOpsPlatformScaleDownPlugin.SCALE_DOWN_USER_ID);
+                2, 5, OneOpsPlatformScaleDownPlugin.SCALE_DOWN_USER_ID);
 
         //make sure the scale down was not called for the platform having 0 reclaim count
         Mockito.verify(ooFacade, Mockito.times(0)).scaleDown(Mockito.eq(platform_2.getId()),
-                Mockito.anyInt(), Mockito.any());
+                Mockito.anyInt(), Mockito.anyInt(), Mockito.any());
+    }
+
+    @Test
+    public void testForAutoReplaceFlag() throws Exception {
+        CloudResourcesUtilizationStats cloudStats_dal_Platform_1 = new CloudResourcesUtilizationStats();
+        CloudResourcesUtilizationStats cloudStats_dfw_Platform_1 = new CloudResourcesUtilizationStats();
+
+        CloudResourcesUtilizationStats cloudStats_dfw_Platform_2 = new CloudResourcesUtilizationStats();
+
+
+        cloudStats_dal_Platform_1.setReclaimVms(3);
+        cloudStats_dfw_Platform_1.setReclaimVms(2);
+        cloudStats_dal_Platform_1.setMinClusterSize(4);
+        cloudStats_dfw_Platform_1.setMinClusterSize(5);
+
+        cloudStats_dfw_Platform_2.setReclaimVms(0);
+        cloudStats_dfw_Platform_2.setMinClusterSize(4);
+
+
+        ArrayList<CloudResourcesUtilizationStats> cloudStats_1 = new ArrayList<CloudResourcesUtilizationStats>();
+        cloudStats_1.add(cloudStats_dal_Platform_1);
+        cloudStats_1.add(cloudStats_dfw_Platform_1);
+
+        ArrayList<CloudResourcesUtilizationStats> cloudStats_2 = new ArrayList<CloudResourcesUtilizationStats>();
+        cloudStats_2.add(cloudStats_dfw_Platform_2);
+
+        Mockito.when(thanosClient.getStats(Mockito.eq(platform_1.getPath())))
+                .thenReturn(cloudStats_1);
+        Mockito.when(thanosClient.getStats(Mockito.eq(platform_2.getPath())))
+                .thenReturn(cloudStats_2);
+
+        platform_1.setAutoReplaceEnabled(false);
+        platform_2.setAutoReplaceEnabled(false);
+        plugin.processEnvironment(env, organizationsMapCache);
+
+        //make sure the scale down was not called for the platform having auto-repalce = off
+        Mockito.verify(ooFacade, Mockito.times(0)).scaleDown(Mockito.eq(platform_1.getId()),
+                Mockito.anyInt(), Mockito.anyInt(), Mockito.any());
     }
 
     @Test
@@ -130,8 +177,8 @@ public class ScaleDownTest {
         CloudResourcesUtilizationStats cloudStats_dal_Platform_1 = new CloudResourcesUtilizationStats();
         CloudResourcesUtilizationStats cloudStats_dfw_Platform_1 = new CloudResourcesUtilizationStats();
 
-        cloudStats_dal_Platform_1.setReclaim_vms(3);
-        cloudStats_dfw_Platform_1.setReclaim_vms(2);
+        cloudStats_dal_Platform_1.setReclaimVms(3);
+        cloudStats_dfw_Platform_1.setReclaimVms(2);
 
         ArrayList<CloudResourcesUtilizationStats> cloudStats_1 = new ArrayList<CloudResourcesUtilizationStats>();
         cloudStats_1.add(cloudStats_dal_Platform_1);
@@ -146,7 +193,7 @@ public class ScaleDownTest {
 
         //make sure the scale down was not called at all
         Mockito.verify(ooFacade, Mockito.times(0)).scaleDown(Mockito.anyLong(),
-                Mockito.anyInt(), Mockito.any());
+                Mockito.anyInt(), Mockito.anyInt(), Mockito.any());
     }
 }
 

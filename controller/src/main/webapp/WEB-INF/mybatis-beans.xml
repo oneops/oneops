@@ -147,6 +147,7 @@
 		<property name="nsMapper" ref="nsMapper" />
 		<property name="rfcProcessor" ref="cmsRfcProcessor" />
         <property name="capacityProcessor" ref="capacityProcessor"/>
+        <property name="djMapper" ref="djMapper"/>
     </bean>
 
 
@@ -191,6 +192,8 @@
 	    <property name="offeringMatcher" ref="offeringMatcher" />
 		<property name="expressionEvaluator" ref="expressionEvaluator" />
 		<property name="controllerCache" ref="controllerCache" />
+        <property name="gslbWeightsEnabled" value="${GSLB_WEIGHTS_ENABLED:false}" />
+        <property name="requiresComputesCheckEnabled" value="${REQUIRES_COMPUTES_CHECK_ENABLED:false}" />
 	</bean>
 	
 	<bean id="expressionEvaluator" class="com.oneops.controller.cms.ExpressionEvaluator">
@@ -212,5 +215,6 @@
         <property name="cmProcessor" ref="cmsCmProcessor" />
         <property name="rfcProcessor" ref="cmsRfcProcessor" />
         <property name="tektonClient" ref="tektonClient" />
+        <property name="exprParser" ref="exprParser"/>
     </bean>
 </beans>

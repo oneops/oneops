@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
-  <version>18.07.28-2-SNAPSHOT</version>
+  <version>18.08.31-16-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>OneOps</name>
   <url>http://oneops.com</url>
@@ -93,7 +93,9 @@
     <jsr305.version>3.0.2</jsr305.version>
     <qpid-jms-client.version>0.28.0</qpid-jms-client.version>
     <snakeyaml.version>1.19</snakeyaml.version>
-    <torbit.gslb.version>1.1.5</torbit.gslb.version>
+    <torbit.gslb.version>1.1.9</torbit.gslb.version>
+    <dnsjava.version>2.1.8</dnsjava.version>
+    <failsafe.version>1.1.0</failsafe.version>
   </properties>
 
   <modules>
@@ -709,15 +711,25 @@
         <version>${jsr305.version}</version>
       </dependency>
       <!-- Begin: Added dependency to connect to Azure Service Bus -->
- 	<dependency>
- 		<groupId>org.apache.qpid</groupId>
- 		<artifactId>qpid-jms-client</artifactId>
- 		<version>${qpid-jms-client.version}</version>
- 	</dependency>
- 	<!-- End: Added dependency to connect to Azure Service Bus -->
-
+      <dependency>
+        <groupId>org.apache.qpid</groupId>
+        <artifactId>qpid-jms-client</artifactId>
+        <version>${qpid-jms-client.version}</version>
+      </dependency>
+      <!-- End: Added dependency to connect to Azure Service Bus -->
+      <dependency>
+        <groupId>dnsjava</groupId>
+        <artifactId>dnsjava</artifactId>
+        <version>${dnsjava.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>net.jodah</groupId>
+        <artifactId>failsafe</artifactId>
+        <version>${failsafe.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
+
   <build>
     <pluginManagement>
       <plugins>

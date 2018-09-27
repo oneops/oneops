@@ -24,6 +24,7 @@ import static com.oneops.cms.util.CmsConstants.SEARCH_TS_PATTERN;
 import static com.oneops.inductor.InductorConstants.ACTION_ORDER_TYPE;
 import static com.oneops.inductor.InductorConstants.SEARCH_TS_FORMATS;
 import static com.oneops.inductor.InductorConstants.WORK_ORDER_TYPE;
+import static com.oneops.inductor.InductorConstants.ADD_FAIL_CLEAN;
 import static org.apache.commons.httpclient.util.DateUtil.formatDate;
 import static org.apache.commons.httpclient.util.DateUtil.parseDate;
 
@@ -195,6 +196,11 @@ public class Listener implements MessageListener, ApplicationContextAware {
             Response response = runWoWithMatchingExecutor((CmsWorkOrderSimple)wo);
             if (response == null || response.getResult() == Result.NOT_MATCHED) {
               responseMsgMap = workOrderExecutor.processAndVerify(wo, correlationID);
+
+              if(computeKciFailed(responseMsgMap)) {
+                CmsWorkOrderSimple workorder = updateWorkOrderWithAction(wo, ADD_FAIL_CLEAN);
+                workOrderExecutor.process(workorder, correlationID);
+              }
             }
             else {
               responseMsgMap = response.getResponseMap();
@@ -252,6 +258,9 @@ public class Listener implements MessageListener, ApplicationContextAware {
   private Response runWoWithMatchingExecutor(CmsWorkOrderSimple wo) {
     preExecTags(wo);
     Response response;
+    if (config.isCloudStubbed(wo)) {
+      return Response.getNotMatchingResponse();
+    }
     if (config.isVerifyMode()) {
       response = classMatchingWoExecutor.executeAndVerify(wo, config.getDataDir());
     }
@@ -263,6 +272,9 @@ public class Listener implements MessageListener, ApplicationContextAware {
 
   private Response runAoWithMatchingExecutor(CmsActionOrderSimple ao) {
     preExecTags(ao);
+    if (config.isCloudStubbed(ao)) {
+      return Response.getNotMatchingResponse();
+    }
     return classMatchingWoExecutor.execute(ao, config.getDataDir());
   }
 
@@ -391,5 +403,16 @@ public class Listener implements MessageListener, ApplicationContextAware {
 
   public MetricRegistry getRegistry() {
     return registry;
+  }
+
+  public boolean computeKciFailed(Map<String, String> responseMsgMap) {
+    return responseMsgMap.containsKey("compute_kci_failure");
+  }
+
+  public CmsWorkOrderSimple updateWorkOrderWithAction(CmsWorkOrderSimpleBase wo, String action) {
+    CmsWorkOrderSimple workorder = (CmsWorkOrderSimple) wo;
+    workorder.getRfcCi().setRfcAction(action);
+    workorder.getSearchTags().put("rfcAction", action);
+    return workorder;
   }
 }

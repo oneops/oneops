@@ -10,15 +10,13 @@ require 'readline'
 SESSION_FILE_NAME  = '.tekton'
 HISTORY_FILE_NAME  = '.tekton_hist'
 
-@use_session = true   #  Set to fails  and swtich to FQDN to disable session auth.
+@use_session = false   #  Set to fails  and swtich to FQDN to disable session auth.
 
 TEKTON_HOSTS = {:local => 'http://localhost:9000',
                 :dev   => 'http://tekton.dev.prod.walmart.com',
-                :stg   => 'http://tekton-service.stg.tekton.oneops.cdcstg2.prod.walmart.com:9000',
-                :prod  => 'http://10.120.185.120:9000'}
-                # :prod  => 'http://10.227.217.183:9000'}
-                # :prod  => 'http://10.227.209.74:9000'}
-                # :prod  => 'http://tekton.prod0718.walmart.com'}
+                :stg   => 'http://tekton.stg.prod.walmart.com:9000',
+                # :prod  => 'http://10.120.220.37:9000'}
+                :prod  => 'http://tekton.prod0718.walmart.com'}
 TEKTON_HOSTS[:default] = TEKTON_HOSTS[:prod]
 
 ONEOPS_HOSTS = {:local => 'http://localhost:8080/',
@@ -38,17 +36,21 @@ class NilClass
 end
 
 class String
-  [[:bold, "\e[1m"], [:red, "\e[31m"], [:green, "\e[32m"], [:yellow, "\e[33m"], [:blue, "\e[34m"]].each do |(name, code)|
+  @@with_color = true
+  def self.with_color=(val)
+    @@with_color = val
+  end
+
+  [[:bold, "\e[1m"], [:invert, "\e[7m"], [:red, "\e[31m"], [:green, "\e[32m"], [:yellow, "\e[33m"], [:blue, "\e[34m"]].each do |(name, code)|
     define_method(name) {|background = false|
-      "\e[0m#{"\e[7m" if background}#{code}#{self}\e[0m"
+      @@with_color ? "#{send("#{name}!", background)}\e[0m" : self
+    }
+    define_method("#{name}!".to_sym) {|background = false|
+      @@with_color ? "\e[0m#{"\e[7m" if background}#{code}#{self}" : self
     }
   end
 
-  def start_with?(pattern)
-    pattern ? (self =~ /^#{pattern}/) == 0 : false
-  end
-
-  def end_with(string)
+  def terminate_with(string)
     self[-string.size..-1] == string ? self : (self + string)
   end
 end
@@ -154,7 +156,13 @@ end
 
 def set_tekton_auth(username, password = nil)
   @tt_cookie = nil
-  @params.tekton_auth = password.empty? ? Base64.strict_encode64(username) : "#{'Basic ' unless password.empty?}#{Base64.strict_encode64("#{username}:#{password}")}"
+  @params.tekton_auth = if password.empty?
+                          Base64.strict_encode64(username)
+                        elsif username.empty?
+                          Base64.strict_encode64(password)
+                        else
+                          "#{'Basic ' unless password.empty?}#{Base64.strict_encode64("#{username}:#{password}")}"
+                        end
 end
 
 def required_arg(name, value)
@@ -185,8 +193,47 @@ def action_help(action = nil)
   exit(1)
 end
 
+def value_prompt(name, values, pattern)
+  if pattern.empty?
+    prompt_values = values
+  else
+    regex = /#{pattern}/i
+    prompt_values = values.select {|s| s =~ regex}
+    if prompt_values.empty?
+      say "No existing #{name} matching '#{pattern}'".yellow
+      return []
+    end
+  end
+
+  return prompt_values if prompt_values.size == 1
+  prompt_values.sort!
+  say "Choose one or more #{name}:"
+  prompt_values.each_with_index {|sub, i| say "  #{"#{i + 1}.".to_s.ljust(3)} #{sub}"}
+  blurt "Which #{name} (n|n,m...|*): ".green
+  p = ask
+  say
+  if p == '*'
+    result = prompt_values
+  else
+    result = []
+    p.split(',').each do |u|
+      index = u.to_i
+      result << prompt_values[index - 1] if index >= 1 && index <= prompt_values.size
+    end
+  end
+  result.uniq
+end
+
+def value_match(pattern, values)
+  return values if pattern.empty?
+  regex = /#{pattern}/i
+  values.select {|s| s =~ regex}
+end
+
 def sub_quota(sub, limits)
-  say "#{sub.name.bold} =>\n  #{sub.description}"
+  say "#{sub.name.bold} #{"(#{sub.description})" unless sub.name == sub.description}"
+  return if limits.empty?
+
   say '  Resource                      | Limit     '
   say '  ------------------------------|-----------'
   unless limits.empty?
@@ -197,24 +244,47 @@ def sub_quota(sub, limits)
   say
 end
 
-def full_quota(title, limits, usage, available)
-  say "#{title} =>\n"
+def full_quota(title, limits, usage, available, available_threshold = nil)
+  if available_threshold
+    quotas = limits.select do |resource, limit|
+      r_limit = limit.to_f
+      r_avail = available[resource].to_i
+      r_limit <= 0 || (r_avail / r_limit) <= available_threshold
+    end
+  else
+    quotas = limits
+  end
+  return if quotas.empty?
+
+  say "#{title}"
   say '  Resource                      | Used      | Reserved  | Available | Limit     '
   say '  ------------------------------|-----------|-----------|-----------|-----------'
-  limits.keys.sort.each do |n|
-    r_limit = limits[n].to_i
-    r_usage = usage[n].to_i
-    r_avail = available[n].to_i
-    say "  #{n.ljust(30)}|#{r_usage.to_s.rjust(10)} |#{(r_limit - r_usage - r_avail).to_s.rjust(10)} |#{r_avail.to_s.rjust(10).green} |#{r_limit.to_s.rjust(10).blue}"
+  quotas.keys.sort.each do |resource|
+    r_limit = limits[resource].to_i
+    r_avail = available[resource].to_i
+    r_usage = usage[resource].to_i
+    say "  #{resource.ljust(30)}|#{r_usage.to_s.rjust(10)} |#{(r_limit - r_usage - r_avail).to_s.rjust(10)} |#{r_avail.to_s.rjust(10).green} |#{r_limit.to_s.rjust(10).blue}"
   end
   say
 end
 
-def usage(title, oo_usage, tt_usage)
-  has_diff = false
-  say "#{title} =>\n"
-  say '  Resource                      | OneOps    | Tekton    | Diff      '
-  say '  ------------------------------|-----------|-----------|-----------'
+def full_quota_totals(title, limits, usage, available)
+  unless limits.empty?
+    totals = [limits, usage, available].inject([]) do |a, quotas|
+      a << quotas.values.inject({}) {|h, group_quotas| h.update(group_quotas) {|__, value1, value2| value1 + value2}}
+    end
+    say '=' * 80
+    full_quota(title, *totals)
+  end
+end
+
+def usage(title, oo_usage, tt_usage, diff_only = false)
+  oo_usage ||= {}
+  tt_usage ||= {}
+  diffs = []
+  output = "#{title}\n"
+  output += "  Resource                      | OneOps    | Tekton    | Diff      \n"
+  output += "  ------------------------------|-----------|-----------|-----------\n"
   (oo_usage.keys + tt_usage.keys).uniq.sort.each do |r|
     u1   = oo_usage[r].to_i
     u2   = tt_usage[r]
@@ -222,15 +292,16 @@ def usage(title, oo_usage, tt_usage)
     line = "#{r.ljust(30)}|#{u1.to_s.rjust(10)} |#{u2.to_s.rjust(10)} |#{diff.to_s.rjust(10)}"
 
     has_resource_diff = diff && diff != 0
-    say "  #{has_resource_diff ? line.red(true) : line}"
-    has_diff ||= has_resource_diff
+    output += "  #{has_resource_diff ? line.red(true) : line}\n"
+    diffs << r if has_resource_diff
   end
-  has_diff
+  say output unless diff_only && diffs.empty?
+  return diffs.empty? ? nil : diffs
 end
 
 def fetch_provider_mappings
   return @mappings if @mappings
-  @mappings = oo_request('CLOUD_PROVIDER_MAPPINGS/vars', "Getting mappings")
+  @mappings = oo_request('adapter/rest/cm/simple/CLOUD_PROVIDER_MAPPINGS/vars', 'Getting mappings')
   @mappings = JSON.parse(@mappings.value)
   if @mappings.empty?
     say 'No provider mappings found'.red
@@ -252,10 +323,15 @@ end
 
 def execute(action, *args)
   result = nil
-  if action == 'oo:resources'
+  if action == 'version'
+    say 'CLI version:    1.1.6'
+    info = tt_request('server/version', 'Getting tekton version')
+    say "Tekton version: #{info.version} (#{info.timestamp})"
+
+  elsif action == 'oo:resources'
     result = {}
-    mappings = oo_request('CLOUD_PROVIDER_MAPPINGS/vars', 'Getting mappings')
-    JSON.parse(mappings.value).each_pair do |provider, provider_mappings|
+    mappings = fetch_provider_mappings
+    mappings.each_pair do |provider, provider_mappings|
       provider_mappings.each_pair do |component, component_mappings|
         component_mappings.each_pair do |attr, attr_mappings|
           attr_mappings.values.each do |resource_mappings|
@@ -271,15 +347,18 @@ def execute(action, *args)
       say "#{u.bold} =>\n  #{result[u]}"
     end
 
+  elsif action == 'oo:resource:mappings'
+    say JSON.pretty_unparse(fetch_provider_mappings)
+
   elsif action == 'oo:resources:transfer'
     resources = execute!('oo:resources')
     resources.each_pair {|name, desc| execute('resources:add', name, desc)}
 
   elsif action == 'oo:subs'
-    org_name, cloud_name, _ = args
-    required_arg('org', org_name)
+    org, cloud_name, _ = args
+    required_arg('org', org)
     provides_rels = %w(Azure Openstack).inject([]) do |a, clazz|
-      a += oo_request("relations?nsPath=/#{org_name}/_clouds&recursive=true&relationShortName=Provides&targetClassName=#{clazz}&includeFromCi=true&includeToCi=true", 'Getting clouds')
+      a += oo_request("adapter/rest/cm/simple/relations?nsPath=/#{org}/_clouds&recursive=true&relationShortName=Provides&targetClassName=#{clazz}&includeFromCi=true&includeToCi=true", 'Getting clouds')
     end
 
     result = provides_rels.inject({}) do |h, rel|
@@ -298,87 +377,100 @@ def execute(action, *args)
     execute('resources')
 
   elsif action == 'oo:sub:usage'
-    sub_or_tenant, _ = args
-    required_arg('subscription', sub_or_tenant)
-    sub_or_tenant = sub_or_tenant.split(':').last
-    cloud_services = {subscription: 'Azure', tenant: 'Openstack'}.inject([]) do |a, (attr_name, clazz)|
-      a += oo_request("cis?nsPath=/&recursive=true&ciClassName=#{clazz}&attr=#{attr_name}:eq:#{sub_or_tenant}", 'Getting clouds')
+    sub_name, orgs, _ = args
+    required_arg('subscription', sub_name)
+    fix = @params.fix_mismatch
+    mismatch_only = @params.mismatch_only
+    result = {}
+    subs = execute('sub:prompt', sub_name)
+    org_names = orgs.empty? ? nil : orgs.split(',').inject({}) {|h, o| h[o] = o; h}
+    subs.each do |sub|
+      blurt("#{sub}\r") if mismatch_only
+      tt_usage = tt_request("quota/usage/subscription/#{sub}", 'Getting usages in Tekton')
+      sub_or_tenant = sub.split(':').last
+      cloud_services = {subscription: 'Azure', tenant: 'Openstack'}.inject([]) do |a, (attr_name, clazz)|
+        a += oo_request("adapter/rest/cm/simple/cis?nsPath=/&recursive=true&ciClassName=#{clazz}&attr=#{attr_name}:eq:#{sub_or_tenant}", 'Getting clouds')
+      end
+      result[sub] = {:oneops => {}, :tekton => {}}
+      clouds_by_org = cloud_services.inject({}) do |h, cs|
+        _, org, _, cloud, _ = cs.nsPath.split('/')
+        next h if org == 'public' || (org_names && !org_names[org])
+        cloud = oo_request("adapter/rest/cm/simple/cis?nsPath=/#{org}/_clouds&ciName=#{cloud}", "Loading cloud CI for #{cloud}").first
+        (h[org] ||=[]) << cloud if sub == "#{cloud.ciAttributes.location.split('/').last}:#{sub_or_tenant}"
+        h
+      end
+      oo_org_usage = {}
+      clouds_by_org.keys.sort.each do |org|
+        blurt("#{"#{sub} => #{org}"}\r") if mismatch_only
+        clouds = clouds_by_org[org]
+        oo_org_usage = execute('oo:cloud:usage:internal', clouds)
+        tt_org_usage = tt_usage[org] || {}
+        diff = usage("#{sub.bold} => #{org.bold}", oo_org_usage, tt_org_usage, mismatch_only)
+        if mismatch_only && !diff
+          blurt("#{' ' * (sub.size + org.size + 5)} \r")
+          next
+        end
+        result[sub][:oneops][org] = oo_org_usage
+        result[sub][:tekton][org] = tt_org_usage
+        if diff && fix
+          resources = diff.map {|r| "#{r}=#{oo_org_usage[r]}"}
+          say "  Fixing usage mismatch with:\n    #{"usage:set #{sub} #{org} #{resources.join(' ')}".yellow}\n"
+          execute('usage:set', sub, org, *resources)
+        end
+        say
+      end
+
+      unless mismatch_only
+        totals = result[sub].inject({}) do |h, (source, usage)|
+          h[source] = usage.values.inject({}) {|hh, org_usage| hh.update(org_usage) {|_, value1, value2| value1 + value2}}
+          h
+        end
+        say '=' * 68
+        usage("#{sub.bold} => #{'TOTAL'.bold}", totals[:oneops], totals[:tekton])
+      end
     end
+
+  elsif action == 'oo:org:usage' || action == 'oo:usage'
+    org, cloud_name, _ = args
+    required_arg('org', org)
+
+    tt_org_usage = tt_request("quota/usage/entity/#{org}", 'Getting usage in Tekton')
     result = {:oneops => {}, :tekton => {}}
-    cloud_services.sort_by(&:nsPath).each do |cs|
-      _, org, _, cloud, _ = cs.nsPath.split('/')
-      next if org == 'public'
-      org_usage = execute('oo:usage', org, cloud)
-      result[:oneops][org] = org_usage[:oneops].values.first || {}
-      result[:tekton][org] = org_usage[:tekton].values.first || {}
-    end
-
-    totals = result.keys.inject({}) do |h, source|
-      h[source] = result[source].values.inject({}) {|hh, usage| hh.update(usage) {|__, value1, value2| value1 + value2}}
-      h
-    end
-    say '=========================================================='
-    usage("#{sub_or_tenant.bold} => #{'TOTAL'.bold}", totals[:oneops], totals[:tekton])
-
-  elsif action == 'oo:usage'
-    org_name, cloud_name, _ = args
-    required_arg('org', org_name)
-
-    mappings = fetch_provider_mappings
-    result = {:oneops => {}, :tekton => {}}
-    subs = execute!('oo:subs', org_name, cloud_name)
+    subs = execute!('oo:subs', org, cloud_name)
     subs.keys.sort.each do |sub|
       provides_rels = subs[sub]
       say "Processing clouds for subscription '#{sub.bold}' (#{provides_rels.map {|u| u.fromCi.ciName}.join(', )')})" if @params.verbose > 0
-      provider = provides_rels.first.toCi.ciClassName.split('.').last.downcase
-      provider_mappings = mappings[provider]
-      if provider_mappings.empty?
-        say "  No mappings found for provider #{provider}".yellow
-        next
-      end
 
-      oo_usage = {}
-      cloud = nil
-      provider_mappings.each_pair do |ci_class_name, class_mappings|
-        provides_rels.each do |rel|
-          cloud = rel.fromCi
-          say "  Processing #{ci_class_name} for cloud '#{cloud.ciName}'"  if @params.verbose > 0
-          deployed_tos = oo_request("relations?ciId=#{cloud.ciId}&direction=to&relationShortName=DeployedTo&targetClassName=#{ci_class_name.capitalize}&includeFromCi=true", "    Getting #{ci_class_name} for cloud '#{cloud.ciName}'")
-          say "    Found #{deployed_tos.size} #{ci_class_name} instances."  if @params.verbose > 1
-          deployed_tos.each do |u|
-            ci = u.fromCi
-            class_mappings.each_pair do |attr_name, attr_mappings|
-              resources = nil
-              attr_value = ci.ciAttributes[attr_name]
-              resources = attr_mappings[attr_value] unless attr_value.empty?
-              resources = attr_mappings['*'] if resources.empty?
-              next if resources.empty?
-              resources.each_pair do |resource, value|
-                oo_usage[resource] = (oo_usage[resource] || 0) + value
-              end
-            end
-          end
-        end
-      end
-
-      result[:oneops][sub] = oo_usage
-      tt_usage = tt_request("quota/usage/#{sub}/#{org_name}", 'Getting usage')
-      result[:tekton][sub] = tt_usage
-      has_diff = usage("#{sub.bold} => #{org_name.bold}", oo_usage, tt_usage)
-      if has_diff
-        say "  Fix this with:\n    #{"oo:usage:transfer -f #{org_name} #{cloud.ciName}".yellow}"
-      end
+      clouds = provides_rels.map(&:fromCi)
+      result[:oneops][sub] = execute('oo:cloud:usage:internal', clouds)
+      result[:tekton][sub] = tt_org_usage[sub]
+      has_diff = usage("#{sub.bold} => #{org.bold}", result[:oneops][sub], result[:tekton][sub])
+      say "  Fix this with:\n    #{"oo:org:usage:transfer -f #{org} #{clouds.first.ciName}".yellow}" if has_diff
       say
     end
 
-  elsif action == 'oo:usage:transfer'
-    org_name, cloud_name, _ = args
-    required_arg('org', org_name)
+  elsif action == 'oo:cloud:usage:internal'
+    result = {}
+    clouds = args[0]
+    clouds.each do |cloud|
+      capacity = oo_request("transistor/rest/clouds/#{cloud.ciId}/capacity", "    Getting capacity for cloud '#{cloud.ciName}'")
+      if result.empty?
+        result = capacity
+      else
+        capacity.each_pair do |resource, value|
+          result[resource] = (result[resource] || 0) + value
+        end
+      end
+    end
 
-    usage = execute!('oo:usage', org_name, cloud_name)[:oneops]
+  elsif action == 'oo:org:usage:transfer' || action == 'oo:usage:transfer'
+    org, cloud_name, _ = args
+    required_arg('org', org)
+
+    usage = execute!('oo:org:usage', org, cloud_name)[:oneops]
     usage.each_pair do |sub, sub_usage|
       next if sub_usage.empty?
-      limits = tt_request("quota/#{sub}/#{org_name}", 'Getting quota')
+      limits = tt_request("quota/#{sub}/#{org}", 'Getting quota')
       if limits.empty? || @params.force
         if limits.empty?
           if @params.transfer_buffer < 0
@@ -387,23 +479,24 @@ def execute(action, *args)
           elsif @params.transfer_buffer == 0
             say 'Buffer % is not set, will set total quota to the same value as usage.'.yellow
           end
-          execute!('quota:set', sub, org_name, *sub_usage.to_a.map {|u, v| "#{u}=#{(v + v * @params.transfer_buffer).to_i}"}) if @params.transfer_buffer > 0
+          force = @params.force
+          @params.force = true
+          execute!('quota:set', sub, org, *sub_usage.to_a.map {|u, v| "#{u}=#{(v + v * @params.transfer_buffer).to_i}"}) if @params.transfer_buffer > 0
+          @params.force = force
         else
-          say "Quota for #{sub.bold} in #{org_name.bold} already exists, will set usage only, use #{"'quota:set'".blue} action to set total quota values.".yellow
+          say "Quota for #{sub.bold} in #{org.bold} already exists, will set usage only, use #{"'quota:set'".blue} action to set total quota values.".yellow
           sub_usage.delete_if {|u| limits[u]} if @params.only_missing
         end
-        execute('quota:usage:set', sub, org_name, *sub_usage.to_a.map {|u, v| "#{u}=#{v}"})
+        execute('usage:set', sub, org, *sub_usage.to_a.map {|u, v| "#{u}=#{v}"})
       else
-        say "Quota for #{sub.bold} in #{org_name.bold} already exists, use '-f' option to force update.".yellow
+        say "Quota for #{sub.bold} in #{org.bold} already exists, use '-f' option to force update.".yellow
       end
       say
     end
 
   elsif action == 'resources'
-    resources = tt_request('resource', 'Fetching resources')
-    resources.sort_by(&:name).each do |u|
-      say "#{u.name.bold} =>\n  #{u.description}"
-    end
+    result = tt_request('resource', 'Fetching resources')
+    result.sort_by(&:name).each {|r| say "#{r.name.bold} =>\n  #{r.description}"}
 
   elsif action == 'resources:add'
     resource_name, desc, _ = args
@@ -419,8 +512,13 @@ def execute(action, *args)
     end
 
   elsif action == 'subs'
-    subs = tt_request('subscription', 'Fetching subscriptions')
-    subs.sort_by(&:name).each do |s|
+    sub_name = args[0]
+    result = tt_request('subscription', 'Fetching subscriptions')
+    unless sub_name.empty?
+      subs = execute('sub:prompt', *args).inject({}) {|h, s| h[s] = s; h}
+      result = result.select {|sub| subs.include?(sub.name)}
+    end
+    result.sort_by(&:name).each do |s|
       quota = tt_request("quota/#{s.name}/%2f", 'Fetching hard quota')
       sub_quota(s, quota)
     end
@@ -441,6 +539,7 @@ def execute(action, *args)
   elsif action == 'subs:set'
     sub_name, *resources = args
     required_arg('subscription', sub_name)
+
     usage = resources && resources.inject({}) do |h, u|
       name, value = u.split(/[=:]/, 2)
       value = value.to_i
@@ -461,14 +560,53 @@ def execute(action, *args)
       end
     end
 
-  elsif action == 'orgs'
-    org_regex = args[0]
-    result = tt_request('org', 'Fetching orgs')
-    unless org_regex.empty?
-      org_regex = /#{org_regex}/
-      result = result.select {|u| u.name =~ org_regex}
+  elsif action == 'users'
+    *usernames = args
+    required_arg('username', usernames)
+    usernames.each do |u|
+      info = tt_request("user/#{u}", 'Getting user info')
+      blurt "#{u.ljust(15).bold} | "
+      if info.empty?
+        say  'not found'.red
+      else
+        blurt "#{info.email.to_s.ljust(25)}|"
+        say (info.admin ? ' global admin '.blue(true) : info.orgs.map(&:name).join(', '))
+      end
     end
-    result.sort_by(&:name).each {|u| say u.name}
+
+  elsif action == 'users:delete'
+    *usernames = args
+    required_arg('username', usernames)
+    usernames.each do |u|
+      info = tt_request("user/#{u}", 'Getting user info')
+      if info.empty?
+        say "#{u.ljust(25).bold} - #{'not found'.red}"
+      else
+        ok = tt_request("user/#{info.id}", "Deleting user '#{usernames}'", {}, 'DELETE')
+        say "#{u.ljust(25).bold} - #{'deleted'.green}"
+      end
+    end
+
+  elsif action == 'admins'
+    result = tt_request('user/admins', 'Getting admins')
+    result.sort_by(&:name).each {|a| say "#{a.name.ljust(15).bold} | #{a.email.to_s.ljust(25)}"}
+
+  elsif action == 'admins:add' || action == 'admins:remove'
+    *usernames = args
+    required_arg('username', usernames)
+    usernames.each do |u|
+      tt_request('user', "Managing admin status for user ''#{u}''", {:username => u, :admin => action[-4..-1] == ':add'})
+      execute('users', u)
+    end
+
+  elsif action == 'orgs'
+    org = args[0]
+    result = tt_request('org', 'Fetching orgs')
+    unless org.empty?
+      orgs = execute('org:prompt', nil, org).inject({}) {|h, o| h[o] = o; h}
+      result = result.select {|org| orgs.include?(org.name)}
+    end
+    result.sort_by(&:name).each {|o| say o.name}
 
   elsif action == 'orgs:add'
     org_name = args[0]
@@ -476,110 +614,121 @@ def execute(action, *args)
     tt_request('org', "Org #{org_name} is missing, creating", {:name => org_name}) unless org
 
   elsif action == 'teams'
-    org_name, team_regex, _ = args
-    required_arg('org', org_name)
+    org, team_regex, _ = args
+    required_arg('org', org)
 
-    result = tt_request("org/#{org_name}/team", 'Fetching teams')
+    result = tt_request("org/#{org}/team", 'Fetching teams')
     unless team_regex.empty?
       team_regex = /#{team_regex}/
-      result = result.select {|u| u.name =~ team_regex}
+      result = result.select {|t| t.name =~ team_regex}
     end
-    result.sort_by(&:name).each {|u| say "#{u.name.bold} =>\n  #{u.description}"}
+    result.sort_by(&:name).each {|t| say "#{t.name.bold} #{"(#{t.description})" unless t.description.empty?}"}
 
   elsif action == 'teams:add'
-    org_name, name, desc, _ = args
-    required_arg('org', org_name)
+    org, name, desc, _ = args
+    required_arg('org', org)
     required_arg('team_name', name)
-    org = tt_request("org/#{org_name}", "Fetching org '#{org_name}'")
+    org = tt_request("org/#{org}", "Fetching org '#{org}'")
     if org
-      team = tt_request("org/#{org_name}/team/#{name}", 'Fetching team')
+      team = tt_request("org/#{org}/team/#{name}", 'Fetching team')
       if team.empty?
         team = {:orgName => org.name, :name => name, :description => desc}
-        tt_request("org/#{org_name}/team", "Team #{name} is missing, creating", team)
+        tt_request("org/#{org}/team", "Team #{name} is missing, creating", team)
       else
         team['name'] = name
         team['description'] = desc unless desc.empty?
-        tt_request("org/#{org_name}/team", "Updating team #{name}", team)
+        tt_request("org/#{org}/team", "Updating team #{name}", team)
       end
       say "#{team.name.bold} =>\n  #{team.description}"
     else
-      say "Org #{org_name} not found".red
+      say "Org #{org} not found".red
     end
 
   elsif action == 'teams:remove'
-    org_name, team_name, desc, _ = args
-    required_arg('org', org_name)
+    org, team_name, desc, _ = args
+    required_arg('org', org)
     required_arg('team_name', team_name)
-    ok = tt_request("org/#{org_name}/team/#{team_name}", "Deleting #{team_name} fro org #{org_name}", {}, 'DELETE')
+    ok = tt_request("org/#{org}/team/#{team_name}", "Deleting #{team_name} from org #{org}", {}, 'DELETE')
     say ok['ok'] ? 'Removed'.green : 'Failed'.red
 
-  elsif action == 'users'
-    org_name, team_name, _ = args
-    required_arg('org', org_name)
+  elsif action == 'team:users'
+    org, team_name, _ = args
+    required_arg('org', org)
     required_arg('team', team_name)
 
-    result = tt_request("org/#{org_name}/team/#{team_name}/users", 'Fetching users')
-    result.sort_by(&:username).each {|u| say "#{u.username.ljust(25).bold} |#{' team admin '.blue(true) if u.role == 'MAINTAINER'}"} if result
+    result = tt_request("org/#{org}/team/#{team_name}/users", 'Fetching users')
+    result.sort_by(&:username).each {|u| say "#{u.username.ljust(25).bold} | #{' team admin '.blue(true) if u.role == 'MAINTAINER'}"} if result
 
-  elsif action == 'users:add'
-    org_name, team_name, *usernames = args
+  elsif action == 'team:users:add'
+    org, team_name, *usernames = args
     required_arg('username', usernames)
     users = usernames.map {|u| {:username => u}}
-    execute('users:add:internal', org_name, team_name, users)
+    execute('team:users:add:internal', org, team_name, users)
 
-  elsif action == 'admins:add'
-    org_name, team_name, *usernames = args
+  elsif action == 'team:admins:add'
+    org, team_name, *usernames = args
     required_arg('username', usernames)
     admins = usernames.map {|u| {:username => u, :role => 'MAINTAINER'}}
-    execute('users:add:internal', org_name, team_name, admins)
+    execute('team:users:add:internal', org, team_name, admins)
 
-  elsif action == 'users:add:internal'
-    org_name, team_name, users = args
-    required_arg('org', org_name)
+  elsif action == 'team:users:add:internal'
+    org, team_name, users = args
+    required_arg('org', org)
     required_arg('team', team_name)
-    ok = tt_request("org/#{org_name}/team/#{team_name}/users", "Adding #{usernames} to team #{team}", users, 'PUT')
+    ok = tt_request("org/#{org}/team/#{team_name}/users", "Adding #{usernames} to team #{team}", users, 'PUT')
     say ok['ok'] ? 'Added'.green : 'Failed'.red
 
-  elsif action == 'users:remove'
-    org_name, team_name, *usernames = args
-    required_arg('org', org_name)
+  elsif action == 'team:users:remove'
+    org, team_name, *usernames = args
+    required_arg('org', org)
     required_arg('team', team_name)
     required_arg('username', usernames)
-    ok = tt_request("org/#{org_name}/team/#{team_name}/users", "Deleting #{usernames} fro team #{team}", usernames, 'DELETE')
+    ok = tt_request("org/#{org}/team/#{team_name}/users", "Deleting #{usernames} from team #{team}", usernames, 'DELETE')
     say ok['ok'] ? 'Removed'.green : 'Failed'.red
 
   elsif action == 'sub:quotas'
-    sub_name = args[0]
-    required_arg('subscription', sub_name)
-    limits = tt_request("quota/subscription/#{sub_name}", 'Getting quotas')
-    usage = tt_request("quota/usage/subscription/#{sub_name}", 'Getting usages')
-    available = tt_request("quota/available/subscription/#{sub_name}", 'Getting usages')
-    limits.keys.sort.each {|org| full_quota(org, limits[org], usage[org], available[org])} unless limits.empty?
+    sub = args[0]
+    required_arg('subscription', sub)
+    subs = execute('sub:prompt', sub)
+    subs.each do |sub_name|
+      required_arg('subscription', sub_name)
+      limits = tt_request("quota/subscription/#{sub_name}", 'Getting quotas')
+      usage = tt_request("quota/usage/subscription/#{sub_name}", 'Getting usages')
+      available = tt_request("quota/available/subscription/#{sub_name}", 'Getting usages')
+      limits.keys.sort.each {|org| full_quota("#{sub_name.bold} => #{org.bold}", limits[org], usage[org], available[org], @params.depleted_threshold)} unless limits.empty?
+
+      full_quota_totals("#{sub_name} => TOTAL".bold, limits, usage, available) unless @params.depleted_threshold
+    end
 
   elsif action == 'org:quotas'
-    org_name = args[0]
-    required_arg('org', org_name)
-    limits = tt_request("quota/entity/#{org_name}", 'Getting quotas')
-    usage = tt_request("quota/usage/entity/#{org_name}", 'Getting usages')
-    available = tt_request("quota/available/entity/#{org_name}", 'Getting usages')
-    limits.keys.sort.each {|sub| full_quota(sub.bold, limits[sub], usage[sub], available[sub])} unless limits.empty?
+    org = args[0]
+    required_arg('org', org)
+    orgs = execute('org:prompt', nil, org)
+    orgs.each do |org|
+      limits = tt_request("quota/entity/#{org}", 'Getting limits')
+      usage = tt_request("quota/usage/entity/#{org}", 'Getting usages')
+      available = tt_request("quota/available/entity/#{org}", 'Getting available')
+      limits.keys.sort.each {|sub| full_quota("#{org.bold} => #{sub.bold}", limits[sub], usage[sub], available[sub], @params.depleted_threshold)} unless limits.empty?
+
+      full_quota_totals("#{org} => TOTAL".bold, limits, usage, available) unless @params.depleted_threshold
+    end
 
   elsif action == 'quota'
-    sub_name, org_name, _ = args
+    sub_name, org, _ = args
     required_arg('subscription', sub_name)
-    required_arg('org', org_name)
+    required_arg('org', org)
 
     cursor_control = ''
-    subs = execute('sub:prompt', sub_name, org_name)
+    subs = execute('sub:prompt', sub_name, org)
     subs.each do |s|
-      orgs = execute('org:prompt', s, org_name)
-      orgs.each do |u|
+      orgs = execute('org:prompt', s, org)
+      orgs.each do |o|
         while (true)
-          limits = tt_request("quota/#{s}/#{u}", 'Getting quota')
+          limits = tt_request("quota/#{s}/#{o}", 'Getting quota')
           unless limits.empty?
-            usage = tt_request("quota/usage/#{s}/#{u}", 'Getting usage')
-            available = tt_request("quota/available/#{s}/#{u}", 'Getting available')
-            full_quota("#{cursor_control}#{s.bold} => #{u.bold}", limits, usage, available)
+            usage = tt_request("quota/usage/#{s}/#{o}", 'Getting usage')
+            available = tt_request("quota/available/#{s}/#{o}", 'Getting available')
+            full_quota("#{cursor_control}#{s.bold} => #{o.bold}", limits, usage, available)
           end
           break if @params.refresh == 0 || subs.size > 1 || orgs.size > 1
           begin
@@ -592,17 +741,17 @@ def execute(action, *args)
       end
     end
 
-  elsif action == 'quota:set' || action == 'quota:usage:set' || action == 'usage:set'
+  elsif action == 'quota:set' || action == 'usage:set'
     sub_name, org_name, *resources = args
     required_arg('subscription', sub_name)
     required_arg('org', org_name)
-    usage = resources && resources.inject({}) do |h, u|
-      name, value = u.split(/[=:]/, 2)
-      value = value.to_i
-      h[name] = value if !name.empty? && value > 0
+    values = resources && resources.inject({}) do |h, u|
+      name, _ = u.split(/[+-]?[=]/, 2)
+      expr = u[name.size..-1]
+      h[name] = expr unless name.empty? || expr.empty?
       h
     end
-    required_arg('resources', usage)
+    required_arg('resources', values)
 
     subs = execute('sub:prompt', sub_name, org_name)
     subs.each do |s|
@@ -615,108 +764,88 @@ def execute(action, *args)
         org = tt_request("org/#{o}", "Fetching org '#{o}'")
         execute!('orgs:add', o) unless org
 
-        tt_request("quota/#{"usage/" if action.include?('usage:set')}#{s}/#{o}", 'Updating quota', usage)
+        setting_usage = action.include?('usage:set')
+        unless setting_usage || @params.force
+          usage = tt_request("quota/usage/#{s}/#{o}", 'Getting quota')
+          no_usage_res = values.keys - usage.keys
+          if no_usage_res.size > 0
+            say "Some resources [#{no_usage_res.join(',')}] have no usage set.\nWill NOT set limits for these resources. Use '-f' to force limit update for all specified resources.".yellow
+            say 'Do you need to transfer usage first?'.bold
+            values.delete_if {|r| no_usage_res.include?(r)}
+          end
+        end
+
+        current = tt_request("quota/#{"usage/" if setting_usage}#{s}/#{o}", 'Getting quota')
+        resolved_values = values.inject({}) do |h, (resource, expr)|
+          if expr[0] == '='
+            value = expr[1..-1].to_i
+            h[resource] = value if value > 0
+          elsif expr[0..1] == '+=' || expr[0..1] == '-='
+            current_value = current[resource].to_i
+            if expr[-1] == '%'
+              next h unless current_value > 0
+              value = expr[2..-2].to_i * current_value / 100
+            else
+              value = expr[2..-1].to_i
+            end
+            next h unless value > 0
+            if expr[0] == '-'
+              h[resource] = [current_value - value, 0].max
+            else
+              h[resource] = current_value + value
+            end
+          end
+          h
+        end
+        tt_request("quota/#{"usage/" if setting_usage}#{s}/#{o}", 'Updating quota', resolved_values) unless resolved_values.empty?
         execute('quota', s, o)
       end
     end
 
   elsif action == 'sub:prompt'
-    sub_name, org_name, _ = args
+    sub_name, org, _ = args
     if sub_name[0] == '?'
-      if org_name.empty? || org_name[0] == '?'
+      if org.empty? || org[0] == '?'
         subs = tt_request('subscription', 'Fetching subscriptions').map(&:name)
       else
-        quotas = tt_request("quota/entity/#{org_name}", 'Getting quotas')
+        quotas = tt_request("quota/entity/#{org}", 'Getting quotas')
         if quotas.empty?
-          say "No existing quotas set up in org '#{org_name}'".red
+          say "No existing quotas set up in org '#{org}'".red
           exit(1)
         end
         subs = quotas.keys
       end
 
-      sub_pattern = sub_name[1..-1]
-      unless sub_pattern.empty?
-        sub_regex = /#{sub_pattern}/i
-        subs = subs.select {|s| s =~ sub_regex}
-        if subs.empty?
-          if org_name[0] == '?'
-            say "No existing subscriptions matching '#{sub_pattern}'".yellow
-          else
-            say "No existing quotas in org '#{org_name}' have subscriptions matching '#{sub_pattern}'".yellow
-          end
-          exit(1)
-        end
-      end
-
-      if subs.size == 1
-        result = subs
-      else
-        subs.sort!
-        say "Choose one or more subscriptions:"
-        subs.each_with_index {|sub, i| say "  #{"#{i + 1}.".to_s.ljust(3)} #{sub}"}
-        blurt "Which subscription (n|n,m...|*): ".green
-        p = ask
-        say
-        if p == '*'
-          result = subs
-        else
-          result = []
-          p.split(',').each do |u|
-            index = u.to_i
-            result << subs[index - 1] if index >= 1 && index <= subs.size
-          end
-        end
-        result = result.uniq
-        exit if result.empty?
-      end
+      result = value_prompt('subscriptions', subs, sub_name[1..-1])
+      exit if result.empty?
+    elsif sub_name[0] == '*'
+      subs = tt_request('subscription', 'Fetching subscriptions').map(&:name)
+      result = value_match(sub_name[1..-1], subs)
     else
       result = sub_name.split(',').uniq
     end
 
   elsif action == 'org:prompt'
-    sub_name, org_name, _ = args
-    if org_name[0] == '?'
-      # quotas = tt_request("quota/subscription/#{sub_name}", 'Getting quotas')
-      # if quotas.empty?
-      #   say "No existing quotas set up for subscription '#{sub_name}'".red
-      #   exit(1)
-      # end
-      # orgs = quotas.keys
-      orgs = tt_request('org', 'Fetching orgs').map(&:name)
-
-      org_pattern = org_name[1..-1]
-      unless org_pattern.empty?
-        org_regex = /#{org_pattern}/i
-        orgs = orgs.select {|s| s =~ org_regex}
-        if orgs.empty?
-          say "No existing quotas for subscription '#{sub_name}' have orgs matching '#{org_pattern}'".yellow
+    sub_name, org, _ = args
+    if org[0] == '?'
+      if sub_name.empty?
+        orgs = tt_request('org', 'Fetching orgs').map(&:name)
+      else
+        quotas = tt_request("quota/subscription/#{sub_name}", 'Getting quotas')
+        if quotas.empty?
+          say "No existing quotas set up for subscription '#{sub_name}'".red
           exit(1)
         end
+        orgs = quotas.keys
       end
 
-      if orgs.size == 1
-        result = orgs
-      else
-        orgs = orgs.sort!
-        say "Choose one or more orgs:"
-        orgs.each_with_index {|org, i| say "  #{"#{i + 1}.".to_s.ljust(3)} #{org}"}
-        blurt "Which org (n|n,m...|*): ".green
-        p = ask
-        say
-        if p == '*'
-          result = orgs
-        else
-          result = []
-          p.split(',').each do |u|
-            index = u.to_i
-            result << orgs[index - 1] if index >= 1 && index <= orgs.size
-          end
-        end
-        result = result.uniq
-        exit if result.empty?
-      end
+      result = value_prompt('subscriptions', orgs, org[1..-1])
+      exit if result.empty?
+    elsif org[0] == '*'
+      orgs = tt_request('org', 'Fetching orgs').map(&:name)
+      result = value_match(org[1..-1], orgs)
     else
-      result = org_name.split(',').uniq
+      result = org.split(',').uniq
     end
 
   elsif action == 'login'
@@ -735,11 +864,20 @@ def execute(action, *args)
     File.delete(SESSION_FILE_NAME) if File.exist?(SESSION_FILE_NAME)
 
     set_tekton_auth(username, password)
-    result = !tt_request('org', 'Checking credentials').empty?
+    if username.empty? || password.empty?
+      result = !tt_request('org', 'Checking credentials').empty?
+    else
+      api_key = tt_request('apikey', 'Getting api token', {:username => username, :name => 'CLI'})['key']
+      unless api_key.empty?
+        @params.tekton_auth = api_key
+        result = true
+      end
+    end
+
     if result
       cfg = %w(tekton_host oneops_host tekton_auth).inject({}) {|h, key| h[key] = @params[key]; h}
       File.write(SESSION_FILE_NAME, JSON.pretty_unparse(cfg)) ##unless @repl
-      say "Signed in - do not forget to logout when done!".green
+      say 'Signed in - do not forget to logout when done!'.green
     end
 
   elsif action == 'logout'
@@ -747,7 +885,7 @@ def execute(action, *args)
 
   elsif action == 'help'
     action = match_action(args[0])
-    action.empty? ? ('actions'.start_with?(args[0]) ? say(actions_help) : general_help) : action_help(action)
+    action.empty? ? (args[0] =~ /^(actions)|(commands)/i ? say(actions_help) : general_help) : action_help(action)
 
   else
     say "Unknown action: #{action}".red
@@ -764,7 +902,13 @@ def match_action(action)
 end
 
 def run(args)
-  @action, *@args = @opt_parser.parse(args)
+  t = Time.now
+  begin
+    @action, *@args = @opt_parser.parse(args)
+  rescue OptionParser::ParseError => e
+      say e.message.red
+      exit(1)
+  end
 
   if @action.empty?
     general_help if @show_help
@@ -802,8 +946,7 @@ def run(args)
     @params.tekton_host = TEKTON_HOSTS[host] if TEKTON_HOSTS.include?(host)
   end
   @params.tekton_host = "https://#{@params.tekton_host}" unless @params.tekton_host.start_with?('http')
-  @params.tekton_host = "#{@params.tekton_host}/" unless @params.tekton_host.end_with?('/')
-  @params.tekton_host = @params.tekton_host.end_with('api/v1/')
+  @params.tekton_host = @params.tekton_host.terminate_with('/').terminate_with('api/v1/')
 
   if @params.oneops_host.empty?
     @params.oneops_host = ONEOPS_HOSTS[:default]
@@ -813,49 +956,57 @@ def run(args)
     @params.oneops_host = ONEOPS_HOSTS[host] if ONEOPS_HOSTS.include?(host)
   end
   @params.oneops_host = "https://#{@params.oneops_host}" unless @params.oneops_host.start_with?('http')
-  @params.oneops_host = "#{@params.oneops_host}/" unless @params.oneops_host.end_with?('/')
-  @params.oneops_host = @params.oneops_host.end_with('adapter/rest/cm/simple/')
+  @params.oneops_host = @params.oneops_host.terminate_with('/')
 
   execute(@action, *@args)
+  say "Done #{@action.bold} in #{(Time.now - t).round(1)} sec" if @params.verbose > 0
 end
 
 @actions = {
-  'help'                  => ['help [actions|ACTION]', 'display help: full or actions or specific acdtion'],
-  'login'                 => ['login [-e ENV] [USERNAME [PASSWORD]]', 'log in for running Tekton commands, defaults to \'prod\' environment if not specified'],
-  'logout'                => ['logout [USERNAME [PASSWORD]]', 'log out after running Tekton commands'],
+  'help'                  => ['help [actions|ACTION]', 'display help: full descriptiin or list of avaialble actions or specific action'],
+  'version'               => ['version', 'display CLI and tekton server versions'],
 
-  'orgs'                  => ['orgs [ORG_REGEX]', 'list orgs'],
+  'login'                 => ['login [-e ENV] [USERNAME [PASSWORD]]', 'log in for running Tekton commands, defaults to \'prod\' environment if not specified'],
+  'logout'                => ['logout [USERNAME [PASSWORD]]', "log out after running Tekton commands\n"],
+
+  'admins'                => ['admins ', 'list global admins'],
+  'admins:add'            => ['admins:add USERNAME...', 'add global admins'],
+  'admins:remove'         => ['admins:remove USERNAME', 'remove global admins'],
+  'users'                 => ['users USERNAME... ', 'list user info'],
+
+  'orgs'                  => ['orgs ORG,...|?[ORG_REGEX]|*[ORG_REGEX]', 'list orgs'],
   'orgs:add'              => ['orgs:add ORG', 'add org'],
-  'org:quotas'            => ['org:quotas ORG', 'list all quotas for org'],
 
   'teams'                 => ['teams ORG [TEAM_REGEX]', 'list teams'],
   'teams:add'             => ['teams:add ORG TEAM_NAME [TEAM_DESCRIPTION]', 'add team'],
-#  'teams:remove'           => ['teams:add ORG TEAM_NAME', 'remove team'],
+  'teams:remove'          => ['teams:remove ORG TEAM_NAME', 'remove team'],
 
-  'users'                 => ['users ORG TEAM [TEAM_REGEX]', 'list team users'],
-  'users:add'             => ['users:add ORG TEAM USERNAME...', 'add users to team'],
-  'admins:add'            => ['users:add ORG TEAM USERNAME...', 'add team admins to team'],
-  'users:remove'          => ['users:remove ORG TEAM USERNAME...', 'remove users from team'],
+  'team:users'            => ['team:users ORG TEAM [TEAM_REGEX]', 'list team users (both regular and admin usres)'],
+  'team:users:add'        => ['team:users:add ORG TEAM USERNAME...', 'add users (regular, non-admin) to team (resets team admin status if user is team admin)'],
+  'team:users:remove'     => ['team:users:remove ORG TEAM USERNAME...', 'remove users from team'],
+  'team:admins:add'       => ['team:admins:add ORG TEAM USERNAME...', "add team admin user to team (makes user a team admin if user is alrady on the team)\n"],
 
   'resources'             => ['resources', 'list resource types'],
-  'resources:add'         => ['resources:add  [-f]', 'add resource type'],
+  'resources:add'         => ['resources:add  [-f]', "add resource type\n"],
 
-  'subs'                  => ['subs', 'list subsctiptions (including hard quota)'],
-  'subs:add'              => ['subs:add [-f] SUBSCRIPTION', 'add subscription'],
-  'subs:set'              => ['subs:set SUBSCRIPTION RESOURCE=VALUE...', 'set subscription limits (hard quota)'],
-  'sub:quotas'            => ['sub:quotas SUBSCRIPTION', 'list all quotas for subscription'],
+  'subs'                  => ['subs SUB,...|?[SUB_REGEX]|*[SUB_REGEX]', 'list subsctiptions (including hard quota)'],
+  'subs:add'              => ['subs:add [-f] SUB', 'add subscription'],
+  'subs:set'              => ['subs:set SUB,...|?[SUB_REGEX]|*[SUB_REGEX] RESOURCE=VALUE...', "set subscription limits (hard quota)\n"],
 
-  'quota'                 => ['quota SUBSCRIPTION ORG', 'show quota'],
-  'quota:set'             => ['quota:set SUBSCRIPTION ORG RESOURCE=VALUE [RESOURCE=VALUE ...]', 'update quota limits'],
-  'quota:usage:set'       => ['quota:usage:set SUBSCRIPTION ORG RESOURCE=VALUE...', 'update quota limits'],
+  'sub:quotas'            => ['sub:quotas SUB,...|?[SUB_REGEX]|*[SUB_REGEX] [--depleted [THRESHOLD_%]]', 'list all quotas for subscription'],
+  'org:quotas'            => ['org:quotas ORG,...|?[ORG_REGEX]|*[ORG_REGEX] [--depleted [THRESHOLD_%]]', 'list all quotas for org'],
+
+  'quota'                 => ['quota SUB,...|?[SUB_REGEX]|*[SUB_REGEX] ORG,...|?[ORG_REGEX]|*[ORG_REGEX]', 'show quota'],
+  # 'usage:set'             => ['usage:set SUB,...|?[SUB_REGEX]|*[SUB_REGEX] ORG,...|?[ORG_REGEX]|*[ORG_REGEX] RESOURCE=VALUE...', 'update quota usage'],
+  'quota:set'             => ['quota:set SUB,...|?[SUB_REGEX]|*[SUB_REGEX] ORG,...|?[ORG_REGEX]|*[ORG_REGEX] RESOURCE[+|-]=VALUE[%]...', "'update quota limits: directly set with \'=\' or increment with \'+=\' or decrement with \'-=\'; specify absolute value or percentage of current value with \'%\''\n"],
 
   'oo:resources'          => ['oo:resources', 'list resource types in OneOps'],
-  'oo:resources:transfer' => ['oo:resources:transfer [-f]', 'transfer resources types in OneOps to Tekton'],
+  'oo:resources:transfer' => ['oo:resources:transfer [-f]', 'transfer resources types in OneOps to Tekton (idempotent!)'],
   'oo:subs'               => ['oo:subs ORG [CLOUD_REGEX]', 'list subsctiptions in OneOps'],
-  'oo:subs:transfer'      => ['oo:subs:transfer  [-f] ORG [CLOUD_REGEX]', 'transfer subsctiptions in OneOps to Tekton'],
-  'oo:sub:usage'          => ['oo:sub:usage SUBSCRIPTION', 'list usage for a given subscription for all orgs in OneOps'],
-  'oo:usage'              => ['oo:usage ORG [CLOUD_REGEX]', 'list usage in OneOps and compares with usage in Tekton'],
-  'oo:usage:transfer'     => ['oo:usage:transfer [-f [--omr]] [-b BUFFER_%] ORG [CLOUD_REGEX]', 'convert current usage in OneOps into quota in Tekton or update usage for existing Tekton quota with the current ussage in OneOps']
+  'oo:subs:transfer'      => ['oo:subs:transfer  [-f] ORG [CLOUD_REGEX]', 'transfer subsctiptions in OneOps to Tekton  (idempotent!)'],
+  'oo:sub:usage'          => ['oo:sub:usage [--mismatch [--fix]] SUB,...|?[SUB_REGEX]|*[SUB_REGEX] [ORG,...]', 'For a given subscription list usage in OneOps and compare with usage in Tekton'],
+  'oo:org:usage'          => ['oo:org:usage ORG [CLOUD_REGEX]', 'For a given org list usage in OneOps and compare with usage in Tekton'],
+  'oo:org:usage:transfer' => ['oo:org:usage:transfer [-f [--omr]] [-b BUFFER_%] ORG [CLOUD_REGEX]', "convert current usage in OneOps into quota in Tekton or update usage for existing Tekton quota with the current ussage in OneOps (idempotent!)\n"]
 }
 
 @usage = <<-USAGE
@@ -898,7 +1049,7 @@ USAGE
     
        Alternatively, add/set quota manually:
          #{__FILE__} quota:set azure-southcentralus-wm:102e961b-18a2-4ff0-a03e-c58794d04d55 some-org vm=100 Dv2_vCPU=250
-         #{__FILE__} quota:usage:set azure-southcentralus-wm:102e961b-18a2-4ff0-a03e-c58794d04d55 some-org vm=37 Dv2_vCPU=128
+         #{__FILE__} usage:set azure-southcentralus-wm:102e961b-18a2-4ff0-a03e-c58794d04d55 some-org vm=37 Dv2_vCPU=128
     
     4. List all exising quotas for a given org in Tekton:
          #{__FILE__} org:quotas some-org
@@ -911,7 +1062,15 @@ FOOTER
 #------------------------------------------------------------------------------------------------
 # Start here.
 #------------------------------------------------------------------------------------------------
-@params = OpenStruct.new(:verbose => 0, :force => false, :only_missing => false, :transfer_buffer => 0, :refresh => 0)
+__COLOR = true
+@params = OpenStruct.new(:verbose            => 0,
+                         :force              => false,
+                         :only_missing       => false,
+                         :transfer_buffer    => 0,
+                         :depleted_threshold => nil,
+                         :refresh            => 0,
+                         :mismatch_only      => false,
+                         :fix_mismatch       => false)
 
 @show_help = false
 @opt_parser = OptionParser.new do |opts|
@@ -928,13 +1087,17 @@ FOOTER
   opts.on('--ta', '--tekton-auth CREDENTIALS', "Tekton auth if not using 'login' command: <username<:<password>  or <token>") {|creds| set_tekton_auth(*creds.split(':'))}
   opts.on('--oh', '--oneops-host HOST', "OneOps CMS host, defaults to '#{ONEOPS_HOSTS[:default]}' if no host or environment options are specified") {|host| @params.oneops_host = host}
 
-  opts.on('-b', '--buffer BUFFER_%', 'Buffer (as a percentage of usage) to add on top of usage number when setting quota limit value for new quotas. Default value is 0 (no buffer) - usage and limit are the same') {|buffer_pct| @params.transfer_buffer = buffer_pct.to_f / 100}
+  opts.on('-b', '--buffer BUFFER_%', 'Buffer (as a percentage of usage) to add on top of usage number when setting quota limit value for new quotas. Default value is 0 (no buffer) - usage and limit are the same') {|pct| @params.transfer_buffer = pct.to_f / 100}
+  opts.on('--depleted [THRESHOLD_%]', 'Show depleted quotas only (zero available or less than threshold %)') {|pct| @params.depleted_threshold = pct.to_f / 100}
 
   opts.on('-r', '--refresh [SECONDS]', 'Refresh interval for quota commands') {|i| @params.refresh = i.to_i; @params.refresh = 10 if @params.refresh == 0}
 
-  opts.on('-f', '--force', 'Force update if already exists') {@params.force = true}
+  opts.on('-f', '--force', 'Force operation to overwrite warnings (used in the context of certain actions)') {@params.force = true}
   opts.on('--omr', '--only-missing-resources', "Transfer usage only for resources missing quota (when there is already quota set up for at least one other resource (for a given subscription and org); use with '-f' option") {@params.only_missing = true}
+  opts.on('--mismatch', 'Show usage mismatch only') {@params.mismatch_only = true}
+  opts.on('--fix', 'Fix usage mismatch by transfering usage number from OneOps to the corresponding soft quotas in Tekton') {@params.fix_mismatch = true}
 
+  opts.on('--no-color', 'No output coloring or font formatting.') {String.with_color = false}
   opts.on('-v', '--verbose', 'Verbose') {@params.verbose = 1}
   opts.on('--vv', '--very-verbose', 'Very verbose') {@params.verbose = 2}
 
@@ -959,27 +1122,35 @@ if @repl
     File.read(HISTORY_FILE_NAME).split("\n").each {|c| Readline::HISTORY << c}
   end
 
-  while input = Readline.readline('>>> '.bold, true).strip
-    Readline::HISTORY.pop if input.empty?
-    if input.start_with?('hist')
+  prompt = "#{'>>>'.invert} "
+  while input = Readline.readline(prompt, true).strip
+    if input.empty?
+      Readline::HISTORY.pop
+    elsif input.start_with?('hist')
+      Readline::HISTORY.pop
       say Readline::HISTORY.to_a
-      next
-    end
-    input.split(';').each do |command|
-      if command == 'exit' || command == 'quit'
-        File.write(HISTORY_FILE_NAME, Readline::HISTORY.to_a[[Readline::HISTORY.size - 1000, 0].max..-1].join("\n"))
-        exit
-      end
+    else
+      input.split(';').each do |command|
+        if command == 'exit' || command == 'quit'
+          File.write(HISTORY_FILE_NAME, Readline::HISTORY.to_a[[Readline::HISTORY.size - 1000, 0].max..-1].join("\n"))
+          exit
+        end
 
-      begin
-        @show_help = false
-        @params.verbose = 0
-        @params.force = false
-        @params.only_missing = false
-        @params.transfer_buffer = 0
-        @params.refresh = 0
-        run(command.strip.split(/\s+/))
-      rescue SystemExit
+        begin
+          t = Time.now
+          cmd = command.gsub(/^time\s+/i, '')
+          @show_help = false
+          @params.verbose = 0
+          @params.force = false
+          @params.only_missing = false
+          @params.transfer_buffer = 0
+          @params.refresh = 0
+          @params.mismatch_only = false
+          @params.fix_mismatch = false
+          run(cmd.strip.split(/\s+/))
+          say "Done in #{(Time.now - t).round(1).to_s.bold} sec" unless cmd == command
+        rescue SystemExit
+        end
       end
     end
   end

@@ -503,7 +503,7 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     end
 
     @deployment = Cms::Deployment.latest(:nsPath => "#{environment_ns_path(@environment)}/bom")
-    if @deployment && %w(active paused failed).include?(@deployment.deploymentState)
+    if @deployment && %w(active paused failed pending).include?(@deployment.deploymentState)
       return false, "Cannot #{action} while deployment is in progress."
     end
 

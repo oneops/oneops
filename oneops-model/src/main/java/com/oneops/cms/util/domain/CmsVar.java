@@ -76,7 +76,7 @@ public class CmsVar implements Serializable {
 
   /**
    *
-   * @param vale
+   * @param value
    */
   public void setValue(String value) {
     this.value = value;

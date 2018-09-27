@@ -52,9 +52,10 @@
     	<property name="wfController" ref="wfController" />
 		<property name="notifier" ref="deploymentNotifier"/>
 		<property name="cmsClient" ref="cmsClient"/>
-			<property name="executionManager" ref="executionManager"/>
+		<property name="executionManager" ref="executionManager"/>
 		<property name="deployerEnabled" value="${DEPLOYER_ENABLED:false}"/>
-
+		<property name="procDeployerEnabledFlag" value="${PROC_DEPLOYER_ENABLED:false}"/>
+		<property name="deploymentStepsLimit" value="${DEPLOYER_STEPS_LIMIT:100}"/>
     </bean>
 
 

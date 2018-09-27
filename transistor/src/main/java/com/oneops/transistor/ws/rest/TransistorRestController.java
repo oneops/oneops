@@ -41,6 +41,9 @@ import com.oneops.transistor.service.*;
 import com.oneops.transistor.service.peristenceless.BomData;
 import com.oneops.transistor.service.peristenceless.InMemoryBomProcessor;
 import com.oneops.transistor.snapshot.domain.Snapshot;
+import org.apache.commons.lang.BooleanUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 import org.apache.log4j.Logger;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -458,6 +461,13 @@ public class TransistorRestController extends AbstractRestController {
 			result.put(type, getCostTotals(estimatedCostData.get(type)));
 		}
 		return result;
+	}
+
+
+	@RequestMapping(value="clouds/{cloudId}/capacity", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String, Integer>  getCloudCapacity(@PathVariable long cloudId){
+		return envManager.getCloudCapacity(cloudId);
 	}
 
 
@@ -1070,14 +1080,27 @@ public class TransistorRestController extends AbstractRestController {
 	@ResponseBody
 	public CmsDeployment scaleDown(
 			@PathVariable long platformId,
-			@RequestParam int scaleDownBy,
-			@RequestParam (required = false, defaultValue = "true") boolean ensureEvenScale,
 			@RequestBody Map<String, String> paramMap,
 			@RequestHeader(value = "X-Cms-User", required = false) String userId) {
+
+		int scaleDownBy = 0;
+		int minComputesInEachCloud = 3;
+		boolean ensureEvenScale = true;
+		if (paramMap != null) {
+			scaleDownBy = NumberUtils.toInt(paramMap.get("scaleDownBy"), 0);
+			minComputesInEachCloud = NumberUtils.toInt(paramMap.get("minComputesInEachCloud"), 3);
+			if (paramMap.get("ensureEvenScale") != null) {
+				ensureEvenScale = BooleanUtils.toBoolean(paramMap.get("ensureEvenScale"));
+			}
+		}
+		if (scaleDownBy < 1) {
+			throw new TransistorException(CmsError.TRANSISTOR_EXCEPTION, "scaleDownBy value must be greater than 0");
+		}
+
 		try {
 			if (userId == null) userId = "oneops-system";
 
-			return baProcessor.scaleDown(platformId, scaleDownBy, ensureEvenScale, userId);
+			return baProcessor.scaleDown(platformId, scaleDownBy, minComputesInEachCloud, ensureEvenScale, userId);
 		} catch (Exception te) {
 			logger.error("Error while submitting scale-down deployment: ", te);
 			throw te;

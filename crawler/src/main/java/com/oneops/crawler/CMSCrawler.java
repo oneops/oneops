@@ -141,6 +141,11 @@ public class CMSCrawler {
         cmsDbUserName = props.getProperty("cms.db.user.name");
         cmsDbPassword = props.getProperty("cms.db.user.password");
         cmsDbUrl = props.getProperty("cms.db.url");
+        configurePlugins(props);
+    }
+
+    private void configurePlugins(Properties props) {
+        scaleDownPlugin.configureSecrets(props);
     }
 
     public void crawl() {
@@ -162,18 +167,23 @@ public class CMSCrawler {
                 ttlPlugin.cleanup(); //from previous run
                 log.info("Starting to crawl all environments.. Total # " + envs.size());
                 for (Environment env : envs) {
-                    if (shutDownRequested) {
-                        log.info("Shutdown requested, exiting !");
-                        break;
+                    try {
+                        if (shutDownRequested) {
+                            log.info("Shutdown requested, exiting !");
+                            break;
+                        }
+                        populateEnv(env, conn);
+                        List<Deployment> deployments = getDeployments(conn, env);
+                        executePlugins(env, organizationsMapCache, deployments);
+                        updateCrawlEntry(env);
+                    } catch (Exception e) {
+                        log.error("Error while processing env, will skip and continue. env id " + env.getId(), e);
                     }
-                    populateEnv(env, conn);
-                    List<Deployment> deployments = getDeployments(conn, env);
-                    executePlugins(env, organizationsMapCache, deployments);
-                    updateCrawlEntry(env);
                 }
 
                 long endTimeMillis = System.currentTimeMillis();
                 log.info("Time taken to crawl all environments and execute all plugins in seconds: " + (endTimeMillis - startTimeMillis)/(1000));
+                platformHADRCrawlerPlugin.cleanup();
                 if (this.singleRun) {
                     log.info("Crawler is configured to exit after single run");
                     System.exit(0);
@@ -184,7 +194,6 @@ public class CMSCrawler {
                 if (syncClouds) {
                     crawlClouds(conn);
                 }
-
                 Thread.sleep(crawlFrequencyHours * 60 * 60 * 1000);//sleep before next crawl
             }
         } catch (Throwable e) {

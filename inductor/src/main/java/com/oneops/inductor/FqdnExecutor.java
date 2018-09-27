@@ -1,8 +1,13 @@
 package com.oneops.inductor;
 
+import static com.oneops.gslb.domain.Protocol.HTTP;
+import static com.oneops.gslb.domain.Protocol.HTTPS;
+import static com.oneops.gslb.domain.Protocol.TCP;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
+import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -32,6 +37,7 @@ import com.oneops.gslb.domain.Lb;
 import com.oneops.gslb.domain.Protocol;
 import com.oneops.gslb.domain.ProvisionedGslb;
 import com.oneops.gslb.domain.TorbitConfig;
+import com.oneops.inductor.util.DnsLookup;
 import com.oneops.infoblox.InfobloxClient;
 import com.oneops.infoblox.model.cname.CNAME;
 import com.oneops.infoblox.model.zone.Delegate;
@@ -46,10 +52,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -101,6 +110,11 @@ public class FqdnExecutor implements ComponentWoExecutor {
 
   private static final String DELEGATION_CONFIG_PATH = "/secrets/gslb_delegation.json";
 
+  /** Config variable to enable GSLB cname cut over. */
+  public static final String GSLB_MIGRATION_CUTOVER = "GSLB_MIGRATION_CUTOVER_ENABLED";
+
+  public static final String ATTRIBUTE_LB_VNAMES = "vnames";
+
   private static final Logger logger = Logger.getLogger(FqdnExecutor.class);
 
   @Autowired WoHelper woHelper;
@@ -116,17 +130,12 @@ public class FqdnExecutor implements ComponentWoExecutor {
   GslbProvider gslbProvider;
 
   private Map<String, Distribution> distributionMap;
-  private Map<String, Protocol> protocolMap;
 
   public FqdnExecutor() {
     gslbProvider = new GslbProvider();
     distributionMap = new HashMap<>();
     distributionMap.put("proximity", Distribution.PROXIMITY);
     distributionMap.put("roundrobin", Distribution.ROUND_ROBIN);
-    protocolMap = new HashMap<>();
-    protocolMap.put("tcp", Protocol.TCP);
-    protocolMap.put("http", Protocol.HTTP);
-    protocolMap.put("https", Protocol.TCP);
   }
 
   @Override
@@ -137,7 +146,11 @@ public class FqdnExecutor implements ComponentWoExecutor {
   @Override
   public Response execute(CmsWorkOrderSimple wo, String dataDir) {
     String logKey = woHelper.getLogKey(wo);
-    if (isFqdnInstance(wo) && isLocalWo(wo) && isGdnsEnabled(wo) && isTorbitServiceType(wo)) {
+    if (isFqdnInstance(wo)
+        && isLocalWo(wo)
+        && isGdnsEnabled(wo)
+        && isTorbitServiceType(wo)
+        && isLbPresent(wo)) {
       if (isPTREnabled(wo)) {
         woHelper.failWo(
             wo, logKey, "Fqdn with PTR is not currently supported for Torbit service_type", null);
@@ -164,7 +177,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
         logKey
             + "not executing by FqdnExecutor as these conditions are not met :: "
             + "[fqdn service_type set as torbit && gdns enabled for env && local workorder &&"
-            + " torbit cloud service configured]");
+            + " dependsOn lb is present && torbit cloud service configured]");
     return Response.getNotMatchingResponse();
   }
 
@@ -183,7 +196,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
       String logKey) {
     Context context = context(wo, infobloxConfig);
     List<String> aliases = new ArrayList<>(getAliasesWithDefault(context));
-    List<CloudARecord> cloudEntries = getCloudDnsEntries(context, wo);
+    List<CloudARecord> cloudEntries = getCloudDnsEntries(context, wo, logKey);
     List<DcARecord> dcARecords = getDcDnsEntries(context, wo, logKey);
 
     return ProvisionedGslb.builder()
@@ -250,6 +263,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
    */
   private Response performMigration(CmsActionOrderSimple ao, String dataDir, String logKey) {
     String arg = getMigrateArg(ao, logKey);
+    Stopwatch stopwatch = Stopwatch.createStarted();
+
     try {
       String fileName = dataDir + "/" + ao.getRecordId() + ".json";
       logger.info(logKey + "Inductor: " + InetAddress.getLocalHost().getHostAddress());
@@ -268,6 +283,16 @@ public class FqdnExecutor implements ComponentWoExecutor {
     } catch (Exception ex) {
       woHelper.failWo(ao, logKey, "Migrate to '" + arg + "'  action failed!", ex);
       return woHelper.formResponse(ao, logKey);
+
+    } finally {
+      stopwatch.stop();
+      logger.info(
+          logKey
+              + "Migrate to '"
+              + arg
+              + "' took "
+              + stopwatch.elapsed(TimeUnit.SECONDS)
+              + " seconds!");
     }
   }
 
@@ -410,6 +435,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
     boolean stickiness = isStickinessEnabled(ao);
     boolean primaryCloud = hasPrimaryCloud(ao);
     boolean ptrEnabled = isPTREnabled(ao);
+    boolean cutOverEnabled = isCutOverEnabled(ao);
+    boolean singlePlatform = isSinglePlatform(ao);
 
     TorbitConfig tc = getTorbitConfig(ao, logKey);
     InfobloxConfig ic = getInfobloxConfig(ao);
@@ -427,8 +454,15 @@ public class FqdnExecutor implements ComponentWoExecutor {
 
     String gslbInfo =
         String.format(
-            "GSLB fqdn: %s, Migratable GSLB: %s, GSLB base domain: %s, GSLB enabled: %s, Primary Cloud: %s, PTR Enabled: %s",
-            gslb, migratableGslb, baseDomain, gdnsEnabled, primaryCloud, ptrEnabled);
+            "GSLB fqdn: %s, Migratable GSLB: %s, GSLB base domain: %s, GSLB enabled: %s, Primary Cloud: %s, PTR Enabled: %s, Single Platform: %s, CNAME CutOver: %s",
+            gslb,
+            migratableGslb,
+            baseDomain,
+            gdnsEnabled,
+            primaryCloud,
+            ptrEnabled,
+            singlePlatform,
+            cutOverEnabled);
     logger.info(logKey + gslbInfo);
 
     /* Zone delegation infoblox client is used for removing zone delegation records and creating gslb -> torbit alias.*/
@@ -436,7 +470,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     /* Cloud dns infoblox client is used for platform cname operations. */
     InfobloxClient cloudDnsIbaClient = getCloudDNSClient(ic);
 
-    if (gdnsEnabled && !stickiness && !ptrEnabled && migratableGslb) {
+    if (gdnsEnabled && !stickiness && !ptrEnabled && migratableGslb && !singlePlatform) {
 
       // Holds all newly updated entries.
       Map<String, String> dnsEntries = new HashMap<>();
@@ -445,7 +479,6 @@ public class FqdnExecutor implements ComponentWoExecutor {
       logger.info(logKey + "The platform gslb domain is " + gslb);
       logger.info(logKey + "Creating torbit MTD base (gdns)...");
       GslbProvisionResponse res = gslbProvider.create(torbitGslbMigrationReq(ao, tc, ic, logKey));
-      String torbitGslb = res.getGlb();
 
       if (res.getStatus() == Status.FAILED) {
         woHelper.failWo(
@@ -453,9 +486,19 @@ public class FqdnExecutor implements ComponentWoExecutor {
         return woHelper.formResponse(ao, logKey);
       }
       logger.info(logKey + "Created Torbit MTD base, " + res);
-      validateTorbitMtdBase(res, logKey);
+
+      if (!cutOverEnabled) {
+        logger.info(
+            logKey
+                + "GSLB CNAME migration is not enabled. Enable it and run again to complete the migration.");
+        // Returns the same a/o without any modifications.
+        return woHelper.formResponse(ao, logKey);
+      }
 
       if (primaryCloud) {
+        // Validate before doing the cut-over.
+        String torbitGslb = res.getGlb();
+        validateTorbitMtdBase(res, delegationConfig, logKey);
 
         logger.info(logKey + "Starting to migrate netscaler gslb to torbit.");
         List<String> aliases = new ArrayList<>(getAliasesWithDefault(context));
@@ -508,12 +551,33 @@ public class FqdnExecutor implements ComponentWoExecutor {
    * Torbit MTD host health check validation. Will remove this naive logic once torbit provide a
    * proper MTD base health status API.
    */
-  private void validateTorbitMtdBase(GslbProvisionResponse aliases, String logKey) {
-    logger.warn(logKey + "MTD base health status check is not supported! Sleeping...");
-    try {
-      Thread.sleep(30_000);
-    } catch (InterruptedException ignore) {
+  private void validateTorbitMtdBase(
+      GslbProvisionResponse gslb, String delegationConfig, String logKey) {
+    List<String> dnsResolvers = getDnsResolvers(delegationConfig);
+    if (dnsResolvers.isEmpty()) {
+      throw new IllegalStateException("Can't find any DNS resolvers for gslb validation!");
     }
+
+    boolean aRecResolvable = DnsLookup.isARecResolvable(gslb.getGlb(), dnsResolvers, logKey);
+    if (!aRecResolvable) {
+      throw new IllegalStateException("Can't resolve torbit gslb domain: " + gslb.getGlb());
+    }
+  }
+
+  /**
+   * Get the DNS resolvers for torbit gslb validation.
+   *
+   * @param delegationConfig delegation config.
+   * @return list of dns resolvers host names.
+   */
+  private List<String> getDnsResolvers(String delegationConfig) {
+    JsonObject jo = (JsonObject) gson.fromJson(delegationConfig, JsonElement.class);
+    JsonArray asJsonArray = jo.getAsJsonArray("resolvers");
+    List<String> resolvers = new LinkedList<>();
+    for (JsonElement jsonElement : asJsonArray) {
+      resolvers.add(jsonElement.getAsString());
+    }
+    return resolvers;
   }
 
   /** GSLB migration validation for aliases. */
@@ -922,7 +986,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
         .torbitConfig(torbitConfig)
         .infobloxConfig(infobloxConfig)
         .logContextId(logKey)
-        .lbs(lbTargets(ao))
+        .lbs(lbTargets(ao, context, logKey))
         .healthChecks(healthChecks(context, logKey))
         .cnames(Collections.emptyList())
         .cloudARecords(Collections.emptyList())
@@ -969,7 +1033,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
    * @return <code>true</code> if stickiness is enabled.
    */
   private boolean isStickinessEnabled(CmsActionOrderSimple ao) {
-    boolean stickiness = false;
+    boolean stickiness = true;
     Instance lb = woHelper.getLbFromDependsOn(ao);
     if (lb != null) {
       String stkVal = lb.getCiAttributes().get("stickiness");
@@ -996,6 +1060,35 @@ public class FqdnExecutor implements ComponentWoExecutor {
   }
 
   /**
+   * Checks if GSLB CNAME migration is enabled.
+   *
+   * @param ao action order
+   * @return <code>true</code> if cname migration is enabled.
+   */
+  private boolean isCutOverEnabled(CmsActionOrderSimple ao) {
+    Map<String, String> config = ao.getConfig();
+    if (config != null) {
+      return "true".equalsIgnoreCase(config.getOrDefault(GSLB_MIGRATION_CUTOVER, "false"));
+    } else {
+      return false;
+    }
+  }
+
+  /**
+   * Check if the platform is single (means no LB).
+   *
+   * @param ao action order
+   * @return <code>true</code> if the platform is single.
+   */
+  private boolean isSinglePlatform(CmsActionOrderSimple ao) {
+    return woHelper.getLbFromDependsOn(ao) == null;
+  }
+
+  private boolean isLbPresent(CmsWorkOrderSimple wo) {
+    return woHelper.getLbFromDependsOn(wo) != null;
+  }
+
+  /**
    * Fqdn executor context for migrate action order.
    *
    * @param ao action order.
@@ -1008,6 +1101,13 @@ public class FqdnExecutor implements ComponentWoExecutor {
     Map<String, List<CmsCISimple>> payload = ao.getPayLoad();
     CmsCISimple env = payload.get("Environment").get(0);
     context.subdomain = env.getCiAttributes().get("subdomain");
+    String[] nsElements = ao.getNsPath().split("/");
+    if (nsElements.length < 3) {
+      throw new RuntimeException("Invalid nsPath in action order, it does not have required elements");
+    }
+    context.org = nsElements[1];
+    context.assembly = nsElements[2];
+    context.env = env.getCiName();
     context.lb = woHelper.getLbFromDependsOn(ao);
     Map<String, String> fqdnAttrs = ao.getCi().getCiAttributes();
     context.shortAliases = getShortAliases(fqdnAttrs);
@@ -1111,7 +1211,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     Map<String, String> fqdnBaseAttrs = wo.getRfcCi().getCiBaseAttributes();
 
     Set<String> aliases = getAliasesWithDefault(context);
-    List<CloudARecord> cloudEntries = getCloudDnsEntries(context, wo);
+    List<CloudARecord> cloudEntries = getCloudDnsEntries(context, wo, logKey);
     List<DcARecord> dcARecords = getDcDnsEntries(context, wo, logKey);
     // TODO: also create cloud-level cnames (using short alias) to the cloud dns entry
 
@@ -1129,6 +1229,11 @@ public class FqdnExecutor implements ComponentWoExecutor {
       newEntries = cloudEntries;
     }
 
+    List<Lb> lbTargets = lbTargets(wo, context, logKey);
+    logger.info(logKey + "Mtd LbTargets :: " + lbTargets);
+    List<HealthCheck> healthChecks = healthChecks(context, logKey);
+    logger.info(logKey + "Mtd healthChecks :: " + healthChecks);
+
     return Gslb.builder()
         .app(context.platform)
         .subdomain(context.subdomain)
@@ -1136,8 +1241,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
         .torbitConfig(torbitConfig)
         .infobloxConfig(infobloxConfig)
         .logContextId(logKey)
-        .lbs(lbTargets(wo, context))
-        .healthChecks(healthChecks(context, logKey))
+        .lbs(lbTargets)
+        .healthChecks(healthChecks)
         .cnames(new ArrayList<>(aliases))
         .cloudARecords(newEntries)
         .dcARecords(dcARecords)
@@ -1155,7 +1260,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     Map<String, String> fqdnAttrs = ao.getCi().getCiAttributes();
 
     List<String> aliases = new ArrayList<>(getAliasesWithDefault(context));
-    List<CloudARecord> cloudEntries = getCloudDnsEntries(context, ao);
+    List<CloudARecord> cloudEntries = getCloudDnsEntries(context, ao, logKey);
     List<DcARecord> dcARecords = getDcDnsEntries(context, ao, logKey);
 
     return Gslb.builder()
@@ -1165,7 +1270,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
         .torbitConfig(torbitConfig)
         .infobloxConfig(infobloxConfig)
         .logContextId(logKey)
-        .lbs(lbTargets(ao))
+        .lbs(lbTargets(ao, context, logKey))
         .healthChecks(healthChecks(context, logKey))
         .cnames(aliases)
         .cloudARecords(cloudEntries)
@@ -1215,19 +1320,36 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return String.join(".", alias, context.subdomain, context.infobloxConfig.zone());
   }
 
-  private List<CloudARecord> getCloudDnsEntries(Context context, CmsWorkOrderSimpleBase wo) {
+  private List<CloudARecord> getCloudDnsEntries(
+      Context context, CmsWorkOrderSimpleBase wo, String logKey) {
     CmsCISimple dnsService = dnsService(wo);
     List<CloudARecord> list = new ArrayList<>();
     if (dnsService != null) {
       Map<String, String> attributes = dnsService.getCiAttributes();
       if (attributes.containsKey("cloud_dns_id")) {
         String cloudDnsId = attributes.get("cloud_dns_id");
-        list.add(cloudARecord(context, wo.getCloud(), context.platform, cloudDnsId));
+        Instance lb = context.lb;
+        if (lb == null) {
+          throw new RuntimeException("DependsOn Lb is empty");
+        }
+        String lbVip = lb.getCiAttributes().get(ATTRIBUTE_DNS_RECORD);
+        if (isNotBlank(lbVip)) {
+          logger.info(logKey + "cloud dns entry for cloud: " + cloudDnsId + ", vip: " + lbVip);
+          list.add(cloudARecord(context, lbVip, context.platform, cloudDnsId));
+        }
       }
     }
     return list;
   }
 
+  /**
+   * Returns the DC level A record entries for the lb. There is at most one DC level VIP per LB.
+   *
+   * @param context executor context
+   * @param wo wo/ao
+   * @param logKey inductor log key
+   * @return list of DC level A records
+   */
   @SuppressWarnings("unchecked")
   private List<DcARecord> getDcDnsEntries(
       Context context, CmsWorkOrderSimpleBase wo, String logKey) {
@@ -1244,26 +1366,38 @@ public class FqdnExecutor implements ComponentWoExecutor {
           throw new RuntimeException("DependsOn Lb is empty");
         }
 
-        String vnames = lb.getCiAttributes().get("vnames");
+        String vnames = lb.getCiAttributes().get(ATTRIBUTE_LB_VNAMES);
         if (isNotBlank(vnames)) {
           Map<String, String> vnameMap = gson.fromJson(vnames, Map.class);
           String dcDnsEntry =
               String.join(
-                      ".",
-                      context.platform,
-                      context.subdomain,
-                      datacenter,
-                      context.infobloxConfig.zone())
-                  .toLowerCase();
+                  ".",
+                  context.platform,
+                  context.subdomain,
+                  datacenter,
+                  context.infobloxConfig.zone());
+          String dcDnsEntryFull =
+              String.join(
+                  ".",
+                  context.platform,
+                  context.env,
+                  context.assembly,
+                  context.org,
+                  datacenter,
+                  context.infobloxConfig.zone());
           String lbVnamePrefix = dcDnsEntry + "-";
+          String lbVnamePrefixFull = dcDnsEntryFull + "-";
           logger.info(
               logKey
-                  + "DC Level dns entry - dcDnsEntry : "
-                  + dcDnsEntry
-                  + ", lbVnamePrefix: "
-                  + lbVnamePrefix);
+                  + "DC Level dns entry - lbVnamePrefix: "
+                  + lbVnamePrefix
+                  + ", lbVnamePrefixFull : "
+                  + lbVnamePrefixFull);
           for (Entry<String, String> vname : vnameMap.entrySet()) {
-            if (vname.getKey().startsWith(lbVnamePrefix)) {
+            if (vname.getKey().startsWith(lbVnamePrefix)
+                || vname.getKey().startsWith(lbVnamePrefixFull)) {
+              dcDnsEntry = dcDnsEntry.toLowerCase();
+              logger.info(logKey + "DC dns entry: " + dcDnsEntry + ", vip: " + vname.getValue());
               dcARecords.add(DcARecord.create(vname.getValue(), dcDnsEntry));
               break;
             }
@@ -1274,15 +1408,22 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return dcARecords;
   }
 
-  private CloudARecord cloudARecord(
-      Context context, CmsCISimple cloud, String prefix, String cloudDnsId) {
+  private CloudARecord cloudARecord(Context context, String vip, String prefix, String cloudDnsId) {
     return CloudARecord.create(
-        cloud.getCiName(),
+        vip,
         String.join(".", prefix, context.subdomain, cloudDnsId, context.infobloxConfig.zone())
             .toLowerCase());
   }
 
-  private List<Lb> lbTargets(CmsWorkOrderSimple wo, Context context) {
+  /**
+   * Return all the LB instances for the fqdn to update the torbit config. Don't include the current
+   * cloud's LB instance if it'a delete work order.
+   *
+   * @param wo work order
+   * @param context executor context
+   * @return list of lb instances.
+   */
+  private List<Lb> lbTargets(CmsWorkOrderSimple wo, Context context, String logKey) {
     Map<Long, Cloud> cloudMap = getPlatformClouds(wo);
     List<CmsRfcCISimple> deployedLbs = wo.getPayLoad().get(LB_PAYLOAD);
     if (woHelper.isDeleteAction(wo)) {
@@ -1296,33 +1437,110 @@ public class FqdnExecutor implements ComponentWoExecutor {
     if (deployedLbs == null) {
       throw new RuntimeException("Lb payload not available in workorder");
     }
+    Optional<Map<String, Integer>> weightsMap = weights(wo);
     return deployedLbs
         .stream()
         .filter(lb -> isNotBlank(lb.getCiAttributes().get(ATTRIBUTE_DNS_RECORD)))
-        .map(lb -> lbTarget(lb, cloudMap))
+        .map(lb -> lbTarget(lb, cloudMap, weightsMap, context, logKey))
         .collect(Collectors.toList());
   }
 
-  private List<Lb> lbTargets(CmsActionOrderSimple ao) {
+  /**
+   * Return all the LB instances for the fqdn from the action order.
+   *
+   * @return list of lb instances.
+   */
+  private List<Lb> lbTargets(CmsActionOrderSimple ao, Context context, String logKey) {
     Map<Long, Cloud> cloudMap = getPlatformClouds(ao);
     List<CmsCISimple> deployedLbs = ao.getPayLoad().get(LB_PAYLOAD);
     return deployedLbs
         .stream()
         .filter(lb -> isNotBlank(lb.getCiAttributes().get(ATTRIBUTE_DNS_RECORD)))
-        .map(lb -> lbTarget(lb, cloudMap))
+        .map(lb -> lbTarget(lb, cloudMap, Optional.empty(), context, logKey))
         .collect(Collectors.toList());
   }
 
-  private Lb lbTarget(Instance lbCi, Map<Long, Cloud> cloudMap) {
+  private Optional<Map<String, Integer>> weights(CmsWorkOrderSimple wo) {
+    Map<String, String> config = wo.getConfig();
+    if (config != null && config.containsKey("weights")) {
+      String value = config.get("weights");
+      Type type = new TypeToken<Map<String, Integer>>() {}.getType();
+      Map<String, Integer> map = gson.fromJson(value, type);
+      if (!map.isEmpty()) {
+        return Optional.of(map);
+      }
+    }
+    return Optional.empty();
+  }
+
+  private Lb lbTarget(
+      Instance lbCi,
+      Map<Long, Cloud> cloudMap,
+      Optional<Map<String, Integer>> weightsMapOpt,
+      Context context,
+      String logKey) {
+
     String lbName = lbCi.getCiName();
     String[] elements = lbName.split("-");
     String cloudId = elements[elements.length - 2];
     Cloud cloud = cloudMap.get(Long.parseLong(cloudId));
+    Integer weightPercent = null;
+    if (weightsMapOpt.isPresent()) {
+      Map<String, Integer> weightsMap = weightsMapOpt.get();
+      weightPercent = weightsMap.getOrDefault(cloud.name, 0);
+    }
+
     return Lb.create(
-        cloud.name,
-        lbCi.getCiAttributes().get(ATTRIBUTE_DNS_RECORD),
-        isEnabledForTraffic(cloud),
-        null);
+        cloud.name, vip(lbCi, context, logKey), isEnabledForTraffic(cloud), weightPercent);
+  }
+
+  private String vip(Instance lbCi, Context context, String logKey) {
+    String vip = null;
+    Map<String, String> attrs = lbCi.getCiAttributes();
+    // we need to get the dc vip from the lb attributes.
+    // if cloud vip is disabled the dns_record attribute value would have the dc vip
+    // if cloud vip is enabled it would have the cloud level vip, so we need to get the dc vip
+    // from vnames attribute, the dc vip name in vnames would have the prefix
+    // <platform>.<env>.<assembly>.<org>
+    if ("true".equals(attrs.getOrDefault("create_cloud_level_vips", "false"))) {
+      logger.info(
+          logKey
+              + "cloud vip enabled for lb "
+              + lbCi.getCiId()
+              + ":"
+              + lbCi.getCiName()
+              + ", getting dc level vip from vnames");
+      String vnames = attrs.get(ATTRIBUTE_LB_VNAMES);
+      if (isNotBlank(vnames)) {
+        Map<String, String> vnameMap = gson.fromJson(vnames, Map.class);
+        String dcVipPrefix = context.platform + "." + context.subdomain;
+        String dcVipPrefixFull =
+            String.join(".", context.platform, context.env, context.assembly, context.org);
+        logger.info(
+            logKey
+                + "getting vip for lb, dcVipPrefix : "
+                + dcVipPrefix
+                + ", dcVipPrefixFull : "
+                + dcVipPrefixFull);
+        for (Entry<String, String> vname : vnameMap.entrySet()) {
+          if (vname.getKey().startsWith(dcVipPrefix)
+              || vname.getKey().startsWith(dcVipPrefixFull)) {
+            vip = vname.getValue();
+            break;
+          }
+        }
+      }
+      if (isBlank(vip)) {
+        throw new RuntimeException(
+            "lb dc level vip could not be obtained for lb ci: "
+                + lbCi.getCiId()
+                + ", ci-name: "
+                + lbCi.getCiName());
+      }
+    } else {
+      vip = attrs.get(ATTRIBUTE_DNS_RECORD);
+    }
+    return vip;
   }
 
   private boolean isEnabledForTraffic(Cloud cloud) {
@@ -1392,80 +1610,177 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return isPlatformDisabled;
   }
 
+  /**
+   * Torbit GSLB health check mapper function from existing LB listener/ecv config.
+   *
+   * <pre>
+   * ┌─────────────────┬─────────┬───────────────────────────────────────────────────────┐
+   * │   LB Listener   │  LB ECV │                Torbit MTD health check                │
+   * ├─────────────────┼─────────┼───────────────────────────────────────────────────────┤
+   * │ HTTP 8080       │ /health │ http-8080 + /health + tls: false                      │
+   * │ HTTP 8080       │ n/a     │ http-8080 + tls: false                                │
+   * │ HTTPS 8443      │ /health │ https-8443 + /health + tls: true (No cert validation) │
+   * │ HTTPS 8443      │ n/a     │ https-8443 + tls: true                                │
+   * │ SSL_BRIDGE 8443 │ n/a     │ tcp-8443 + tls: true                                  │
+   * │ TLS 8444        │ n/a     │ tcp-8444 + tls: true                                  │
+   * │ TCP 8445        │ /health │ tcp-8445 + tls: false                                 │
+   * │ TCP 8445        │ n/a     │ tcp-8445 + tls: false                                 │
+   * └─────────────────┴─────────┴───────────────────────────────────────────────────────┘
+   * </pre>
+   *
+   * LB listeners are generally in this format 'vproto vport iproto iport', gslb needs to use the
+   * vport for health checks. ECV map is configured as 'iport : ecv-url', so we need to use the
+   * iport from listener configuration to lookup the ecv config from ecv map.
+   *
+   * @param context fqdn executor context
+   * @param logKey inductor log key
+   * @return list of Torbit gslb health check to be created.
+   */
   private List<HealthCheck> healthChecks(Context context, String logKey) {
     Instance lb = context.lb;
     if (lb == null) {
       throw new RuntimeException("DependsOn Lb is empty");
     }
+
     List<HealthCheck> hcList = new ArrayList<>();
-    String listenerJson = lb.getCiAttributes().get(ATTRIBUTE_LISTENERS);
-    String ecvMapJson = lb.getCiAttributes().get(ATTRIBUTE_ECV_MAP);
-    if (isNotBlank(listenerJson) && isNotBlank(ecvMapJson)) {
-      JsonElement element = jsonParser.parse(ecvMapJson);
-      if (element instanceof JsonObject) {
-        JsonObject root = (JsonObject) element;
-        Set<Entry<String, JsonElement>> set = root.entrySet();
-        Map<Integer, String> ecvMap =
-            set.stream()
-                .collect(
-                    Collectors.toMap(
-                        s -> Integer.parseInt(s.getKey()), s -> s.getValue().getAsString()));
-        logger.info(logKey + "listeners " + listenerJson);
-        JsonArray listeners = (JsonArray) jsonParser.parse(listenerJson);
-        listeners.forEach(
-            s -> {
-              String listener = s.getAsString();
-              // listeners are generally in this format 'http <lb-port> http <app-port>', gslb needs
-              // to use the lb-port for health checks
-              // ecv map is configured as '<app-port> : <ecv-url>', so we need to use the app-port
-              // from listener configuration to lookup the ecv config from ecv map
-              String[] config = listener.split(" ");
-              if (config.length >= 2) {
-                String protocol = config[0];
-                int lbPort = Integer.parseInt(config[1]);
-                int ecvPort = Integer.parseInt(config[config.length - 1]);
-                String healthConfig = ecvMap.get(ecvPort);
-                if (healthConfig != null) {
-                  if ("http".equalsIgnoreCase(protocol)) {
-                    String path = healthConfig.substring(healthConfig.indexOf(" ") + 1);
-                    logger.info(
-                        logKey
-                            + "healthConfig : "
-                            + healthConfig
-                            + ", health check configuration, protocol: "
-                            + protocol
-                            + ", port: "
-                            + lbPort
-                            + ", path "
-                            + path);
-                    hcList.add(newHealthCheck(protocol, lbPort, path));
-                  } else {
-                    logger.info(
-                        logKey
-                            + "health check configuration, protocol: "
-                            + protocol
-                            + ", port: "
-                            + lbPort);
-                    hcList.add(newHealthCheck(protocol, lbPort, null));
-                  }
-                }
-              }
-            });
+    List<String> lbListeners = getLBListeners(lb);
+    Map<String, String> ecvMap = getLbEcvMap(lb);
+
+    logger.info(logKey + "LB listeners: " + lbListeners);
+    logger.info(logKey + "LB ecv map: " + ecvMap);
+
+    for (String lbListener : lbListeners) {
+      // https 8081 http 8080 (virtualProto virtualPort instanceProto instancePort)
+      String[] cfg = lbListener.trim().split(" ");
+
+      if (cfg.length != 4) {
+        logger.error(logKey + "Invalid lb listener config: " + lbListener);
+        throw new IllegalStateException("Invalid lb listener config: " + lbListener);
       }
+
+      String vProto = cfg[0];
+      String vPort = cfg[1];
+      String iProto = cfg[2];
+      String iPort = cfg[3];
+
+      String ecv = ecvMap.get(iPort);
+      String ecvPath = "";
+
+      if (ecv != null) {
+        // ECV format is `iPort : GET /ecvPath`
+        String[] parts = ecv.trim().split(" ");
+        if (parts.length == 2) {
+          ecvPath = parts[1];
+        } else {
+          logger.warn(logKey + "Skipping invalid ecv for iPort: " + iPort + ", path: " + ecv);
+        }
+      }
+
+      HealthCheck healthCheck = newHealthCheck(vProto, vPort, ecvPath);
+      logger.info(logKey + "Adding MTD health check: " + healthCheck);
+      hcList.add(healthCheck);
     }
     return hcList;
   }
 
-  private HealthCheck newHealthCheck(String protocol, int port, String testObjectPath) {
+  /**
+   * Get the listener config of the LB
+   *
+   * @param lb lb instance
+   * @return list of listeners.
+   */
+  protected List<String> getLBListeners(Instance lb) {
+    String json = lb.getCiAttributes().get(ATTRIBUTE_LISTENERS);
+    if (isNotBlank(json)) {
+      Type listType = new TypeToken<List<String>>() {}.getType();
+      return gson.fromJson(json, listType);
+    } else {
+      return Collections.emptyList();
+    }
+  }
+
+  /**
+   * Get the ecv map of the LB
+   *
+   * @param lb lb instance
+   * @return ecv map
+   */
+  protected Map<String, String> getLbEcvMap(Instance lb) {
+    String json = lb.getCiAttributes().get(ATTRIBUTE_ECV_MAP);
+    if (isNotBlank(json)) {
+      Type mapType = new TypeToken<Map<String, String>>() {}.getType();
+      return gson.fromJson(json, mapType);
+    } else {
+      return Collections.emptyMap();
+    }
+  }
+
+  /**
+   * Creates new health health check based on the LB and ECV path.
+   *
+   * <pre>
+   * ┌─────────────────┬─────────┬───────────────────────────────────────────────────────┐
+   * │   LB Listener   │  LB ECV │                Torbit MTD health check                │
+   * ├─────────────────┼─────────┼───────────────────────────────────────────────────────┤
+   * │ HTTP 8080       │ /health │ http-8080 + /health + tls: false                      │
+   * │ HTTP 8080       │ n/a     │ http-8080 + tls: false                                │
+   * │ HTTPS 8443      │ /health │ https-8443 + /health + tls: true (No cert validation) │
+   * │ HTTPS 8443      │ n/a     │ https-8443 + tls: true                                │
+   * │ SSL_BRIDGE 8443 │ n/a     │ tcp-8443 + tls: true                                  │
+   * │ TLS 8444        │ n/a     │ tcp-8444 + tls: true                                  │
+   * │ TCP 8445        │ /health │ tcp-8445 + tls: false                                 │
+   * │ TCP 8445        │ n/a     │ tcp-8445 + tls: false                                 │
+   * └─────────────────┴─────────┴───────────────────────────────────────────────────────┘
+   * </pre>
+   */
+  protected HealthCheck newHealthCheck(String vProto, String vPort, String ecvPath) {
+
+    Protocol protocol;
+    boolean tls;
+    int status;
+    String path;
+
+    switch (vProto.toLowerCase()) {
+      case "http":
+        protocol = HTTP;
+        path = ecvPath;
+        status = 200;
+        tls = false;
+
+        break;
+      case "https":
+        protocol = HTTPS;
+        path = ecvPath;
+        status = 200;
+        tls = true;
+
+        break;
+      case "tls":
+      case "ssl_bridge":
+        protocol = TCP;
+        path = "";
+        status = 0;
+        tls = true;
+
+        break;
+      default:
+        protocol = TCP;
+        path = "";
+        status = 0;
+        tls = false;
+
+        break;
+    }
     return HealthCheck.builder()
-        .protocol(protocolMap.get(protocol))
-        .port(port)
-        .path(testObjectPath)
+        .protocol(protocol)
+        .port(Integer.parseInt(vPort))
+        .path(path)
+        .expectedStatus(status)
+        .tls(tls)
         .build();
   }
 
   private Map<Long, Cloud> getPlatformClouds(CmsWorkOrderSimple wo) {
-    System.out.println(wo.getPayLoad().get(CLOUDS_PAYLOAD));
     List<Cloud> clouds = getPlatformClouds(wo.getPayLoad().get(CLOUDS_PAYLOAD));
     return clouds.stream().collect(Collectors.toMap(Cloud::getCiId, Function.identity()));
   }
@@ -1558,6 +1873,12 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return service(wo, SERVICE_TYPE_GDNS);
   }
 
+  /**
+   * Returns the short cname alias from fqdn attributes.
+   *
+   * @param fqdnAttrs fqdn attributes
+   * @return list of short cnames.
+   */
   private List<String> getShortAliases(Map<String, String> fqdnAttrs) {
     List<String> list = new ArrayList<>();
     String aliases = fqdnAttrs.get(ATTRIBUTE_ALIAS);
@@ -1565,20 +1886,29 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return list;
   }
 
-  private void parseAndAdd(String aliases, List<String> list) {
-    if (isNotBlank(aliases)) {
-      JsonArray aliasArray = (JsonArray) jsonParser.parse(aliases);
-      for (JsonElement alias : aliasArray) {
-        list.add(alias.getAsString());
-      }
-    }
-  }
-
+  /**
+   * Returns the full cname alias for the fqdn.
+   *
+   * @param fqdnAttrs fqdn attributes.
+   * @return list of full cnames.
+   */
   private List<String> getFullAliases(Map<String, String> fqdnAttrs) {
     List<String> list = new ArrayList<>();
     String aliases = fqdnAttrs.get(ATTRIBUTE_FULL_ALIAS);
     parseAndAdd(aliases, list);
     return list;
+  }
+
+  private void parseAndAdd(String aliases, List<String> list) {
+    if (isNotBlank(aliases)) {
+      JsonArray aliasArray = (JsonArray) jsonParser.parse(aliases);
+      for (JsonElement element : aliasArray) {
+        String alias = element.getAsString();
+        if (isNotBlank(alias)) {
+          list.add(alias.trim());
+        }
+      }
+    }
   }
 
   private Context context(CmsWorkOrderSimple wo, InfobloxConfig infobloxConfig) {
@@ -1593,6 +1923,9 @@ public class FqdnExecutor implements ComponentWoExecutor {
         isNotBlank(customSubDomain)
             ? customSubDomain
             : String.join(".", env.getCiName(), assembly, org);
+    context.org = org;
+    context.assembly = assembly;
+    context.env = env.getCiName();
     context.lb = woHelper.getLbFromDependsOn(wo);
     Map<String, String> fqdnAttrs = wo.getRfcCi().getCiAttributes();
     context.shortAliases = getShortAliases(fqdnAttrs);
@@ -1620,6 +1953,9 @@ public class FqdnExecutor implements ComponentWoExecutor {
           isNotBlank(customSubDomain)
               ? customSubDomain
               : String.join(".", env.getCiName(), assembly, org);
+      context.org = org;
+      context.assembly = assembly;
+      context.env = env.getCiName();
       context.lb = woHelper.getLbFromDependsOn(ao);
       Map<String, String> fqdnAttrs = ao.getCi().getCiAttributes();
       context.shortAliases = getShortAliases(fqdnAttrs);
@@ -1639,6 +1975,9 @@ public class FqdnExecutor implements ComponentWoExecutor {
   class Context {
     String platform;
     String subdomain;
+    String env;
+    String assembly;
+    String org;
     InfobloxConfig infobloxConfig;
     Instance lb;
     List<String> shortAliases = new ArrayList<>();

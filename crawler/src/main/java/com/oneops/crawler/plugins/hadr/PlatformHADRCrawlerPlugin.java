@@ -55,7 +55,6 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 
   public PlatformHADRCrawlerPlugin() {
     readConfig();
-
   }
 
   public void readConfig() {

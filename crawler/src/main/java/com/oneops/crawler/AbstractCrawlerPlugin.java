@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 public abstract class AbstractCrawlerPlugin {
     protected abstract Logger getLogger();
@@ -77,7 +78,7 @@ public abstract class AbstractCrawlerPlugin {
     }
 
     public List<Long> getEligiblePlatformIds(Environment env) {
-        if (config != null && config.getOrgs() != null) {
+        if (config != null && config.getOrgs() != null && config.getOrgs().length > 0) {
             boolean orgToBeProcessed = false;
 
             //Check if the org of this env enabled for ttl
@@ -107,18 +108,28 @@ public abstract class AbstractCrawlerPlugin {
                     }
                 }
                 if (! packToBeProcessed) {
-                    getLogger().info("pack not configured for ttl: " + platform.getPack());
+                    getLogger().info("pack not configured for processing: " + platform.getPack());
                     continue;
                 }
             }
 
-            eligiblePlatforms.add(platform.getId());
+            if (isPlatformEligible(platform)) {
+                eligiblePlatforms.add(platform.getId());
+            }
         }
         return eligiblePlatforms;
     }
 
+    protected boolean isPlatformEligible(Platform platform) {
+        return true;
+    }
+
     public boolean isEnabled() {
         return config.isEnabled();
+    }
+
+    public void configureSecrets(Properties props) {
+
     }
 }
 

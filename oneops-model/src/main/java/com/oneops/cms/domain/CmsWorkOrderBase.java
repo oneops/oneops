@@ -40,4 +40,8 @@ public interface CmsWorkOrderBase {
   Map<String, Map<String, CmsCI>> getServices();
 
   void setServices(Map<String, Map<String, CmsCI>> services);
+
+  void setConfig(Map<String, String> config);
+
+  Map<String, String> getConfig();
 }

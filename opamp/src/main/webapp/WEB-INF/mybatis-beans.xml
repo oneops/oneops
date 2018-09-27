@@ -155,6 +155,7 @@
 	<bean id="cmsDpmtProcessor" class="com.oneops.cms.dj.service.CmsDpmtProcessor">
 		<property name="dpmtMapper" ref="dpmtMapper" />
 		<property name="cmProcessor" ref="cmsCmProcessor" />
+        <property name="djMapper" ref="djMapper"/>
     </bean>
 
 	<bean id="procProcessor" class="com.oneops.cms.cm.ops.service.OpsProcedureProcessor">

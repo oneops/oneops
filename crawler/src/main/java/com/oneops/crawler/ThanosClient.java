@@ -18,26 +18,26 @@
 package com.oneops.crawler;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import com.squareup.okhttp.MediaType;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.Response;
+import com.google.gson.annotations.SerializedName;
+import com.squareup.okhttp.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Properties;
 
 public class ThanosClient {
+    public static final String STATUS_EXECUTED = "executed";
     private String baseUrl ;
     private OkHttpClient client;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private Gson gson;
+    private String authToken;
 
     public static final MediaType JSON
             = MediaType.parse("application/json; charset=utf-8");
@@ -54,9 +54,6 @@ public class ThanosClient {
 
     void readConfig() {
         baseUrl = System.getProperty("thanos.base.url");
-        if (StringUtils.isEmpty(baseUrl)) {
-            throw new RuntimeException("System property not found: thanos.base.url ");
-        }
     }
 
     public ArrayList<CloudResourcesUtilizationStats> getStats(String path) throws IOException {
@@ -71,93 +68,116 @@ public class ThanosClient {
         String responseBody = response.body().string();
         int responseCode = response.code();
         log.info("Thanos api response code: " + responseCode);
+        if (responseCode >= 300) {
+            throw new RuntimeException("Error while calling Thanos api. Response from Thanos: " + responseBody
+                    + " ResponseCode : " + responseCode);
+        }
+
         ArrayList<CloudResourcesUtilizationStats> cloudResourcesUtilizationStats = new ArrayList<>();
-        Type listType = new TypeToken<ArrayList<CloudResourcesUtilizationStats>>(){}.getType();
-        return gson.fromJson(responseBody, listType);
+        if (StringUtils.isEmpty(responseBody)) {
+            return cloudResourcesUtilizationStats;
+        }
+        log.info("response body: " + responseBody);
+        ThanosServerResponse thanosServerResponse = gson.fromJson(responseBody, ThanosServerResponse.class);
+        return thanosServerResponse.getCloudResourcesUtilizationStats();
+    }
+
+    public void updateStatus(String path, String status) throws IOException {
+        HashMap payload = new HashMap();
+        payload.put("nspath", path);
+        payload.put("status", status);
+
+        RequestBody body = RequestBody.create(JSON, gson.toJson(payload));
+
+        Request request = new Request.Builder()
+                .url(baseUrl)
+                .addHeader("Authorization", "Bearer " + getAuthToken())
+                .addHeader("Content-Type", "application/json")
+                .post(body)
+                .build();
+
+        Response response = client.newCall(request).execute();
+        String responseBody = response.body().string();
+        int responseCode = response.code();
+        log.info("Thanos response body: " + responseBody + ", code: " + responseCode);
+        if (responseCode >= 300) {
+            throw new RuntimeException("Error while updating status on thanos. Response: " + responseBody
+                    + " ResponseCode : " + responseCode);
+        }
+    }
+
+    public String getAuthToken() {
+        return authToken;
+    }
+
+    public void configure(Properties props) {
+        authToken = props.getProperty("thanos.auth.token");
+    }
+
+    public static class ThanosServerResponse implements Serializable {
+        @SerializedName("server-response")
+        ArrayList<CloudResourcesUtilizationStats> cloudResourcesUtilizationStats;
+
+        public ArrayList<CloudResourcesUtilizationStats> getCloudResourcesUtilizationStats() {
+            return cloudResourcesUtilizationStats;
+        }
+
+        public void setCloudResourcesUtilizationStats(ArrayList<CloudResourcesUtilizationStats> cloudResourcesUtilizationStats) {
+            this.cloudResourcesUtilizationStats = cloudResourcesUtilizationStats;
+        }
     }
 
     public static class CloudResourcesUtilizationStats implements Serializable {
-        String cloud_name;
-        int reclaim_vms;
-        String org;
-        String assembly;
-        String environment;
-        String platform;
-        String envtype;
+        @SerializedName("cloud_name")
+        String cloudName;
+
+        @SerializedName("reclaim_vms")
+        int reclaimVms;
+
+        @SerializedName("reclaim_cores")
+        int reclaimCores;
+
+        @SerializedName("min_cluster_size")
+        int minClusterSize;
+
+        @SerializedName("cloud_vms")
         int Vms;
-        String nsPath;
-        String pack;
 
-        public String getNsPath() {
-            return nsPath;
+        @SerializedName("reclaim_status")
+        String reclaimStatus;
+
+        String reclaim;
+
+        public String getCloudName() {
+            return cloudName;
         }
 
-        public void setNsPath(String nsPath) {
-            this.nsPath = nsPath;
+        public void setCloudName(String cloudName) {
+            this.cloudName = cloudName;
         }
 
-        public String getPack() {
-            return pack;
+        public int getReclaimVms() {
+            return reclaimVms;
         }
 
-        public void setPack(String pack) {
-            this.pack = pack;
+        public void setReclaimVms(int reclaimVms) {
+            this.reclaimVms = reclaimVms;
         }
 
-        public String getCloud_name() {
-            return cloud_name;
+        public int getMinClusterSize() {
+            return minClusterSize;
         }
 
-        public void setCloud_name(String cloud_name) {
-            this.cloud_name = cloud_name;
+        public void setMinClusterSize(int minClusterSize) {
+            this.minClusterSize = minClusterSize;
         }
 
-        public int getReclaim_vms() {
-            return reclaim_vms;
+        public int getReclaimCores() {
+            return reclaimCores;
         }
 
-        public void setReclaim_vms(int reclaim_vms) {
-            this.reclaim_vms = reclaim_vms;
-        }
-
-        public String getOrg() {
-            return org;
-        }
-
-        public void setOrg(String org) {
-            this.org = org;
-        }
-
-        public String getAssembly() {
-            return assembly;
-        }
-
-        public void setAssembly(String assembly) {
-            this.assembly = assembly;
-        }
-
-        public String getEnvironment() {
-            return environment;
-        }
-
-        public void setEnvironment(String environment) {
-            this.environment = environment;
-        }
-
-        public String getPlatform() {
-            return platform;
-        }
-
-        public void setPlatform(String platform) {
-            this.platform = platform;
-        }
-
-        public String getEnvtype() {
-            return envtype;
-        }
-
-        public void setEnvtype(String envtype) {
-            this.envtype = envtype;
+        public void setReclaimCores(int reclaimCores) {
+            this.reclaimCores = reclaimCores;
         }
 
         public int getVms() {
@@ -165,7 +185,27 @@ public class ThanosClient {
         }
 
         public void setVms(int vms) {
-            this.Vms = vms;
+            Vms = vms;
+        }
+
+        public String getReclaimStatus() {
+            return reclaimStatus;
+        }
+
+        public void setReclaimStatus(String reclaimStatus) {
+            this.reclaimStatus = reclaimStatus;
+        }
+
+        public String getReclaim() {
+            return reclaim;
+        }
+
+        public void setReclaim(String reclaim) {
+            this.reclaim = reclaim;
+        }
+
+        public boolean shouldReclaim() {
+            return "yes".equalsIgnoreCase(reclaim)?true:false;
         }
     }
 }

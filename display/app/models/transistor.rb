@@ -291,13 +291,15 @@ class Transistor < ActiveResource::Base
   end
 
   def self.update_platform_cloud(platform_id, cloud_rel)
-    result = nil
+    ok = nil
     begin
-      result = JSON.parse(put("platforms/#{platform_id}/clouds", {}, cloud_rel.to_json).body)['result']
+      ok = JSON.parse(put("platforms/#{platform_id}/clouds", {}, cloud_rel.to_json).body)['result']
     rescue Exception => e
-      handle_exception e, "Failed to update cloud for platform: '#{platform_id}'"
+      message = "Failed to change cloud priority for #{cloud_rel.toCi.ciName} in platform: '#{platform_id}'"
+      cloud_rel.errors.add(:base, message)
+      handle_exception e, message
     end
-    return result
+    return ok
   end
 
   def self.restore_release(snapshot, release_id)

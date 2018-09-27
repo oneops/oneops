@@ -48,6 +48,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
     private SearchDal searchDal;
     private boolean esEnabled = false;
     private EnvTTLConfig config;
+    private boolean retryTtlOnFailure;
 
     private int totalComputesTTLed = 0;
     private int notificationFrequencyDays = 0;
@@ -165,6 +166,9 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
         prodCloudRegex = System.getProperty("ttl.prod.clouds.regex", ".*prod.*");
         log.info("regex for production clouds: [" + prodCloudRegex + "]");
 
+        String retryTtlOnFailureConfig = System.getProperty("ttl.plugin.retryonfail", "false");
+        retryTtlOnFailure = Boolean.valueOf(retryTtlOnFailureConfig);
+
         indexName = System.getProperty("ttl.index.name", "oottl");
     }
 
@@ -184,8 +188,12 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                         try {
                             ESRecord esRecord = searchEarlierTTL(platform, env);
                             //Disable state of the platform is because of the TTL happened for this platform earlier
-                            //do not try the TTL again
-                            if (esRecord != null) continue;
+                            //do not try the TTL again unless configured otherwise
+                            if (retryTtlOnFailure) {
+                                decommissionPlatform(platform, env, deployments);
+                            } else {
+                                if (esRecord != null) continue;
+                            }
                         } catch (Exception e) {
                             log.error("Error while searching for earlier ttl attempt: ", e);
                             continue;
@@ -391,13 +399,14 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
             Deployment lastDeploy = deployments.get(0);
             try {
                 if (lastDeploy.getState().equalsIgnoreCase("failed")
-                        && ! ttlBotName.equalsIgnoreCase(lastDeploy.getCreatedBy())) {
+                        && (! ttlBotName.equalsIgnoreCase(lastDeploy.getCreatedBy()) || retryTtlOnFailure)) {
                     log.info("last deployment is in failed state, cancelling it. Deployment id: "
                             + lastDeploy.getDeploymentId());
                     ooFacade.cancelDeployment(lastDeploy, ttlBotName);
                 }
                 ooFacade.disablePlatform(platform, ttlBotName);
                 log.warn("!!!!!! TTL Plugin is Enabled. Doing a force deploy !!!!!!");
+                ooFacade.disableVerify(env, ttlBotName);
                 ooFacade.forceDeploy(env, platform, ttlBotName);
             } catch (IOException e) {
                 log.error("Error while decommissioning platform", e);
@@ -477,7 +486,8 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                 && ! envProfile.toString().toLowerCase().contains("prod")
                 && lastDeployDate.compareTo(noDeploymentDate) < 0) {
             if (! lastDeploy.getState().equalsIgnoreCase("complete")
-                    && ! lastDeploy.getState().equalsIgnoreCase("failed")) {
+                    && ! lastDeploy.getState().equalsIgnoreCase("failed")
+                    && ! lastDeploy.getState().equalsIgnoreCase("canceled")) {
                 log.warn("Deployment is in " + lastDeploy.getState() + " state for too long: ");
                 return null;
             }

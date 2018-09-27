@@ -17,35 +17,32 @@
  *******************************************************************************/
 package com.oneops.transistor.service;
 
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.oneops.cms.cm.domain.*;
-import com.oneops.cms.exceptions.ExceptionConsolidator;
-import com.oneops.cms.util.domain.CmsVar;
-import com.oneops.transistor.util.CloudUtil;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
-
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.service.CmsDpmtProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
+import com.oneops.cms.exceptions.ExceptionConsolidator;
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
+import com.oneops.cms.util.domain.CmsVar;
 import com.oneops.transistor.exceptions.TransistorException;
+import com.oneops.transistor.util.CloudUtil;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.oneops.cms.util.CmsConstants.*;
 import static java.lang.System.getProperty;
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
+import static java.util.stream.Collectors.*;
 
 public class BomManagerImpl implements BomManager {
 	private static final Logger logger = Logger.getLogger(BomManagerImpl.class);
@@ -135,20 +132,26 @@ public class BomManagerImpl implements BomManager {
 		if (bomReleases.size() > 0) {
 			// Should not really happen as commit above will close any open bom releases. But...
 			CmsRelease bomRelease = bomReleases.get(0);
-			logger.info("Existing open bom release " + bomRelease.getReleaseId() + " found, returning it");
+			CmsRelease manifestRelease = bomRfcProcessor.getLatestRelease(manifestNsPath, "closed").get(0);
+			if (bomRelease.getParentReleaseId().equals(manifestRelease.getReleaseId())) {
+				logger.info("Existing open bom release " + bomRelease.getReleaseId() + " found, returning it");
 
-			Map<String, Object> bomInfo = null;
-			try {
+				Map<String, Object> bomInfo = null;
+				try {
 //				bomInfo = gson.fromJson(bomRelease.getDescription(), (new TypeToken<HashMap<String, Object>>() {}).getType());
-				bomInfo = gson.fromJson(bomRelease.getDescription(), HashMap.class);
-			} catch (JsonSyntaxException ignore) {
-			}
-			if (bomInfo == null) {
-				bomInfo = new HashMap<>();
-			}
-			bomInfo.put("release", bomRelease);
+					bomInfo = gson.fromJson(bomRelease.getDescription(), HashMap.class);
+				} catch (JsonSyntaxException ignore) {
+				}
+				if (bomInfo == null) {
+					bomInfo = new HashMap<>();
+				}
+				bomInfo.put("release", bomRelease);
 
-			return bomInfo;
+				return bomInfo;
+			}
+			else {
+				discardOpenBomRelease(bomNsPath);
+			}
 		}
 
 		context.load();
@@ -449,9 +452,11 @@ public class BomManagerImpl implements BomManager {
 	}
 
 	@Override
-	public Map<String, Object> scaleDown(CmsCI platformCi, CmsCI envCi, int scaleDownBy, boolean ensureEvenScale,  String userId) {
+	public Map<String, Object> scaleDown(CmsCI platformCi, CmsCI envCi, int scaleDownBy,
+										 int minComputesInEachCloud, boolean ensureEvenScale,  String userId) {
 		long startTime = System.currentTimeMillis();
-		CmsDeployment deployment = bomGenerationProcessor.scaleDown(platformCi, envCi, scaleDownBy, ensureEvenScale, userId);
+		CmsDeployment deployment = bomGenerationProcessor.scaleDown(platformCi, envCi, scaleDownBy,
+				minComputesInEachCloud, ensureEvenScale, userId);
 		long endTime = System.currentTimeMillis();
 		Map<String, Object> bomInfo = new HashMap<>();
 		if (deployment != null) {
@@ -549,12 +554,16 @@ public class BomManagerImpl implements BomManager {
 
 		//if we have new manifest release - discard open bom release
 		if (manifestReleases.size() > 0) {
-			List<CmsRelease> bomReleases = bomRfcProcessor.getReleaseBy3(bomNsPath, null, "open");
-			for (CmsRelease bomRel : bomReleases) {
-				bomRel.setReleaseState("canceled");
-				// Discard using
-				bomRfcProcessor.updateRelease(bomRel);
-			}
+			discardOpenBomRelease(bomNsPath);
+		}
+	}
+
+	private void discardOpenBomRelease(String bomNsPath) {
+		if (dpmtProcessor.getOpenDeployments(bomNsPath) == null) {
+			manifestRfcProcessor.getReleaseBy3(bomNsPath, null, "open").forEach(r -> {
+				r.setReleaseState("canceled");
+				manifestRfcProcessor.updateRelease(r);
+			});
 		}
 	}
 

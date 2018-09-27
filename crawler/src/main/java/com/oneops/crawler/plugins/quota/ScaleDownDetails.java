@@ -23,8 +23,9 @@ import java.util.List;
  *   limitations under the License.
  *
  *******************************************************************************/
-public class PlatformRecord implements Serializable {
-    int potentialReclaimCount;
+public class ScaleDownDetails implements Serializable {
+    int vmReclaimCount;
+    int coresReclaimCount;
     Platform platform;
     List<ThanosClient.CloudResourcesUtilizationStats> cloudResourcesUtilizationStats;
 
@@ -43,11 +44,19 @@ public class PlatformRecord implements Serializable {
     public void setCloudResourcesUtilizationStats(List<ThanosClient.CloudResourcesUtilizationStats> cloudResourcesUtilizationStats) {
         this.cloudResourcesUtilizationStats = cloudResourcesUtilizationStats;
     }
-    public int getPotentialReclaimCount() {
-        return potentialReclaimCount;
+    public int getVmReclaimCount() {
+        return vmReclaimCount;
     }
 
-    public void setPotentialReclaimCount(int potentialReclaimCount) {
-        this.potentialReclaimCount = potentialReclaimCount;
+    public void setVmReclaimCount(int vmReclaimCount) {
+        this.vmReclaimCount = vmReclaimCount;
+    }
+
+    public int getCoresReclaimCount() {
+        return coresReclaimCount;
+    }
+
+    public void setCoresReclaimCount(int coresReclaimCount) {
+        this.coresReclaimCount = coresReclaimCount;
     }
 }

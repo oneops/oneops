@@ -37,6 +37,7 @@ public class CmsActionOrder extends CmsOpsAction implements CmsWorkOrderBase {
   private CmsCI box;
   private Map<String, List<CmsCI>> payLoad;
   private Map<String, Map<String, CmsCI>> services;
+  private Map<String, String> config;
 
   /**
    * Gets the cloud.
@@ -175,5 +176,15 @@ public class CmsActionOrder extends CmsOpsAction implements CmsWorkOrderBase {
    */
   public void setCi(CmsCI ci) {
     this.ci = ci;
+  }
+
+  @Override
+  public Map<String, String> getConfig() {
+    return config;
+  }
+
+  @Override
+  public void setConfig(Map<String, String> config) {
+    this.config = config;
   }
 }

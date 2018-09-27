@@ -243,4 +243,6 @@ public interface DJMapper {
       @Param("ciId") Long ciId);
 
   List<CmsAltNs> getAltNsBy(@Param("rfcId") long rfcCI);
+
+  List<Integer> getDeploymentDistinctStepsTotal(@Param("deploymentId") long deploymentId);
 }

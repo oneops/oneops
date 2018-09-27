@@ -1900,4 +1900,11 @@
 		and rfr.action_id = a.action_id
 		and rfr.ns_id = ns.ns_id
 	</select>
+	<select id="getDeploymentDistinctStepsTotal" parameterType="long" useCache="false" resultType="Integer">
+		select count(1)
+		from dj_deployment_rfc r
+		where r.deployment_id = #{deploymentId}
+		and r.step is not null
+		group by r.step
+	</select>
 </mapper>
