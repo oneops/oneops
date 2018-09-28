@@ -17,15 +17,6 @@
  */
 package com.oneops.controller.cms;
 
-import static org.mockito.Matchers.argThat;
-import static org.mockito.Mockito.anyLong;
-import static org.mockito.Mockito.anyObject;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.when;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertTrue;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
@@ -43,15 +34,7 @@ import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.domain.CmsWorkOrder;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.util.CmsConstants;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import javax.jms.JMSException;
+import com.oneops.cms.util.domain.CmsVar;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mockito;
 import org.springframework.context.ApplicationContext;
@@ -59,6 +42,18 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import javax.jms.JMSException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.reflect.Type;
+import java.util.*;
+
+import static org.mockito.Matchers.argThat;
+import static org.mockito.Mockito.*;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNull;
+import static org.testng.Assert.assertTrue;
 
 public class WoProviderTest {
 
@@ -507,6 +502,32 @@ public class WoProviderTest {
     assertEquals(map.get("cl1").intValue(), 23);
     assertEquals(map.get("cl2").intValue(), 47);
     assertEquals(map.get("cl3").intValue(), 30);
+  }
+
+  @Test
+  public void classSpecificCmsVars() {
+    when(cmProcessor.getCmVarByLongestMatchingCriteria(Mockito.eq("bom.%"), anyString()))
+            .thenReturn(new ArrayList<>());
+    when(cmProcessor.getCmVarByLongestMatchingCriteria(Mockito.eq("Compute.%"), anyString()))
+            .thenReturn(new ArrayList<>());
+
+    Map<String, String> result = woProvider.getVarsForConfig("/something", "bom.oneops.1.Compute");
+    assertNull(result);
+
+    List<CmsVar> bomVars = new ArrayList<>();
+    bomVars.add(new CmsVar("bom.VAR1", "bom1"));
+    bomVars.add(new CmsVar("bom.VAR2", "bom2"));
+    List<CmsVar> classVars = new ArrayList<>();
+    classVars.add(new CmsVar("Compute.VAR2", "compute2"));
+    classVars.add(new CmsVar("Compute.VAR3", "compute3"));
+    when(cmProcessor.getCmVarByLongestMatchingCriteria(Mockito.eq("bom.%"), anyString()))
+    .thenReturn(bomVars);
+    when(cmProcessor.getCmVarByLongestMatchingCriteria(Mockito.eq("Compute.%"), anyString()))
+    .thenReturn(classVars);
+    result = woProvider.getVarsForConfig("/something", "bom.oneops.1.Compute");
+    assertEquals(result.get("VAR1"), "bom1");
+    assertEquals(result.get("VAR2"), "compute2");
+    assertEquals(result.get("VAR3"), "compute3");
   }
 
   private void addTwoPrimaryCloudsPayload(CmsWorkOrder wo) {
