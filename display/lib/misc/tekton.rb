@@ -20,9 +20,9 @@ TEKTON_HOSTS = {:local => 'http://localhost:9000',
 TEKTON_HOSTS[:default] = TEKTON_HOSTS[:prod]
 
 ONEOPS_HOSTS = {:local => 'http://localhost:8080/',
-                :dev   => 'http://cmsapi.prod-1312.core.oneops.prod.walmart.com:8080/',
-                :stg   => 'http://adapter.stg.core-1612.oneops.prod.walmart.com:8080/',
-                :prod  => 'http://cmsapi.prod-1312.core.oneops.prod.walmart.com:8080/'}
+                :dev   => 'http://adapter.stg.core-1612.oneops.prod.walmart.com:8080',
+                :stg   => 'http://adapter.stg.core-1612.oneops.prod.walmart.com:8080',
+                :prod  => 'http://cmsapi.prod-1312.core.oneops.prod.walmart.com:8080'}
 ONEOPS_HOSTS[:default] = ONEOPS_HOSTS[:prod]
 
 class NilClass
@@ -74,7 +74,7 @@ def blurt(*args)
   print *args unless @silent
 end
 
-def ask()
+def ask
   STDIN.gets[0...-1]
 end
 
@@ -86,7 +86,7 @@ def oo_request(cmd, msg)
 end
 
 def tt_request(cmd, msg, body = nil, method = 'POST')
-  uri = URI("#{@params.tekton_host}#{cmd}")
+  uri = URI(cmd.start_with?('http') ? cmd : "#{@params.tekton_host}#{cmd}")
   if body
     method.upcase!
     if method == 'PUT'
@@ -119,7 +119,7 @@ def request(uri, req, msg)
   response = nil
   if @params.verbose > 1
     say "#{msg}... "
-    say "#{req.class.name.split('::').last.upcase.bold} #{uri.to_s.green}"
+    say "#{req.class.name.split('::').last.upcase.bold} #{uri.to_s.blue}"
   elsif @params.verbose > 0
     blurt msg, '... '
   end
@@ -127,10 +127,12 @@ def request(uri, req, msg)
     req['Content-Type'] = 'application/json'
     say "REQUEST: #{req.body}" if @params.verbose > 1 && !req.body.empty?
     response = Net::HTTP.start(uri.host, uri.port, :use_ssl => uri.scheme == 'https') {|http| http.request(req)}
+    code = response.respond_to?(:code) ? response.code : response.class.name
+    blurt "RESPONSE: #{code == '200' ? code.green : code.red} " if @params.verbose > 1
     if response.is_a?(Net::HTTPSuccess)
       body = response.body
       unless body.empty?
-        say "RESPONSE #{response.code.green}: #{response.body}" if @params.verbose > 1
+        say response.body if @params.verbose > 1
         result = JSON.parse(body)
       end
     elsif response.is_a?(Net::HTTPNotFound)
@@ -197,6 +199,7 @@ def value_prompt(name, values, pattern)
   if pattern.empty?
     prompt_values = values
   else
+    pattern = '.*' if pattern == '*'
     regex = /#{pattern}/i
     prompt_values = values.select {|s| s =~ regex}
     if prompt_values.empty?
@@ -324,9 +327,11 @@ end
 def execute(action, *args)
   result = nil
   if action == 'version'
-    say 'CLI version:    1.1.6'
+    say 'CLI version:    1.2.1'
     info = tt_request('server/version', 'Getting tekton version')
     say "Tekton version: #{info.version} (#{info.timestamp})"
+    say "Tekton host:    #{@params.tekton_host}"
+    say "OneOps host:    #{@params.oneops_host}"
 
   elsif action == 'oo:resources'
     result = {}
@@ -536,7 +541,17 @@ def execute(action, *args)
       tt_request('subscription', "Subscription #{sub_name.bold} is missing, creating...", {:name => sub_name, :description => desc || sub_name})
     end
 
-  elsif action == 'subs:set'
+  elsif action == 'sub:delete'
+    sub_name, desc, _ = args
+    limits = tt_request("quota/subscription/#{sub_name}", 'Getting quotas')
+    if limits.empty?
+      tt_request("subscription/#{sub_name}", 'Deleting subscription', {}, 'DELETE')
+      say "#{sub_name.bold} - #{'deleted'.green}"
+    else
+      say "Can not delete subscription with quotas (#{limits.size} quotas found). Delete quotas first.".red
+    end
+
+  elsif action == 'sub:set'
     sub_name, *resources = args
     required_arg('subscription', sub_name)
 
@@ -657,7 +672,9 @@ def execute(action, *args)
     required_arg('team', team_name)
 
     result = tt_request("org/#{org}/team/#{team_name}/users", 'Fetching users')
-    result.sort_by(&:username).each {|u| say "#{u.username.ljust(25).bold} | #{' team admin '.blue(true) if u.role == 'MAINTAINER'}"} if result
+    if result
+      result.sort_by(&:username).each {|u| say "#{u.username.ljust(25).bold} | #{uyeah.email.to_s.ljust(25)} | #{' team admin '.blue(true) if u.role == 'MAINTAINER'}"}
+    end
 
   elsif action == 'team:users:add'
     org, team_name, *usernames = args
@@ -697,7 +714,7 @@ def execute(action, *args)
       available = tt_request("quota/available/subscription/#{sub_name}", 'Getting usages')
       limits.keys.sort.each {|org| full_quota("#{sub_name.bold} => #{org.bold}", limits[org], usage[org], available[org], @params.depleted_threshold)} unless limits.empty?
 
-      full_quota_totals("#{sub_name} => TOTAL".bold, limits, usage, available) unless @params.depleted_threshold
+      full_quota_totals("#{sub_name} => TOTAL".bold, limits, usage, available) unless limits.size < 2 || @params.depleted_threshold
     end
 
   elsif action == 'org:quotas'
@@ -710,7 +727,7 @@ def execute(action, *args)
       available = tt_request("quota/available/entity/#{org}", 'Getting available')
       limits.keys.sort.each {|sub| full_quota("#{org.bold} => #{sub.bold}", limits[sub], usage[sub], available[sub], @params.depleted_threshold)} unless limits.empty?
 
-      full_quota_totals("#{org} => TOTAL".bold, limits, usage, available) unless @params.depleted_threshold
+      full_quota_totals("#{org} => TOTAL".bold, limits, usage, available) unless limits.size < 2 || @params.depleted_threshold
     end
 
   elsif action == 'quota'
@@ -718,6 +735,7 @@ def execute(action, *args)
     required_arg('subscription', sub_name)
     required_arg('org', org)
 
+    result = {}
     cursor_control = ''
     subs = execute('sub:prompt', sub_name, org)
     subs.each do |s|
@@ -728,6 +746,8 @@ def execute(action, *args)
           unless limits.empty?
             usage = tt_request("quota/usage/#{s}/#{o}", 'Getting usage')
             available = tt_request("quota/available/#{s}/#{o}", 'Getting available')
+            result[s] ||= {}
+            result[s][o] = {:limit => limits, :usage => usage, :availability => available}
             full_quota("#{cursor_control}#{s.bold} => #{o.bold}", limits, usage, available)
           end
           break if @params.refresh == 0 || subs.size > 1 || orgs.size > 1
@@ -802,6 +822,28 @@ def execute(action, *args)
       end
     end
 
+  elsif action == 'quota:delete'
+    sub_name, org_name, *resources = args
+    required_arg('subscription', sub_name)
+    required_arg('org', org_name)
+    subs = execute('sub:prompt', sub_name, org_name)
+    subs.each do |s|
+      orgs = execute('org:prompt', s, org_name)
+      orgs.each do |o|
+        result = execute('quota', s, o)
+        limits    = result[s][o][:limit]
+        next if limits.empty?
+        confirm = limits.find {|e| e.last > 0} || limits.first
+        blurt "Confirm delete by entering limit for #{confirm.first}: "
+        if ask.to_i == confirm.last
+          tt_request("#{@params.tekton_host.gsub(/api\/v\d+\//, 'api/v2/')}subscription/#{s}/entity/#{o}", 'Deleting quota', {}, 'DELETE')
+          say "#{s.bold} => #{o} - #{'deleted'.green}"
+        else
+          say "Not confirmed, skipping.".yellow
+        end
+      end
+    end
+
   elsif action == 'sub:prompt'
     sub_name, org, _ = args
     if sub_name[0] == '?'
@@ -852,11 +894,11 @@ def execute(action, *args)
     username, password, _ = args
     if username.empty?
       password = nil
-      print 'username: '
+      blurt 'username: '
       username = ask
     end
     if password.empty?
-      print 'password: '
+      blurt 'password: '
       STDIN.noecho {password = STDIN.gets[0...-1]}
       say
     end
@@ -970,9 +1012,10 @@ end
   'logout'                => ['logout [USERNAME [PASSWORD]]', "log out after running Tekton commands\n"],
 
   'admins'                => ['admins ', 'list global admins'],
-  'admins:add'            => ['admins:add USERNAME...', 'add global admins'],
-  'admins:remove'         => ['admins:remove USERNAME', 'remove global admins'],
+  'admins:add'            => ['admins:add USERNAME...', 'add users global admins'],
+  'admins:remove'         => ['admins:remove USERNAME...', 'remove users as global admins'],
   'users'                 => ['users USERNAME... ', 'list user info'],
+  'users:delete'          => ['users:delete USERNAME... ', 'completely removes users (from all orgs)'],
 
   'orgs'                  => ['orgs ORG,...|?[ORG_REGEX]|*[ORG_REGEX]', 'list orgs'],
   'orgs:add'              => ['orgs:add ORG', 'add org'],
@@ -991,14 +1034,16 @@ end
 
   'subs'                  => ['subs SUB,...|?[SUB_REGEX]|*[SUB_REGEX]', 'list subsctiptions (including hard quota)'],
   'subs:add'              => ['subs:add [-f] SUB', 'add subscription'],
-  'subs:set'              => ['subs:set SUB,...|?[SUB_REGEX]|*[SUB_REGEX] RESOURCE=VALUE...', "set subscription limits (hard quota)\n"],
+  'sub:delete'            => ['sub:delete SUB', 'delete subscription (only if there are no quotas configured for it)'],
+  'sub:set'               => ['sub:set SUB,...|?[SUB_REGEX]|*[SUB_REGEX] RESOURCE=VALUE...', "set subscription limits (hard quota)\n"],
 
   'sub:quotas'            => ['sub:quotas SUB,...|?[SUB_REGEX]|*[SUB_REGEX] [--depleted [THRESHOLD_%]]', 'list all quotas for subscription'],
   'org:quotas'            => ['org:quotas ORG,...|?[ORG_REGEX]|*[ORG_REGEX] [--depleted [THRESHOLD_%]]', 'list all quotas for org'],
 
   'quota'                 => ['quota SUB,...|?[SUB_REGEX]|*[SUB_REGEX] ORG,...|?[ORG_REGEX]|*[ORG_REGEX]', 'show quota'],
   # 'usage:set'             => ['usage:set SUB,...|?[SUB_REGEX]|*[SUB_REGEX] ORG,...|?[ORG_REGEX]|*[ORG_REGEX] RESOURCE=VALUE...', 'update quota usage'],
-  'quota:set'             => ['quota:set SUB,...|?[SUB_REGEX]|*[SUB_REGEX] ORG,...|?[ORG_REGEX]|*[ORG_REGEX] RESOURCE[+|-]=VALUE[%]...', "'update quota limits: directly set with \'=\' or increment with \'+=\' or decrement with \'-=\'; specify absolute value or percentage of current value with \'%\''\n"],
+  'quota:set'             => ['quota:set SUB,...|?[SUB_REGEX]|*[SUB_REGEX] ORG,...|?[ORG_REGEX]|*[ORG_REGEX] RESOURCE[+|-]=VALUE[%]...', "update quota limits: directly set with \'=\' or increment with \'+=\' or decrement with \'-=\'; specify absolute value or percentage of current value with \'%\'"],
+  'quota:delete'          => ['quota:delete SUB,...|?[SUB_REGEX]|*[SUB_REGEX] ORG,...|?[ORG_REGEX]|*[ORG_REGEX]', "delete existing quota (with confirmation)\n"],
 
   'oo:resources'          => ['oo:resources', 'list resource types in OneOps'],
   'oo:resources:transfer' => ['oo:resources:transfer [-f]', 'transfer resources types in OneOps to Tekton (idempotent!)'],
