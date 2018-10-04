@@ -5,7 +5,23 @@ class Account::GroupMembersController < ApplicationController
   before_filter :find_member, :only => [:show, :update, :destroy]
 
   def index
-    render :json => @group.members.includes(:user).all.to_json(:include => [:user])
+    members = @group.members.includes(:user).all
+    respond_to do |format|
+      format.json {render :json => members.to_json(:include => [:user])}
+      format.any do
+        members = members.map do |m|
+          user = m.user
+          {:username        => user.username,
+           :name            => user.name,
+           :email           => user.email,
+           :added_at        => m.created_at,
+           :added_by        => m.created_by,
+           :last_sign_in_at => user.current_sign_in_at,
+           :admin           => m.admin}
+        end
+        render_csv(members, [:username, :name, :email, :added_at, :added_by, :last_sign_in_at, :admin], [:name, :email])
+      end
+    end
   end
 
   def show
