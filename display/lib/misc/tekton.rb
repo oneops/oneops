@@ -79,7 +79,9 @@ def ask
 end
 
 def oo_request(cmd, msg)
-  uri = URI("#{@params.oneops_host}#{cmd}")
+  host = @params.oneops_host
+  host = host.gsub('cmsapi.', 'transistor.') if cmd.start_with?('transistor')
+  uri = URI("#{host}#{cmd}")
   req = Net::HTTP::Get.new(uri)
   result, response = request(uri, req, msg)
   return result
@@ -135,6 +137,9 @@ def request(uri, req, msg)
         say response.body if @params.verbose > 1
         result = JSON.parse(body)
       end
+    elsif response.is_a?(Net::HTTPClientError) || response.is_a?(Net::HTTPServerError)
+      body = response.respond_to?(:body) ? response.body : ''
+      say "Failed: #{body}".red
     elsif response.is_a?(Net::HTTPNotFound)
     elsif response.is_a?(Net::HTTPUnauthorized)
       say 'Invalid credentials, please login'.red
@@ -327,7 +332,7 @@ end
 def execute(action, *args)
   result = nil
   if action == 'version'
-    say 'CLI version:    1.2.1'
+    say 'CLI version:    1.2.2'
     info = tt_request('server/version', 'Getting tekton version')
     say "Tekton version: #{info.version} (#{info.timestamp})"
     say "Tekton host:    #{@params.tekton_host}"
@@ -404,7 +409,6 @@ def execute(action, *args)
         (h[org] ||=[]) << cloud if sub == "#{cloud.ciAttributes.location.split('/').last}:#{sub_or_tenant}"
         h
       end
-      oo_org_usage = {}
       clouds_by_org.keys.sort.each do |org|
         blurt("#{"#{sub} => #{org}"}\r") if mismatch_only
         clouds = clouds_by_org[org]
@@ -640,23 +644,23 @@ def execute(action, *args)
     result.sort_by(&:name).each {|t| say "#{t.name.bold} #{"(#{t.description})" unless t.description.empty?}"}
 
   elsif action == 'teams:add'
-    org, name, desc, _ = args
-    required_arg('org', org)
-    required_arg('team_name', name)
-    org = tt_request("org/#{org}", "Fetching org '#{org}'")
+    org_name, team_name, desc, _ = args
+    required_arg('org', org_name)
+    required_arg('team_name', team_name)
+    org = tt_request("org/#{org_name}", "Fetching org '#{org_name}'")
     if org
-      team = tt_request("org/#{org}/team/#{name}", 'Fetching team')
+      team = tt_request("org/#{org_name}/team/#{team_name}", 'Fetching team')
       if team.empty?
-        team = {:orgName => org.name, :name => name, :description => desc}
-        tt_request("org/#{org}/team", "Team #{name} is missing, creating", team)
+        team = {:orgName => org.name, :name => team_name, :description => desc}
+        tt_request("org/#{org_name}/team", "Team #{team_name} is missing, creating", team)
       else
-        team['name'] = name
+        team['name'] = team_name
         team['description'] = desc unless desc.empty?
-        tt_request("org/#{org}/team", "Updating team #{name}", team)
+        tt_request("org/#{org_name}/team", "Updating team #{team_name}", team)
       end
       say "#{team.name.bold} =>\n  #{team.description}"
     else
-      say "Org #{org} not found".red
+      say "Org #{org_name} not found".red
     end
 
   elsif action == 'teams:remove'
@@ -673,7 +677,7 @@ def execute(action, *args)
 
     result = tt_request("org/#{org}/team/#{team_name}/users", 'Fetching users')
     if result
-      result.sort_by(&:username).each {|u| say "#{u.username.ljust(25).bold} | #{uyeah.email.to_s.ljust(25)} | #{' team admin '.blue(true) if u.role == 'MAINTAINER'}"}
+      result.sort_by(&:username).each {|u| say "#{u.username.ljust(25).bold} | #{u.email.to_s.ljust(25)} | #{' team admin '.blue(true) if u.role == 'MAINTAINER'}"}
     end
 
   elsif action == 'team:users:add'
