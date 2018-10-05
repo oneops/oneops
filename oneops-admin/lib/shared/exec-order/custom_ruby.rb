@@ -34,9 +34,9 @@ module ExecOrderUtils
         elsif RUBY_VERSION.to_i < 2 && @component == 'compute'
           result = true
           info('Required for compute deployments in Openstack')
-        elsif @os_version == 'centos6' && File.exist?('/etc/oneops-tools-inventory.yml')
+        elsif @os_version == 'centos6'
           result = true
-          info('Required for Centos6 fast images in Openstack')
+          info('Required for Centos6 in Openstack')
         end
       end
 
@@ -212,7 +212,8 @@ module ExecOrderUtils
       cms_vars = @wo_hash['workorder']['config']
       required_vars.each do |name|
         value = cs_vars[name]
-        value = cms_vars[name] if value.nil? || value.empty?
+        value = cms_vars[name] if !cms_vars.nil? && (value.nil? || value.empty?)
+        value = '' if value.nil?
         instance_variable_set("@#{name}", value)
       end
     end
