@@ -30,8 +30,9 @@
       <%= marker('admin', 'label-info') if group_admin %>
     <% end %>
     <% builder.menu do %>
-      <%= link_to(icon('times', 'Leave'), account_group_member_path(group, current_user.id), :method => :delete, :remote => true, :confirm => "Leave group #{group.name}?") if user_count > 1 %>
-      <%= link_to(icon('trash', 'Delete'), confirm_delete_account_group_path(group), :method => :get, :remote => true) if group_admin %>
+      <%= link_to(icon('times', 'Leave group', 'faw-fw'), account_group_member_path(group, current_user.id), :method => :delete, :remote => true, :confirm => "Leave group #{group.name}?") if user_count > 1 %>
+      <%= link_to(icon('trash', 'Delete', 'faw-fw'), confirm_delete_account_group_path(group), :method => :get, :remote => true) if group_admin %>
+      <%= link_to(icon('download', 'Download members', 'faw-fw'), account_group_members_path(group, :format => :csv)) %>
     <% end %>
   <% end %>
 <% end %>

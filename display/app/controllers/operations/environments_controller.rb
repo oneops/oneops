@@ -95,6 +95,40 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
     end
   end
 
+  def authorized_keys
+    cis = Cms::Ci.all(:params => {:nsPath      => search_ns_path,
+                                  :recursive   => true,
+                                  :ciClassName => 'User'})
+    result = cis.inject([]) do |h, u|
+      keys_json = u.ciAttributes.authorized_keys
+      next unless keys_json.present?
+      _, org, assembly, env, _, platform, version, _ = u.nsPath.split('/')
+      begin
+        keys = JSON.parse(keys_json)
+      rescue Exception => e
+        Rails.logger.info "Failed to parse authorized_keys attribute for ciId=#{u.ciId}: #{keys_json}"
+        next
+      end
+      keys.each do |key|
+        h << {:key      => key,
+              :platform => "#{platform}/#{version}",
+              :instance => u.ciName,
+              :username => u.ciAttributes.username,
+              :sudoer   => u.ciAttributes.sudoer,
+              :url      => redirect_ci_url(:id => u.ciId, :org_name => nil)}
+      end
+      h
+    end
+
+    result.sort_by! {|e| "#{e[:key]}+|+#{e[:platform]}+|+#{e[:instance]}+|+#{e[:username]}"}
+
+    respond_to do |format|
+      format.json {render :json => result}
+
+      format.any {render_csv(result, [:key, :platform, :instance, :username, :sudoer, :url], [:key, :url])}
+    end
+  end
+
 
   protected
 
