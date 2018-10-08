@@ -208,10 +208,12 @@ module ExecOrderUtils
     # custom_ruby_chef_version - the chef version for custom ruby
     # proximity - proximity url
     def set_env_vars
-      cs_vars = JSON.parse(compute_service['ciAttributes']['env_vars'])
+      cs = compute_service
+      cs_vars = nil
+      cs_vars = JSON.parse(cs['ciAttributes']['env_vars']) if cs
       cms_vars = @wo_hash['workorder']['config']
       required_vars.each do |name|
-        value = cs_vars[name]
+        value = cs_vars[name] unless cs_vars.nil?
         value = cms_vars[name] if !cms_vars.nil? && (value.nil? || value.empty?)
         value = '' if value.nil?
         instance_variable_set("@#{name}", value)
