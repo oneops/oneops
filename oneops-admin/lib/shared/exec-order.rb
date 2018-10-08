@@ -21,7 +21,7 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-impl              = ARGV[0]
+impl              = 'oo::chef-11.18.12' #ARGV[0]
 json_context      = ARGV[1]
 cookbook_path     = ARGV[2] || ''
 service_cookbooks = ARGV[3] || ''
