@@ -138,13 +138,29 @@ module ExecOrderUtils
       require out.to_s
     end
 
+    # This method downloads the custom ruby package file, using wget
+    # The method has an extra step to install wget if needed
+    # TO-DO - replace with ruby code - open-uri or net/http libraries
     def download_file(url)
+      install_wget
+
       name = url.split('/').last
       FileUtils.rm_f(name)
       out = `wget #{url} 2> /dev/null`
       if $?.to_i > 0
         error(out)
         raise "Error downloading #{url}"
+      end
+    end
+
+    # installs wget if not installed, for Centos/RedHat 6.x only
+    def install_wget
+      if @os_version == 'centos6'
+        out = `if ! which wget > /dev/null 2>&1 ; then yum install -y wget; fi`
+        if $?.to_i > 0
+          error(out)
+          raise 'Error installing wget'
+        end
       end
     end
 
@@ -157,7 +173,9 @@ module ExecOrderUtils
       `rm -f #{name}`
     end
 
-    # Currently returns nil for anything other than centos/redhat
+    # For centos/redhat returns centos
+    # For ubuntu/debian returns ubuntu
+    # For everything else returns nil
     def os_version
       osv = nil
       # Check for redhat/centos
