@@ -13,7 +13,10 @@ if (!window.toggle_rfc_tab) {
       contentDiv.find("> .tab-pane").hide();
       tab.show();
       contentDiv.show(300);
-      if (!tab.html().trim()) {
+      if (tab.html().trim()) {
+        tab.find(".diff-container").prettyTextDiff({cleanup: true, diffContainer: ".changed"});
+      }
+      else {
         tab.html('<%= escape_javascript(loading_indicator) %>');
         if (tabName == 'changes') {
           $j.get(source.parents("[data-changes-url]").data('changes-url'), {rfcId: rfcId});
