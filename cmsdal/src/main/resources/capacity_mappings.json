@@ -1,0 +1,315 @@
+{
+  "azure": {
+    "secgroup": {
+      "*": {
+        "*": {
+          "availability_set": 1
+        }
+      }
+    },
+    "lb": {
+      "*": {
+        "*": {
+          "lb": 1
+        }
+      }
+    },
+    "storage": {
+      "volume_type": {
+        "IOPS1": {
+          "ssd": "new Integer(getAttribute(\"slice_count\")?.getNewValue()?: 0) + 1"
+        },
+        "*": {
+          "hdd": "new Integer(getAttribute(\"slice_count\")?.getNewValue()?: 0) + 1"
+        }
+      }
+    },
+    "compute": {
+      "size": {
+        "S": {
+          "vCPU": 1,
+          "Dv2_vCPU": 1,
+          "vm": 1
+        },
+        "M": {
+          "vCPU": 2,
+          "Dv2_vCPU": 2,
+          "vm": 1
+        },
+        "L": {
+          "vCPU": 4,
+          "Dv2_vCPU": 4,
+          "vm": 1
+        },
+        "XL": {
+          "vCPU": 8,
+          "Dv2_vCPU": 8,
+          "vm": 1
+        },
+        "XXL": {
+          "vCPU": 32,
+          "DSv3_vCPU": 32,
+          "vm": 1
+        },
+        "3XL": {
+          "vCPU": 32,
+          "Ev3_vCPU": 32,
+          "vm": 1
+        },
+        "4XL": {
+          "vCPU": 8,
+          "Av2_vCPU": 8,
+          "vm": 1
+        },
+        "S-CPU": {
+          "vCPU": 1,
+          "Dv2_vCPU": 1,
+          "vm": 1
+        },
+        "M-CPU": {
+          "vCPU": 2,
+          "Dv2_vCPU": 2,
+          "vm": 1
+        },
+        "L-CPU": {
+          "vCPU": 4,
+          "Dv2_vCPU": 4,
+          "vm": 1
+        },
+        "XL-CPU": {
+          "vCPU": 8,
+          "Dv2_vCPU": 8,
+          "vm": 1
+        },
+        "8XL-CPU": {
+          "vCPU": 2,
+          "Dv2_vCPU": 2,
+          "vm": 1
+        },
+        "9XL-CPU": {
+          "vCPU": 4,
+          "Dv2_vCPU": 4,
+          "vm": 1
+        },
+        "10XL-CPU": {
+          "vCPU": 8,
+          "Dv2_vCPU": 8,
+          "vm": 1
+        },
+        "11XL-CPU": {
+          "vCPU": 16,
+          "Dv2_vCPU": 16,
+          "vm": 1
+        },
+        "S-MEM": {
+          "vCPU": 2,
+          "Dv2_vCPU": 2,
+          "vm": 1
+        },
+        "M-MEM": {
+          "vCPU": 2,
+          "DSv2_vCPU": 2,
+          "vm": 1
+        },
+        "L-MEM": {
+          "vCPU": 16,
+          "Dv2_vCPU": 16,
+          "vm": 1
+        },
+        "XL-MEM": {
+          "vCPU": 8,
+          "DSv2_vCPU": 8,
+          "vm": 1
+        },
+        "8XL-MEM": {
+          "vCPU": 2,
+          "DSv2_vCPU": 2,
+          "vm": 1
+        },
+        "9XL-MEM": {
+          "vCPU": 4,
+          "DSv2_vCPU": 4,
+          "vm": 1
+        },
+        "10XL-MEM": {
+          "vCPU": 8,
+          "DSv2_vCPU": 8,
+          "vm": 1
+        },
+        "11XL-MEM": {
+          "vCPU": 16,
+          "DSv2_vCPU": 16,
+          "vm": 1
+        },
+        "3XL-IO": {
+          "vCPU": 32,
+          "Esv3_vCPU": 32,
+          "vm": 1
+        },
+        "L-BD": {
+          "vCPU": 16,
+          "DSv2_vCPU": 16,
+          "vm": 1
+        },
+        "XL-BD": {
+          "vCPU": 20,
+          "DSv2_vCPU": 20,
+          "vm": 1
+        },
+        "L-NoSQL": {
+          "vCPU": 8,
+          "DSv2_vCPU": 8,
+          "vm": 1
+        },
+        "XL-NoSQL": {
+          "vCPU": 16,
+          "DSv2_vCPU": 16,
+          "vm": 1
+        },
+        "L-IO": {
+          "vCPU": 8,
+          "DSv2_vCPU": 8,
+          "vm": 1
+        },
+        "XL-IO": {
+          "vCPU": 16,
+          "DSv2_vCPU": 16,
+          "vm": 1
+        },
+        "XXL-IO": {
+          "vCPU": 16,
+          "DSv2_vCPU": 16,
+          "vm": 1
+        }
+      },
+      "*": {
+        "*": {
+          "hdd": 1,
+          "nic": 1
+        }
+      }
+    }
+  },
+  "openstack": {
+    "compute": {
+      "size": {
+        "XS": {
+          "vCPU": 1,
+          "vm": 1
+        },
+        "S": {
+          "vCPU": 1,
+          "vm": 1
+        },
+        "M": {
+          "vCPU": 2,
+          "vm": 1
+        },
+        "L": {
+          "vCPU": 4,
+          "vm": 1
+        },
+        "XL": {
+          "vCPU": 8,
+          "vm": 1
+        },
+        "XXL": {
+          "vCPU": 16,
+          "vm": 1
+        },
+        "3XL": {
+          "vCPU": 32,
+          "vm": 1
+        },
+        "3XL-IO": {
+          "vCPU": 32,
+          "vm": 1
+        },
+        "L-IO": {
+          "vCPU": 6,
+          "vm": 1
+        },
+        "XL-IO": {
+          "vCPU": 12,
+          "vm": 1
+        },
+        "XXL-IO": {
+          "vCPU": 16,
+          "vm": 1
+        },
+        "S-MEM": {
+          "vCPU": 2,
+          "vm": 1
+        },
+        "L-MEM": {
+          "vCPU": 8,
+          "vm": 1
+        },
+        "L-IO-LXD": {
+          "vCPU": 16,
+          "vm": 1
+        },
+        "XL-IO-LXD": {
+          "vCPU": 24,
+          "vm": 1
+        },
+        "XXL-IO-LXD": {
+          "vCPU": 32,
+          "vm": 1
+        },
+        "S-MEM-LXD": {
+          "vCPU": 8,
+          "vm": 1
+        },
+        "L-MEM-LXD": {
+          "vCPU": 16,
+          "vm": 1
+        },
+        "L-BD": {
+          "vCPU": 16,
+          "vm": 1
+        },
+        "XL-BD": {
+          "vCPU": 24,
+          "vm": 1
+        },
+        "M-WIN": {
+          "vCPU": 2,
+          "vm": 1
+        },
+        "L-WIN": {
+          "vCPU": 4,
+          "vm": 1
+        },
+        "XL-WIN": {
+          "vCPU": 8,
+          "vm": 1
+        },
+        "XL-WIN-LDO": {
+          "vCPU": 8,
+          "vm": 1
+        },
+        "L-NoSQL": {
+          "vCPU": 6,
+          "vm": 1
+        },
+        "XL-NoSQL": {
+          "vCPU": 12,
+          "vm": 1
+        },
+        "BM": {
+          "vCPU": 56,
+          "vm": 1
+        },
+        "BM-V1-56": {
+          "vCPU": 56,
+          "vm": 1
+        },
+        "BM-V2-56": {
+          "vCPU": 56,
+          "vm": 1
+        }
+      }
+    }
+  }
+}

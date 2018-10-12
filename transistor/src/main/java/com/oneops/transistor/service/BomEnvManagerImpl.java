@@ -273,14 +273,27 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 
 		List<CmsCI> cis = cmProcessor.getCiBy3NsLike(bomNsPath, null, null);
 		List<CmsCIRelation> relations = cmProcessor.getCIRelationsNsLikeNakedNoAttrs(bomNsPath, BASE_DEPLOYED_TO, null, null, null);
-		return capacityProcessor.calculateCapacity(bomNsPath, cis, relations);
+		return capacityProcessor.calculateCapacity(cis, relations);
 	}
 
+	@Override
+	public Map<String, Integer> getCloudCapacity(long cloudId) {
+		List<CmsCIRelation> relations = cmProcessor.getCIRelationsByToCiIdsNakedNoAttrs(BASE_DEPLOYED_TO, null, Collections.singletonList(cloudId));
+		List<CmsCI> cis = cmProcessor.getCiByIdList(relations.parallelStream().map(CmsCIRelation::getFromCiId).collect(toList()));
+		Map<String, Map<String, Integer>> capacity = capacityProcessor.calculateCapacity(cis, relations);
+		return capacity == null || capacity.size() == 0 ? new HashMap<>() : capacity.values().iterator().next();
+	}
 
 	@Override
 	public CapacityEstimate estimateDeploymentCapacity(BomData bomData) {
-		Collection<CmsRfcRelation> deployedToRelations = bomData.getRelations().stream().filter(r -> r.getRelationName().equals("base.DeployedTo")).collect(toList());
-		return capacityProcessor.estimateCapacity(bomData.getRelease().getNsPath(), bomData.getCis(), deployedToRelations);
+		CmsRelease release = bomData.getRelease();
+		Collection<CmsRfcCI> cis = bomData.getCis();
+		if (release == null || cis == null || cis.isEmpty()) {
+			return new CapacityEstimate(null, null, "ok");
+		} else {
+			Collection<CmsRfcRelation> deployedToRelations = bomData.getRelations().stream().filter(r -> r.getRelationName().equals("base.DeployedTo")).collect(toList());
+			return capacityProcessor.estimateCapacity(release.getNsPath(), cis, deployedToRelations);
+		}
 	}
 
 	private CmsCISimple matchOfferings(CmsRfcCI rfcCi, String service, Map<String, List<CmsCI>> offeringsByService, Map<String, Expression> expressionCache) {

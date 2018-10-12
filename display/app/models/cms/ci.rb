@@ -15,6 +15,8 @@ class Cms::Ci < Cms::Base
   # expensive calls to 'percolate').
   before_validation :validate_ci
 
+  after_save :save_original_attributes
+
   def self.valid_ci_name_regexp(ci_class_name = nil)
     "(?=[a-zA-Z])[a-zA-Z0-9\\-#{'_' unless strict_ci_name(ci_class_name)}]#{ci_class_name.end_with?('.Monitor') ? '{1,99}' : '{1,32}'}"
   end
@@ -104,6 +106,19 @@ class Cms::Ci < Cms::Base
     end
     data.info.clear.merge!(result.info)
     data
+  end
+
+  def initialize(attributes = {}, persisted = false)
+    super
+    save_original_attributes
+  end
+
+  def save_original_attributes
+    @original_attrs = attributes.include?('ciAttributes') ? ciAttributes.attributes.dup : {}
+  end
+
+  def original_value(attr_name)
+    @original_attrs[attr_name.to_s]
   end
 
   def policy_locations
@@ -200,6 +215,37 @@ class Cms::Ci < Cms::Base
     attributes[:attrProps] && attrProps.attributes['owner']
   end
 
+  def attribute_options_for_select(attr_md)
+    form_options = attr_md.options[:form]
+    return [] if form_options.blank?
+    field_type = form_options[:field]
+    return [] unless field_type == 'select' || (field_type == 'checkbox' && form_options[:multiple] == 'true')
+
+    options_for_select = form_options[:options_for_select]
+    if options_for_select.is_a?(Hash)
+      cms_var = options_for_select[:cms_var]
+      options_for_select = options_for_select[:default] if options_for_select.include?(:default)
+
+      if cms_var.present?
+        begin
+          var = Cms::Var.find(cms_var, :params => {:criteria => nsPath})
+          options_for_select = JSON.parse(var.value) if var.present?
+        rescue ActiveResource::ResourceNotFound
+        rescue Exception => e
+          Rails.logger.warn "Failed to parse value of '#{cms_var}' for attribute #{attr_md.attributeName} of ci.ciClassName=#{ciClassName} and ci.nsPath=#{nsPath}: #{e.message}"
+        end
+      end
+    end
+
+    attribute_value = original_value(attr_md.attributeName)
+    if attribute_value.present?
+      vals = field_type == 'select' ? [attribute_value] : attribute_value.split(',')
+      vals.each {|val| options_for_select += [val] if val.present? && options_for_select.none? {|e| val == (e.is_a?(Array) ? e.last : e)}}
+    end
+
+    return options_for_select
+  end
+
 
   protected
 
@@ -257,8 +303,16 @@ class Cms::Ci < Cms::Base
                 end
               end
             end
-          elsif pattern.present?
-            errors.add(:base, "'#{a.description}' is invalid [expected: #{pattern_desc(pattern)}].") unless check_pattern(pattern, value)
+          else
+            errors.add(:base, "'#{a.description}' is invalid [expected: #{pattern_desc(pattern)}].") if pattern.present? && !check_pattern(pattern, value)
+            options_for_select = attribute_options_for_select(a)
+            if options_for_select.present?
+              (a.options[:form][:field] == 'select' ? [value] : value.split(',')).each do |val|
+                if options_for_select.none? {|e| val == (e.is_a?(Array) ? e.last : e)}
+                  errors.add(:base, "'#{a.description}' is invalid [expected: #{options_for_select_desc(options_for_select)}].")
+                end
+              end
+            end
           end
         elsif a.isMandatory
           errors.add(:base, "#{a.description} [#{a.attributeName}] must be present.")
@@ -323,5 +377,9 @@ class Cms::Ci < Cms::Base
 
   def pattern_desc(pattern)
     pattern.is_a?(Array) ? pattern.join('|') : pattern
+  end
+
+  def options_for_select_desc(options_for_select)
+    options_for_select.map {|e| e.is_a?(Array) ? "'#{e.first}' (#{e.last})" : e}.join(' | ')
   end
 end

@@ -13,7 +13,7 @@ if (!window.toggle_rfc_tab) {
       contentDiv.find("> .tab-pane").hide();
       tab.show();
       contentDiv.show(300);
-      if (!tab.html()) {
+      if (!tab.html().trim()) {
         tab.html('<%= escape_javascript(loading_indicator) %>');
         if (tabName == 'changes') {
           $j.get(source.parents("[data-changes-url]").data('changes-url'), {rfcId: rfcId});

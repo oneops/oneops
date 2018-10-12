@@ -48,4 +48,5 @@ Gem::Specification.new do |s|
   s.add_dependency 'fog-openstack', '= 0.1.24'
   s.add_dependency 'fog-json', '= 1.0.2'
   s.add_dependency 'mixlib-config', '= 2.2.4'
+  s.add_dependency 'fog-xenserver', '= 0.3.0'
 end

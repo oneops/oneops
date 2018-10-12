@@ -17,18 +17,15 @@
  *******************************************************************************/
 package com.oneops.cms.cm.service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.oneops.cms.cm.domain.CmsAltNs;
-import com.oneops.cms.dj.domain.CmsRfcCI;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.cms.util.domain.CmsVar;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * The Interface CmsCmManager.
@@ -86,6 +83,7 @@ public interface CmsCmManager {
 	
 	void updateCmSimpleVar(String varName, String varValue, String criteria, String updatedBy);
 	CmsVar getCmSimpleVar(String varName);
+	CmsVar getCmSimpleVar(String varName, String criteria);
 
     void createAltNs(CmsAltNs cmsAltNs, CmsCI ci);
     void deleteAltNs(long nsId, long ciId);
@@ -99,4 +97,6 @@ public interface CmsCmManager {
 	void updateCiAltNs(long ciId, Map<String, Set<String>> altNs);
 
 	List<CmsCI> getCiByAttributes(String nsPath, String clazzName, List<AttrQueryCondition> attrConds, boolean recursive, String altNs, String tag);
+
+	CmsVar getCmVarByLongestMatchingCriteria(String varNameLike, String criteria);
 }

@@ -371,16 +371,16 @@ class AssembliesController < ApplicationController
     def initialize(orgs, assemblies)
       orgs.each do |o|
         if o.is_a?(Hash)
-          self[o['ciName']] = parse_tags(o['ciAttributes'])
+          self[o['ciName']] = ::CiTags.parse_tags(o['ciAttributes'])
         else
-          self[o.ciName] = parse_tags(o.ciAttributes)
+          self[o.ciName] = ::CiTags.parse_tags(o.ciAttributes)
         end
       end
       assemblies.each do |a|
         if a.is_a?(Hash)
-          self["#{a['nsPath'].split('/')[1]}/#{a['ciName']}"] = parse_tags(a['ciAttributes'])
+          self["#{a['nsPath'].split('/')[1]}/#{a['ciName']}"] = ::CiTags.parse_tags(a['ciAttributes'])
         else
-          self["#{a.nsPath.split('/')[1]}/#{a.ciName}"] = parse_tags(a.ciAttributes)
+          self["#{a.nsPath.split('/')[1]}/#{a.ciName}"] = ::CiTags.parse_tags(a.ciAttributes)
         end
       end
     end
@@ -390,23 +390,6 @@ class AssembliesController < ApplicationController
       (include?(key) && self[key][:tags][tag]) ||
         (include?(org) && self[org][:tags][tag]) ||
         "#{key} -> #{(include?(key) && self[key][:owner]) || (include?(org) &&  self[org][:owner]) || '???'}"
-    end
-
-
-    private
-
-    def parse_tags(ci_attributes)
-      attrs   = ci_attributes || {}
-      is_hash = attrs.is_a?(Hash)
-      tags    = is_hash ? attrs['tags'] : ci_attributes.tags
-      unless tags.is_a?(Hash)
-        begin
-          tags = tags ? JSON.parse(tags) : {}
-        rescue
-          tags = {}
-        end
-      end
-      {:tags => tags, :owner => is_hash ? attrs['owner'] : attrs.owner}
     end
   end
 end

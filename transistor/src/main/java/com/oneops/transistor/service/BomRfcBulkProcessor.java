@@ -18,7 +18,6 @@
 package com.oneops.transistor.service;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
@@ -42,6 +41,7 @@ import java.util.stream.Collectors;
 import static com.oneops.cms.util.CmsConstants.*;
 
 public class BomRfcBulkProcessor {
+	static final int MIN_COMPUTES_SCALE = 3;
 	private static Logger logger = Logger.getLogger(BomRfcBulkProcessor.class);
 
     private static final Map<String, Integer> priorityMap = new HashMap<>();
@@ -781,8 +781,14 @@ public class BomRfcBulkProcessor {
 
 		if (rfc.getCiId() == 0) {
 			rfc.setRfcAction("add");
-		} else if (!needUpdateRfc(rfc, existingCi)) {
-			return rfc;
+		} else {
+			// Remove bom-only attributes so they are not compared against their default values and
+			// thus cause an unnecessary update RFC on its own without actual changes in manifest attributes.
+			rfc.getAttributes().keySet().retainAll(mfstAttrs.keySet());
+
+			if (!needUpdateRfc(rfc, existingCi)) {
+				return rfc;
+			}
 		}
 
 		rfc.setIsActiveInRelease(true);
@@ -1447,18 +1453,35 @@ public class BomRfcBulkProcessor {
 		}
 	}
 
-	public CmsDeployment scaleDown(CmsCI platformCi, CmsCI env, int scaleDownBy, boolean ensureEvenScale, String user) {
+	public CmsDeployment scaleDown(CmsCI platformCi, CmsCI env, int scaleDownBy, int minComputesInEachCloud,
+								   boolean ensureEvenScale, String user) {
 		long startTimeMillis = System.currentTimeMillis();
 		Map<String, List<CmsCI>> cloudToComputesMap = getComputesWithClouds(platformCi);
 
 		if (ensureEvenScale && ! isEvenScale(cloudToComputesMap, platformCi)) {
-			logger.info("scale is not even currently, rejecting scale down");
-			return null;
+			String errorMessage = "scale is not even currently, rejecting scale down for platform: " + platformCi.getCiId();
+			logger.info(errorMessage);
+			throw new TransistorException(CmsError.TRANSISTOR_EXCEPTION, errorMessage);
+		}
+		if (! hasSufficientComputes(cloudToComputesMap, scaleDownBy, minComputesInEachCloud)) {
+			String errorMessage = "1 or more clouds has less than min computes, rejecting scale down for platform "
+					+ platformCi.getCiId();
+			logger.info(errorMessage);
+			throw new TransistorException(CmsError.TRANSISTOR_EXCEPTION, errorMessage);
+		}
+		int maxCloudScale = getMaxCloudScale(platformCi);
+		if (maxCloudScale > 100) {
+			throw new TransistorException(CmsError.TRANSISTOR_EXCEPTION,
+					"Can't scale down because the cloud scale found to be " + maxCloudScale + "%");
 		}
 		String bomNsPath = env.getNsPath() + "/" + env.getCiName() + "/bom";
 		//TODO: cancel failed deployment
 		envManager.discardEnvBom(env.getCiId());
 		long releaseId = rfcProcessor.createRelease(bomNsPath, null, user);
+
+		List<CmsCIRelation> dependsOnRelations = cmProcessor.getCIRelations(platformCi.getNsPath(),
+				"manifest.DependsOn", null, null, null);
+		reduceScaleNumber(platformCi, dependsOnRelations, scaleDownBy);
 
 		Map<Long, Integer> deploymentOrder = getScaleDownDeploymentOrder(platformCi);
 		Map<Long, Long> bomToManifestMap = getBomToManifestMap(platformCi);
@@ -1489,8 +1512,6 @@ public class BomRfcBulkProcessor {
 		}
 
 		List<Long> processedPropagations = new ArrayList<>();
-		List<CmsCIRelation> dependsOnRelations = cmProcessor.getCIRelations(platformCi.getNsPath(),
-				"manifest.DependsOn", null, null, null);
 
 		Map<Long, List<Long>> propagationMap = mapPropagations(platformCi, dependsOnRelations);
 
@@ -1505,7 +1526,6 @@ public class BomRfcBulkProcessor {
 		for (CmsCI ci : cisInRfcs) {
 			propagateUpdate(ci, maxDeploymentOrder, bomToManifestMap, processedPropagations, propagationMap, releaseId, user);
 		}
-		reduceScaleNumber(platformCi, dependsOnRelations, scaleDownBy);
 		CmsDeployment deployment = new CmsDeployment();
 		deployment.setNsPath(bomNsPath);
 		deployment.setReleaseId(releaseId);
@@ -1518,6 +1538,34 @@ public class BomRfcBulkProcessor {
 		return deployment;
 	}
 
+	private int getMaxCloudScale(CmsCI platformCi) {
+		int maxScale = 100;
+		List<CmsCIRelation> consumesRelations = cmProcessor.getCIRelations(platformCi.getNsPath(),
+				"base.Consumes", null, null, "account.Cloud");
+		for (CmsCIRelation rel : consumesRelations) {
+			int cloudScale = Integer.parseInt(rel.getAttribute("pct_scale").getDfValue());
+			if (cloudScale > maxScale) {
+				maxScale = cloudScale;
+			}
+		}
+		return maxScale;
+	}
+
+	boolean hasSufficientComputes(Map<String, List<CmsCI>> computesWithClouds, int scaleDownBy,
+								  int minComputesInEachCloud) {
+		if (minComputesInEachCloud < MIN_COMPUTES_SCALE) {
+			minComputesInEachCloud = MIN_COMPUTES_SCALE;
+		}
+		for (String cloud : computesWithClouds.keySet()) {
+			List<CmsCI> computes = computesWithClouds.get(cloud);
+			if (computes.size() - scaleDownBy < minComputesInEachCloud) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	//changes the "current" scale configuration for flex relation
 	private void reduceScaleNumber(CmsCI platformCi, List<CmsCIRelation> dependsOnRelations, int scaleDownBy) {
 		boolean scaleNumberUpdated = false;
 		for (CmsCIRelation rel : dependsOnRelations) {
@@ -1526,14 +1574,14 @@ public class BomRfcBulkProcessor {
 				CmsCIRelationAttribute currentScale = rel.getAttribute("current");
 				if (currentScale != null) {
 					int currentValue = Integer.valueOf(currentScale.getDfValue());
-					if (currentValue > 2) {
-						int newValue = currentValue - 1;
+					if (currentValue - scaleDownBy >= MIN_COMPUTES_SCALE) {
+						int newValue = currentValue - scaleDownBy;
 						currentScale.setDfValue(newValue + "");
 						currentScale.setDjValue(newValue + "");
 						cmProcessor.updateRelation(rel);
 						scaleNumberUpdated = true;
 					} else {
-						logger.info("current scale is less than 3, can not scale down platform " + platformCi.getCiId());
+						logger.info("current scale is less than min, can not scale down platform " + platformCi.getCiId());
 					}
 				}
 			}

@@ -129,9 +129,14 @@ public class BomAsyncProcessor {
         return prefix + String.valueOf(envId);
     }
 
-    public CmsDeployment scaleDown(long platformId, int scaleDownBy, boolean ensureEvenScale, String userId) {
+    public CmsDeployment scaleDown(long platformId, int scaleDownBy, int minComputesInEachCloud,
+                                   boolean ensureEvenScale, String userId) {
         CmsCI platformCi = cmProcessor.getCiById(platformId);
         List<CmsCIRelation> rels = cmProcessor.getToCIRelations(platformId, "manifest.ComposedOf", null);
+        if (rels == null || rels.size() == 0) {
+            throw new TransistorException(CmsError.TRANSISTOR_BOM_GENERATION_FAILED, "Platform does not exist. id :"
+                    + platformId);
+        }
         CmsCI envCi = rels.get(0).getFromCi();
         String envMsg = null;
 
@@ -139,17 +144,24 @@ public class BomAsyncProcessor {
         envSemaphore.lockEnv(envCi.getCiId(), EnvSemaphore.LOCKED_STATE, processId);
         CmsDeployment deployment = null;
         try {
-            Map<String, Object> bomGenerationInfo = bomManager.scaleDown(platformCi, envCi, scaleDownBy, ensureEvenScale, userId);
+            Map<String, Object> bomGenerationInfo = bomManager.scaleDown(platformCi, envCi, scaleDownBy,
+                    minComputesInEachCloud, ensureEvenScale, userId);
             bomGenerationInfo.put("createdBy", userId);
             bomGenerationInfo.put("mode", "persistent");
             bomGenerationInfo.put("autoDeploy", true);
+
+            if (bomGenerationInfo.get("deployment") != null) {
+                deployment = (CmsDeployment) bomGenerationInfo.get("deployment");
+            }
+
             envMsg = EnvSemaphore.SUCCESS_PREFIX + " Generation time taken: "
                     + ((Long) bomGenerationInfo.get("generationTime") / 1000.0)
                     + " seconds. bomGenerationInfo=" + gson.toJson(bomGenerationInfo);
         } catch (Exception e) {
             logger.error("Exception in scale down ", e);
-            envMsg = EnvSemaphore.BOM_ERROR + e.getMessage();
-            throw new TransistorException(CmsError.TRANSISTOR_BOM_GENERATION_FAILED, envMsg);
+            //not setting error message as comment for next time it should not block user from doing regular deployment
+            envMsg = envCi.getComments();
+            throw new TransistorException(CmsError.TRANSISTOR_BOM_GENERATION_FAILED, e.getMessage());
         } finally {
             envSemaphore.unlockEnv(envCi.getCiId(), envMsg, processId);
         }

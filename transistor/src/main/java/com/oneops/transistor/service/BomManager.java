@@ -32,7 +32,8 @@ public interface BomManager {
 
     long submitDeployment(long releaseId, String userId, String desc);
 
-    Map<String, Object> scaleDown(CmsCI platformCi, CmsCI envCi, int scaleDownBy, boolean ensureEvenScale, String userId);
+    Map<String, Object> scaleDown(CmsCI platformCi, CmsCI envCi, int scaleDownBy,
+                                  int minComputesInEachCloud, boolean ensureEvenScale, String userId);
 
     void check4openDeployment(String nsPath);
 }

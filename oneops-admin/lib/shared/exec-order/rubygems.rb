@@ -159,6 +159,9 @@ def install_using_prebuilt_gemfile (gem_sources, component, provisioner, provisi
   if ['objectstore','compute','volume', 'os'].include?(component)
     start_time = Time.now.to_i
     gemfile = "exec-gems-#{provisioner}-#{provisioner_version}.gemfile"
+    if get_os_type =~ /windows/ && File.file?("#{gemfile}.lock")
+      File.delete("#{gemfile}.lock")
+    end
     cmd = "#{get_bin_dir}bundle install --local --gemfile #{gemfile}"
     ec = system cmd
     if !ec || ec.nil?

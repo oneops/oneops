@@ -34,6 +34,20 @@ public class CmsVar implements Serializable {
   private Date created;
   private Date updated;
 
+  public CmsVar() {
+  }
+
+  public CmsVar(String name, String value) {
+    this.name = name;
+    this.value = value;
+  }
+
+  public CmsVar(String name, String value, String criteria) {
+    this.name = name;
+    this.value = value;
+    this.criteria = criteria;
+  }
+
   /**
    *
    * @return
@@ -76,7 +90,7 @@ public class CmsVar implements Serializable {
 
   /**
    *
-   * @param vale
+   * @param value
    */
   public void setValue(String value) {
     this.value = value;

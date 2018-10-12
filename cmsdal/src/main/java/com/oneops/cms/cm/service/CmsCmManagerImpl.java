@@ -510,6 +510,12 @@ public class CmsCmManagerImpl implements CmsCmManager {
     }
 
     @Override
+    public CmsVar getCmSimpleVar(String varName, String criteria) {
+        List<CmsVar> vars = cmProcessor.getCmVarByLongestMatchingCriteria(varName, criteria);
+        return vars == null || vars.size() == 0 ? null : vars.get(0);
+    }
+
+    @Override
     public void deleteAltNs(long nsId, long ciId) {
         cmProcessor.deleteAltNs(nsId, ciId);
     }
@@ -571,5 +577,14 @@ public class CmsCmManagerImpl implements CmsCmManager {
         cmsAltNs.setTag(tag);
         cmsAltNs.setNsPath(altNs);
         cmProcessor.createAltNs(cmsAltNs, ciId);
+    }
+
+    @Override
+    public CmsVar getCmVarByLongestMatchingCriteria(String varNameLike, String criteria) {
+        List<CmsVar> list = cmProcessor.getCmVarByLongestMatchingCriteria(varNameLike, criteria);
+        if (list != null && !list.isEmpty()) {
+            return list.get(0);
+        }
+        return null;
     }
 }

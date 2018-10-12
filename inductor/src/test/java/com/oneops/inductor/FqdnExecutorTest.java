@@ -1,6 +1,11 @@
 package com.oneops.inductor;
 
+import static com.oneops.gslb.domain.Protocol.HTTP;
+import static com.oneops.gslb.domain.Protocol.HTTPS;
+import static com.oneops.gslb.domain.Protocol.TCP;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -36,10 +41,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 public class FqdnExecutorTest {
 
@@ -114,10 +119,12 @@ public class FqdnExecutorTest {
     assertThat(lbs.get(0).vip(), is("1.1.1.0"));
     assertThat(lbs.get(0).cloud(), is("cl1"));
     assertThat(lbs.get(0).enabledForTraffic(), is(true));
+    assertNull(lbs.get(0).weightPercent());
 
     assertThat(lbs.get(1).vip(), is("1.1.1.1"));
     assertThat(lbs.get(1).cloud(), is("cl2"));
     assertThat(lbs.get(1).enabledForTraffic(), is(true));
+    assertNull(lbs.get(1).weightPercent());
 
     InfobloxConfig ibConfig = request.infobloxConfig();
     assertThat(ibConfig.host(), is("https://localhost:8123"));
@@ -133,11 +140,11 @@ public class FqdnExecutorTest {
     List<HealthCheck> healthChecks = request.healthChecks();
     assertThat(healthChecks.size(), is(1));
     HealthCheck healthCheck = healthChecks.get(0);
-    assertThat(healthCheck.protocol(), is(Protocol.HTTP));
+    assertThat(healthCheck.protocol(), is(HTTP));
     assertThat(healthCheck.port(), is(80));
     assertThat(healthCheck.path(), is("/"));
 
-    Set<String> cnames = request.cnames().stream().collect(Collectors.toSet());
+    Set<String> cnames = new HashSet<>(request.cnames());
     assertThat(cnames.size(), is(3));
     assertTrue(cnames.contains("plt.stg.coll.org.stg.cloud.xyz.com"));
     assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
@@ -146,8 +153,56 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
+  }
+
+  @Test
+  public void gslbRequestWithEqualWeights() {
+    CmsWorkOrderSimple wo = woWith2Clouds();
+    wo.getRfcCi().setRfcAction("add");
+    Map<String, String> map = new HashMap<>();
+    map.put("weights", "{\"cl1\": 50, \"cl2\" : 50}");
+    wo.setConfig(map);
+    fqdnExecutor.execute(wo, "/tmp");
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
+
+    Gslb request = argument.getValue();
+    assertThat(request.lbs().get(0).weightPercent(), is(50));
+    assertThat(request.lbs().get(1).weightPercent(), is(50));
+  }
+
+  @Test
+  public void gslbRequestWithDifferentWeights() {
+    CmsWorkOrderSimple wo = woWith2Clouds();
+    wo.getRfcCi().setRfcAction("add");
+    Map<String, String> map = new HashMap<>();
+    map.put("weights", "{\"cl1\": 60, \"cl2\" : 40}");
+    wo.setConfig(map);
+    fqdnExecutor.execute(wo, "/tmp");
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
+
+    Gslb request = argument.getValue();
+    assertThat(request.lbs().get(0).weightPercent(), is(60));
+    assertThat(request.lbs().get(1).weightPercent(), is(40));
+  }
+
+  @Test
+  public void gslbRequestWithMissingWeights() {
+    CmsWorkOrderSimple wo = woWith2Clouds();
+    wo.getRfcCi().setRfcAction("add");
+    Map<String, String> map = new HashMap<>();
+    map.put("weights", "{\"cl1\": 100}");
+    wo.setConfig(map);
+    fqdnExecutor.execute(wo, "/tmp");
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
+
+    Gslb request = argument.getValue();
+    assertThat(request.lbs().get(0).weightPercent(), is(100));
+    assertThat(request.lbs().get(1).weightPercent(), is(0));
   }
 
   @Test
@@ -162,7 +217,7 @@ public class FqdnExecutorTest {
 
     Gslb request = argument.getValue();
 
-    Set<String> cnames = request.cnames().stream().collect(Collectors.toSet());
+    Set<String> cnames = new HashSet<>(request.cnames());
     assertThat(cnames.size(), is(3));
     assertTrue(cnames.contains("plt.stg.coll.org.stg.cloud.xyz.com"));
     assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
@@ -171,7 +226,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
 
     List<DcARecord> dcARecords = request.dcARecords();
@@ -181,9 +236,107 @@ public class FqdnExecutorTest {
     assertThat(dcARecord.vip(), is("10.100.100.101"));
   }
 
+  @Test
+  public void lbWithCloudVipEnabled() {
+    CmsWorkOrderSimple wo = woWith2Clouds();
+    wo.getRfcCi().setRfcAction("add");
+    addGdnsService(wo);
+    addLbVnames(wo, "10.100.100.102");
+    setLbVnamesForCloudVips(wo, "10.100.100.102", "10.100.101.103");
+    fqdnExecutor.execute(wo, "/tmp");
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
+
+    Gslb request = argument.getValue();
+
+    Set<String> cnames = new HashSet<>(request.cnames());
+    assertThat(cnames.size(), is(3));
+    assertTrue(cnames.contains("plt.stg.coll.org.stg.cloud.xyz.com"));
+    assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
+    assertTrue(cnames.contains("p1.stg.coll.org.stg.cloud.xyz.com"));
+
+    List<Lb> lbs = request.lbs();
+    assertThat(lbs.size(), is(2));
+    assertThat(lbs.get(0).vip(), is("10.100.100.102"));
+    assertThat(lbs.get(0).cloud(), is("cl1"));
+    assertThat(lbs.get(0).enabledForTraffic(), is(true));
+
+    assertThat(lbs.get(1).vip(), is("10.100.101.103"));
+    assertThat(lbs.get(1).cloud(), is("cl2"));
+    assertThat(lbs.get(1).enabledForTraffic(), is(true));
+
+    List<CloudARecord> cloudARecords = request.cloudARecords();
+    assertThat(cloudARecords.size(), is(1));
+    CloudARecord cloudARecord = cloudARecords.get(0);
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
+    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
+
+    List<DcARecord> dcARecords = request.dcARecords();
+    assertThat(dcARecords.size(), is(1));
+    DcARecord dcARecord = dcARecords.get(0);
+    assertThat(dcARecord.aRecord(), is("plt.stg.coll.org.c1.stg.cloud.xyz.com"));
+    assertThat(dcARecord.vip(), is("10.100.100.102"));
+  }
+
+  @Test
+  public void lbWithCloudVipEnabledAndDifferentSubdomain() {
+    CmsWorkOrderSimple wo = woWith2Clouds();
+    wo.getRfcCi().setRfcAction("add");
+    addGdnsService(wo);
+    addLbVnames(wo, "10.100.100.102");
+    setLbVnamesForCloudVips(wo, "10.100.100.102", "10.100.101.103");
+    wo.getPayLoadEntry("Environment").get(0).addCiAttribute("subdomain", "coll.org");
+    fqdnExecutor.execute(wo, "/tmp");
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
+
+    Gslb request = argument.getValue();
+
+    Set<String> cnames = new HashSet<>(request.cnames());
+    assertThat(cnames.size(), is(3));
+    assertTrue(cnames.contains("plt.coll.org.stg.cloud.xyz.com"));
+    assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
+    assertTrue(cnames.contains("p1.coll.org.stg.cloud.xyz.com"));
+
+    List<Lb> lbs = request.lbs();
+    assertThat(lbs.size(), is(2));
+    assertThat(lbs.get(0).vip(), is("10.100.100.102"));
+    assertThat(lbs.get(0).cloud(), is("cl1"));
+    assertThat(lbs.get(0).enabledForTraffic(), is(true));
+
+    assertThat(lbs.get(1).vip(), is("10.100.101.103"));
+    assertThat(lbs.get(1).cloud(), is("cl2"));
+    assertThat(lbs.get(1).enabledForTraffic(), is(true));
+
+    List<CloudARecord> cloudARecords = request.cloudARecords();
+    assertThat(cloudARecords.size(), is(1));
+    CloudARecord cloudARecord = cloudARecords.get(0);
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
+    assertThat(cloudARecord.aRecord(), is("plt.coll.org.cloud1.stg.cloud.xyz.com"));
+
+    List<DcARecord> dcARecords = request.dcARecords();
+    assertThat(dcARecords.size(), is(1));
+    DcARecord dcARecord = dcARecords.get(0);
+    assertThat(dcARecord.aRecord(), is("plt.coll.org.c1.stg.cloud.xyz.com"));
+    assertThat(dcARecord.vip(), is("10.100.100.102"));
+  }
+
+  private void setLbVnamesForCloudVips(CmsWorkOrderSimple wo, String... vips) {
+    List<CmsRfcCISimple> lbs = wo.payLoad.get("lb");
+    int i = 0;
+    for (CmsRfcCISimple lb : lbs) {
+      Map<String, String> attributes = lb.getCiAttributes();
+      attributes.put("create_cloud_level_vips", "true");
+      String attribute =
+          "{\"plt.stg.coll.org.c1.stg.cloud.xyz.com-HTTP_80tcp-123214-lb\":\"" + vips[i++] + "\"}";
+      attributes.put("vnames", attribute);
+    }
+  }
+
   private void addLbVnames(CmsWorkOrderSimple wo, String dcVip) {
     Map<String, String> attributes = wo.getPayLoadEntry("DependsOn").get(0).getCiAttributes();
-    String attribute = "{\"plt.stg.coll.org.c1.stg.cloud.xyz.com-HTTP_80tcp-123214-lb\":\"" + dcVip + "\"}";
+    String attribute =
+        "{\"plt.stg.coll.org.c1.stg.cloud.xyz.com-HTTP_80tcp-123214-lb\":\"" + dcVip + "\"}";
     attributes.put("vnames", attribute);
   }
 
@@ -193,7 +346,7 @@ public class FqdnExecutorTest {
     Map<String, CmsCISimple> gdnsService = new HashMap<>();
     CmsCISimple gdns = new CmsCISimple();
     gdns.setCiClassName("cloud.service.Netscaler");
-    gdns.setCiId(1100l);
+    gdns.setCiId(1100L);
     gdns.addCiAttribute("gslb_site_dns_id", "c1");
     gdns.setCiName("gdns");
     gdnsService.put("cl1", gdns);
@@ -203,7 +356,7 @@ public class FqdnExecutorTest {
   @Test
   public void updateWithOnePrimaryOneSecondaryClouds() {
     CmsWorkOrderSimple wo = woWith2Clouds();
-    //make one cloud secondary
+    // make one cloud secondary
     wo.getPayLoadEntry("fqdnclouds").get(1).addCiAttribute("base.Consumes.priority", "2");
     wo.getRfcCi().setRfcAction("update");
     fqdnExecutor.execute(wo, "/tmp");
@@ -225,7 +378,7 @@ public class FqdnExecutorTest {
   @Test
   public void deleteWithShutdownCloud() {
     CmsWorkOrderSimple wo = woWith2Clouds();
-    //make one cloud secondary
+    // make one cloud secondary
     wo.getPayLoadEntry("fqdnclouds").get(0).addCiAttribute("base.Consumes.adminstatus", "inactive");
     wo.getRfcCi().setRfcAction("delete");
     fqdnExecutor.execute(wo, "/tmp");
@@ -243,7 +396,7 @@ public class FqdnExecutorTest {
   @Test
   public void deleteWithPlatformDisable() {
     CmsWorkOrderSimple wo = woWith2Clouds();
-    //make one cloud secondary
+    // make one cloud secondary
     wo.getBox().addCiAttribute("is_platform_enabled", "false");
     wo.getRfcCi().setRfcAction("delete");
     fqdnExecutor.execute(wo, "/tmp");
@@ -265,7 +418,7 @@ public class FqdnExecutorTest {
     assertThat(torbitConfig.groupId(), is(101));
     assertThat(torbitConfig.gslbBaseDomain(), is("xyz.com"));
 
-    Set<String> cnames = request.cnames().stream().collect(Collectors.toSet());
+    Set<String> cnames = new HashSet<>(request.cnames());
     System.out.println(cnames);
     assertThat(cnames.size(), is(3));
     assertTrue(cnames.contains("plt.stg.coll.org.stg.cloud.xyz.com"));
@@ -275,7 +428,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
@@ -363,7 +516,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
@@ -418,7 +571,7 @@ public class FqdnExecutorTest {
     List<HealthCheck> healthChecks = request.healthChecks();
     assertThat(healthChecks.size(), is(1));
     HealthCheck healthCheck = healthChecks.get(0);
-    assertThat(healthCheck.protocol(), is(Protocol.HTTP));
+    assertThat(healthCheck.protocol(), is(HTTP));
     assertThat(healthCheck.port(), is(80));
     assertThat(healthCheck.path(), is("/"));
 
@@ -431,7 +584,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
@@ -456,9 +609,9 @@ public class FqdnExecutorTest {
   }
 
   private void addDependsOn(CmsWorkOrderSimple wo, Map<String, String> classMap) {
-    CmsRfcCISimple bomLb = new CmsRfcCISimple();
-    bomLb.setCiClassName(classMap.get(BOM_LB));
-    bomLb.setCiId(650l);
+    CmsRfcCISimple bomLb;
+    List<CmsRfcCISimple> list = wo.getPayLoadEntry("lb");
+    bomLb = (list != null && !list.isEmpty()) ? list.get(0) : new CmsRfcCISimple();
     bomLb.addCiAttribute("listeners", "['http 80 http 80']");
     bomLb.addCiAttribute("ecv_map", "{'80':'GET /'}");
     wo.addPayLoadEntry("DependsOn", bomLb);
@@ -467,7 +620,7 @@ public class FqdnExecutorTest {
   private CmsWorkOrderSimple woBase(Map<String, String> classMap) {
     CmsWorkOrderSimple woBase = new CmsWorkOrderSimple();
     CmsRfcCISimple rfc = new CmsRfcCISimple();
-    rfc.setRfcId(4001l);
+    rfc.setRfcId(4001L);
     rfc.setCiName("test-gslb");
     rfc.setCiClassName(classMap.get(BOM_FQDN));
     rfc.addCiAttribute("aliases", "[p1]");
@@ -550,7 +703,7 @@ public class FqdnExecutorTest {
     Map<String, CmsCISimple> torbitService = new HashMap<>();
     CmsCISimple torbit = new CmsCISimple();
     torbit.setCiClassName("cloud.service.oneops.1.Torbit");
-    torbit.setCiId(102l);
+    torbit.setCiId(102L);
     torbit.addCiAttribute("endpoint", "https://localhost:8443");
     torbit.addCiAttribute("auth_key", "test_auth");
     torbit.addCiAttribute("group_id", "101");
@@ -579,7 +732,6 @@ public class FqdnExecutorTest {
     Response response = fqdnExecutor.execute(ao, "/tmp");
     assertThat(response.getResult(), is(Result.NOT_MATCHED));
   }
-
 
   @Test
   public void failAoForMissingTorbitService() {
@@ -633,7 +785,7 @@ public class FqdnExecutorTest {
     List<HealthCheck> healthChecks = request.healthChecks();
     assertThat(healthChecks.size(), is(1));
     HealthCheck healthCheck = healthChecks.get(0);
-    assertThat(healthCheck.protocol(), is(Protocol.HTTP));
+    assertThat(healthCheck.protocol(), is(HTTP));
     assertThat(healthCheck.port(), is(80));
     assertThat(healthCheck.path(), is("/"));
 
@@ -646,7 +798,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
@@ -686,7 +838,7 @@ public class FqdnExecutorTest {
     List<HealthCheck> healthChecks = request.healthChecks();
     assertThat(healthChecks.size(), is(1));
     HealthCheck healthCheck = healthChecks.get(0);
-    assertThat(healthCheck.protocol(), is(Protocol.HTTP));
+    assertThat(healthCheck.protocol(), is(HTTP));
     assertThat(healthCheck.port(), is(80));
     assertThat(healthCheck.path(), is("/"));
 
@@ -699,7 +851,7 @@ public class FqdnExecutorTest {
     List<CloudARecord> cloudARecords = request.cloudARecords();
     assertThat(cloudARecords.size(), is(1));
     CloudARecord cloudARecord = cloudARecords.get(0);
-    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.vip(), is("1.1.1.0"));
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cloud1.stg.cloud.xyz.com"));
   }
 
@@ -762,7 +914,6 @@ public class FqdnExecutorTest {
     wo.putPayLoadEntry("lb", Arrays.asList(lb1, lb2));
   }
 
-
   private void addCloudsPayload(CmsActionOrderSimple wo) {
     CmsCISimple cl1 = new CmsCISimple();
     cl1.setCiName("cl1");
@@ -791,9 +942,9 @@ public class FqdnExecutorTest {
   }
 
   private void addDependsOn(CmsActionOrderSimple wo, Map<String, String> classMap) {
-    CmsCISimple bomLb = new CmsCISimple();
-    bomLb.setCiClassName(classMap.get(BOM_LB));
-    bomLb.setCiId(650L);
+    CmsCISimple bomLb;
+    List<CmsCISimple> list = wo.getPayLoadEntry("lb");
+    bomLb = (list != null && !list.isEmpty()) ? list.get(0) : new CmsCISimple();
     bomLb.addCiAttribute("listeners", "['http 80 http 80']");
     bomLb.addCiAttribute("ecv_map", "{'80':'GET /'}");
     wo.addPayLoadEntry("DependsOn", bomLb);
@@ -813,4 +964,121 @@ public class FqdnExecutorTest {
     assertThat(response.getResult(), is(Result.SUCCESS));
   }
 
+  @Test
+  public void woGslbHealthTest() {
+    CmsWorkOrderSimple wo = woWith2Clouds();
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    CmsRfcCISimple bomLb = wo.getPayLoadEntry("DependsOn").get(0);
+
+    // 1. Http protocol
+    bomLb.addCiAttribute("listeners", "['http 80 http 80','http 8080 http 8080']");
+    bomLb.addCiAttribute("ecv_map", "{'80':'GET /'}");
+
+    fqdnExecutor.execute(wo, "/tmp");
+    verify(mock, Mockito.atLeast(1)).create(argument.capture());
+    List<HealthCheck> hcList = argument.getValue().healthChecks();
+    assertEquals(2, hcList.size());
+
+    HealthCheck hc11 = newHealthCheck(HTTP, 80, "/", false, 200);
+    HealthCheck hc12 = newHealthCheck(HTTP, 8080, "", false, 200);
+    assertTrue(hcList.containsAll(Arrays.asList(hc11, hc12)));
+
+    // 2. No listener and ecv
+    bomLb.addCiAttribute("listeners", "");
+    bomLb.addCiAttribute("ecv_map", "");
+
+    fqdnExecutor.execute(wo, "/tmp");
+    verify(mock, Mockito.atLeast(1)).create(argument.capture());
+    hcList = argument.getValue().healthChecks();
+    assertEquals(0, hcList.size());
+
+    // 3. Null listener and ecv
+    bomLb.addCiAttribute("listeners", null);
+    bomLb.addCiAttribute("ecv_map", "[]");
+
+    fqdnExecutor.execute(wo, "/tmp");
+    verify(mock, Mockito.atLeast(1)).create(argument.capture());
+    hcList = argument.getValue().healthChecks();
+    assertEquals(0, hcList.size());
+
+    // 4. Https ECV
+    bomLb.addCiAttribute(
+        "listeners", "['http 80 http 80','https 443 https 8443','https 8443 http 80']");
+    bomLb.addCiAttribute("ecv_map", "{'80':'GET /health'}");
+
+    fqdnExecutor.execute(wo, "/tmp");
+    verify(mock, Mockito.atLeast(1)).create(argument.capture());
+    hcList = argument.getValue().healthChecks();
+    assertEquals(3, hcList.size());
+
+    HealthCheck hc21 = newHealthCheck(HTTP, 80, "/health", false, 200);
+    HealthCheck hc22 = newHealthCheck(HTTPS, 443, "", true, 200);
+    HealthCheck hc23 = newHealthCheck(HTTPS, 8443, "/health", true, 200);
+    assertTrue(hcList.containsAll(Arrays.asList(hc21, hc22, hc23)));
+
+    // 5. SSL_BRIDGE and TCP
+    bomLb.addCiAttribute(
+        "listeners",
+        "['ssl_bridge 443 ssl_bridge 443','ssl_bridge 1443 ssl_bridge 8443','https 8443 https 8443','tcp 8444 tcp 8444','tcp 8445 tcp 8444','tcp 8446 tcp 8446']");
+    bomLb.addCiAttribute("ecv_map", "{'8443':'GET /health','8444':'GET /NOTUSED'}");
+
+    fqdnExecutor.execute(wo, "/tmp");
+    verify(mock, Mockito.atLeast(1)).create(argument.capture());
+    hcList = argument.getValue().healthChecks();
+    assertEquals(6, hcList.size());
+
+    HealthCheck hc31 = newHealthCheck(TCP, 443, "", true, 0);
+    HealthCheck hc32 = newHealthCheck(TCP, 1443, "", true, 0);
+    HealthCheck hc33 = newHealthCheck(HTTPS, 8443, "/health", true, 200);
+    HealthCheck hc34 = newHealthCheck(TCP, 8444, "", false, 0);
+    HealthCheck hc35 = newHealthCheck(TCP, 8445, "", false, 0);
+    HealthCheck hc36 = newHealthCheck(TCP, 8446, "", false, 0);
+    assertTrue(hcList.containsAll(Arrays.asList(hc31, hc32, hc33, hc34, hc35, hc36)));
+
+    // 6. TLS
+    bomLb.addCiAttribute("listeners", "['tls 443 tls 443','tls 1443 tls 8443']");
+    bomLb.addCiAttribute("ecv_map", "{'443':'GET /health','1443':'GET /NOTUSED'}");
+
+    fqdnExecutor.execute(wo, "/tmp");
+    verify(mock, Mockito.atLeast(1)).create(argument.capture());
+    hcList = argument.getValue().healthChecks();
+    assertEquals(2, hcList.size());
+
+    HealthCheck hc41 = newHealthCheck(TCP, 443, "", true, 0);
+    HealthCheck hc42 = newHealthCheck(TCP, 1443, "", true, 0);
+    assertTrue(hcList.containsAll(Arrays.asList(hc41, hc42)));
+
+    // 7. Invalid ECV
+    bomLb.addCiAttribute("listeners", "['https 443 http 8080','http 80 http 8085']");
+    bomLb.addCiAttribute("ecv_map", "{'8080':'/health','8085':'GET'}");
+
+    fqdnExecutor.execute(wo, "/tmp");
+    verify(mock, Mockito.atLeast(1)).create(argument.capture());
+    hcList = argument.getValue().healthChecks();
+    assertEquals(2, hcList.size());
+
+    HealthCheck hc51 = newHealthCheck(HTTPS, 443, "", true, 200);
+    HealthCheck hc52 = newHealthCheck(HTTP, 80, "", false, 200);
+    assertTrue(hcList.containsAll(Arrays.asList(hc51, hc52)));
+  }
+
+  @Test
+  public void shouldNotMatchIfLbIsMissing() {
+    CmsWorkOrderSimple wo = woWith2Clouds();
+    wo.payLoad.remove("DependsOn");
+    Response response = fqdnExecutor.execute(wo, "/tmp");
+    assertThat(response.getResult(), is(Result.NOT_MATCHED));
+  }
+
+  /** A helper method to create HealthCheck value class. */
+  private HealthCheck newHealthCheck(
+      Protocol proto, int port, String path, boolean tls, int status) {
+    return HealthCheck.builder()
+        .protocol(proto)
+        .port(port)
+        .path(path)
+        .tls(tls)
+        .expectedStatus(status)
+        .build();
+  }
 }

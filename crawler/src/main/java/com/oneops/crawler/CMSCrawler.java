@@ -29,6 +29,7 @@ import com.oneops.Organization;
 import com.oneops.Platform;
 import com.oneops.crawler.jooq.cms.Sequences;
 import com.oneops.crawler.plugins.hadr.PlatformHADRCrawlerPlugin;
+import com.oneops.crawler.plugins.quota.OneOpsPlatformScaleDownPlugin;
 import com.oneops.crawler.plugins.ttl.EnvTTLCrawlerPlugin;
 import org.apache.commons.lang.math.NumberUtils;
 import org.jooq.DSLContext;
@@ -81,6 +82,12 @@ public class CMSCrawler {
 
     Gson gson= new Gson();
     Map<String, Integer> baseOrganizationMDClassAttributes_NameIdMapCache;
+
+    //TODO: auto-discover plugins from jars
+    EnvTTLCrawlerPlugin ttlPlugin = new EnvTTLCrawlerPlugin();
+    PlatformHADRCrawlerPlugin platformHADRCrawlerPlugin = new PlatformHADRCrawlerPlugin();
+    OneOpsPlatformScaleDownPlugin scaleDownPlugin = new OneOpsPlatformScaleDownPlugin();
+
     public CMSCrawler() {
         //read and init the secrets
         readConfig();
@@ -134,6 +141,11 @@ public class CMSCrawler {
         cmsDbUserName = props.getProperty("cms.db.user.name");
         cmsDbPassword = props.getProperty("cms.db.user.password");
         cmsDbUrl = props.getProperty("cms.db.url");
+        configurePlugins(props);
+    }
+
+    private void configurePlugins(Properties props) {
+        scaleDownPlugin.configureSecrets(props);
     }
 
     public void crawl() {
@@ -144,9 +156,6 @@ public class CMSCrawler {
             init(conn);
             List<Environment> envs = getOneopsEnvironments(conn);
             Map<String, Organization> organizationsMapCache = populateOrganizations(conn);// caching organizations data
-            EnvTTLCrawlerPlugin ttlPlugin = new EnvTTLCrawlerPlugin(); //TODO: auto-discover plugins from jars
-            ttlPlugin.init();
-            PlatformHADRCrawlerPlugin platformHADRCrawlerPlugin = new PlatformHADRCrawlerPlugin();
             long envsLastFetchedAt = System.currentTimeMillis();
 
             while (true && !shutDownRequested) {
@@ -158,19 +167,23 @@ public class CMSCrawler {
                 ttlPlugin.cleanup(); //from previous run
                 log.info("Starting to crawl all environments.. Total # " + envs.size());
                 for (Environment env : envs) {
-                    if (shutDownRequested) {
-                        log.info("Shutdown requested, exiting !");
-                        break;
+                    try {
+                        if (shutDownRequested) {
+                            log.info("Shutdown requested, exiting !");
+                            break;
+                        }
+                        populateEnv(env, conn);
+                        List<Deployment> deployments = getDeployments(conn, env);
+                        executePlugins(env, organizationsMapCache, deployments);
+                        updateCrawlEntry(env);
+                    } catch (Exception e) {
+                        log.error("Error while processing env, will skip and continue. env id " + env.getId(), e);
                     }
-                    populateEnv(env, conn);
-                    List<Deployment> deployments = getDeployments(conn, env);
-                    ttlPlugin.processEnvironment(env, deployments, organizationsMapCache);
-                    platformHADRCrawlerPlugin.processEnvironment(env, organizationsMapCache);
-                    updateCrawlEntry(env);
                 }
 
                 long endTimeMillis = System.currentTimeMillis();
                 log.info("Time taken to crawl all environments and execute all plugins in seconds: " + (endTimeMillis - startTimeMillis)/(1000));
+                platformHADRCrawlerPlugin.cleanup();
                 if (this.singleRun) {
                     log.info("Crawler is configured to exit after single run");
                     System.exit(0);
@@ -181,11 +194,21 @@ public class CMSCrawler {
                 if (syncClouds) {
                     crawlClouds(conn);
                 }
-
                 Thread.sleep(crawlFrequencyHours * 60 * 60 * 1000);//sleep before next crawl
             }
         } catch (Throwable e) {
             log.error("Error, Crawler will stop : ", e);
+        }
+    }
+
+    private void executePlugins(Environment env, Map<String, Organization> organizationsMapCache, List<Deployment> deployments) {
+        ttlPlugin.processEnvironment(env, deployments, organizationsMapCache);
+        platformHADRCrawlerPlugin.processEnvironment(env, organizationsMapCache);
+
+        if (scaleDownPlugin.isEnabled()) {
+            scaleDownPlugin.processEnvironment(env, organizationsMapCache);
+        } else {
+            log.info(scaleDownPlugin.getPluginName() + " plugin not enabled");
         }
     }
 

@@ -10,6 +10,8 @@ import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.util.domain.CmsVar;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.transaction.support.TransactionSynchronizationAdapter;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -41,9 +43,14 @@ public class CapacityProcessorTest {
     private ArrayList<CmsRfcCI> bomCIs;
     private ArrayList<CmsRfcRelation > bomRels;
 
-    private CapacityProcessor capacityProcessor = new CapacityProcessor();
+    private CapacityProcessor capacityProcessor = new CapacityProcessor() {
+        void afterCommit(TransactionSynchronizationAdapter adapter) {
+            adapter.afterCommit();
+        }
+    };
+
     private CmsCmProcessor cmProcessorMock;
-    private TektonClient tektonClientMock = Mockito.mock(TektonClient.class);
+    private TektonClient tektonClient;
 
     @BeforeMethod
     public void setupTest() {
@@ -54,48 +61,59 @@ public class CapacityProcessorTest {
 
         CmsVar cmsVarProviderMapping = new CmsVar();
         cmsVarCapacityManagement = new CmsVar();
-        String cloudProviderMappings = "{\n" +
-                "  \"azure\": {\n" +
-                "    \"compute\": {\n" +
-                "      \"size\": {\n" +
-                "        \"M\": {\n" +
-                "          \"Dv2\": 2,\n" +
-                "          \"vm\": 1\n" +
-                "        },\n" +
-                "        \"L\": {\n" +
-                "          \"Dv2\": 6,\n" +
-                "          \"vm\": 1\n" +
-                "        },\n" +
-                "        \"mem-L\": {\n" +
-                "          \"DSv3\": 6,\n" +
-                "          \"vm\": 1\n" +
-                "        }\n" +
-                "      },\n" +
-                "      \"*\": {\n" +
-                "        \"*\": {\n" +
-                "          \"nic\": 1\n" +
-                "        }\n" +
-                "      }\n" +
-                "    },\n" +
-                "    \"lb\": {\n" +
-                "      \"*\": {\n" +
-                "        \"*\": {\n" +
-                "          \"lb\": 1\n" +
-                "        }\n" +
-                "      }\n" +
-                "    }\n" +
-                "  },\n" +
-                "  \"openstack\": {\n" +
-                "    \"compute\": {\n" +
-                "      \"size\": {\n" +
-                "        \"M\": {\n" +
-                "          \"core\": 4,\n" +
-                "          \"vm\": 1\n" +
-                "        }\n" +
-                "      }\n" +
-                "    }\n" +
-                "  }\n" +
-                "}";
+        String cloudProviderMappings = "" +
+                "{" +
+                "  'azure': {" +
+                "    'compute': {" +
+                "      'size': {" +
+                "        'M': {" +
+                "          'Dv2': 2," +
+                "          'vm': 1" +
+                "        }," +
+                "        'L': {" +
+                "          'Dv2': 6," +
+                "          'vm': 1" +
+                "        }," +
+                "        'mem-L': {" +
+                "          'DSv3': 6," +
+                "          'vm': 1" +
+                "        }" +
+                "      }," +
+                "      '*': {" +
+                "        '*': {" +
+                "          'nic': 1" +
+                "        }" +
+                "      }" +
+                "    }," +
+                "    'storage': {" +
+                "      'volume_type': {" +
+                "        'IOPS1': {" +
+                "          'ssd': 'new Integer(getAttribute(\\\"slice_count\\\")?.getNewValue()?: 0) + 1'"+
+                "        }," +
+                "        '*': {" +
+                "          'hdd': 'new Integer(getAttribute(\\\"slice_count\\\")?.getNewValue()?: 0) + 1'"+
+                "        }" +
+                "      }" +
+                "    }," +
+                "    'lb': {" +
+                "      '*': {" +
+                "        '*': {" +
+                "          'lb': 1" +
+                "        }" +
+                "      }" +
+                "    }" +
+                "  }," +
+                "  'openstack': {" +
+                "    'compute': {" +
+                "      'size': {" +
+                "        'M': {" +
+                "          'core': 4," +
+                "          'vm': 1" +
+                "        }" +
+                "      }" +
+                "    }" +
+                "  }" +
+                "}".replaceAll("'", "\"");
         cmsVarProviderMapping.setValue(cloudProviderMappings);
         cmsVarCapacityManagement.setValue("true");
         Mockito.when(cmProcessorMock.getCmSimpleVar(Mockito.eq(CapacityProcessor.PROVIDER_MAPPINGS_CMS_VAR_NAME))).thenReturn(cmsVarProviderMapping);
@@ -131,9 +149,9 @@ public class CapacityProcessorTest {
                 .thenAnswer(i -> bomRels.stream().filter(r -> r.getFromCiId().equals(i.getArguments()[0])).collect(Collectors.toList()));
         capacityProcessor.setRfcProcessor(rfcProcessor);
 
-
-        tektonClientMock = Mockito.mock(TektonClient.class);
-        capacityProcessor.setTektonClient(tektonClientMock);
+        tektonClient = Mockito.mock(TektonClient.class);
+        capacityProcessor.setTektonClient(tektonClient);
+        capacityProcessor.setExprParser(new SpelExpressionParser());
     }
 
     @Test
@@ -177,6 +195,11 @@ public class CapacityProcessorTest {
         createRfc(7L, "add", "bom.oneops.1.Lb", azureCloud);
         createRfc(8L, "update", "bom.oneops.1.Lb", azureCloud);
         createRfc(9L, "add", "bom.oneops.1.Lb", openstackCloud);
+        createStorageRfc(10L, "add", "IOPS1", "2", azureCloud);
+        createStorageRfc(11L, "add", "IOPS1", "3", azureCloud);
+        createStorageRfc(12L, "update", "IOPS1", "3", azureCloud);
+        createStorageRfc(13L, "add", "IOPS2", "5", azureCloud);
+        createStorageRfc(14L, "update", "IOPS2", "8", azureCloud);
 
         Map<String, Map<String, Integer>> expectedCapacity = new HashMap<>();
         Map<String, Integer> resources = new HashMap<>();
@@ -184,6 +207,8 @@ public class CapacityProcessorTest {
         resources.put("DSv3", 6);
         resources.put("vm", 3);
         resources.put("nic", 3);
+        resources.put("ssd", 7);
+        resources.put("hdd", 6);
         resources.put("lb", 1);
         expectedCapacity.put(AZURE_CLOUD_LOCATION + ":" + AZURE_SUBSCRIPTION_ID, resources);
         resources = new HashMap<>();
@@ -193,7 +218,7 @@ public class CapacityProcessorTest {
         ArgumentCaptor<HashMap> argument = ArgumentCaptor.forClass(HashMap.class);
 
         capacityProcessor.reserveCapacityForDeployment(deployment);
-        Mockito.verify(tektonClientMock, Mockito.times(1))
+        Mockito.verify(tektonClient, Mockito.times(1))
                 .reserveQuota(argument.capture(), Mockito.eq(ENV_NS_PATH), Mockito.eq(createdBy));
 
         Assert.assertEquals(argument.getValue(), expectedCapacity);
@@ -204,7 +229,7 @@ public class CapacityProcessorTest {
         createComputeRfc(1L, "update", "M", azureCloud);
 
         capacityProcessor.reserveCapacityForDeployment(deployment);
-        Mockito.verify(tektonClientMock, Mockito.times(1))
+        Mockito.verify(tektonClient, Mockito.times(1))
                 .reserveQuota(Mockito.anyMap(), Mockito.eq(ENV_NS_PATH), Mockito.eq(createdBy));
 
         // Should not reserve - no mapping for cloud provider.
@@ -214,7 +239,7 @@ public class CapacityProcessorTest {
         createComputeRfc(2L, "update", "M", googleCloud);
 
         capacityProcessor.reserveCapacityForDeployment(deployment);
-        Mockito.verify(tektonClientMock, Mockito.times(1))
+        Mockito.verify(tektonClient, Mockito.times(1))
                 .reserveQuota(Mockito.anyMap(), Mockito.eq(ENV_NS_PATH), Mockito.eq(createdBy));
     }
 
@@ -243,7 +268,7 @@ public class CapacityProcessorTest {
         ArgumentCaptor<Set> argument = ArgumentCaptor.forClass(Set.class);
 
         capacityProcessor.discardCapacityForDeployment(deployment);
-        Mockito.verify(tektonClientMock, Mockito.times(1))
+        Mockito.verify(tektonClient, Mockito.times(1))
                 .deleteReservations(Mockito.eq(ENV_NS_PATH), argument.capture());
 
         Assert.assertEquals(argument.getValue(), expected);
@@ -269,7 +294,7 @@ public class CapacityProcessorTest {
         ArgumentCaptor<HashMap> argument = ArgumentCaptor.forClass(HashMap.class);
 
         capacityProcessor.commitCapacity(workOrder);
-        Mockito.verify(tektonClientMock, Mockito.times(1))
+        Mockito.verify(tektonClient, Mockito.times(1))
                 .commitReservation(argument.capture(), Mockito.eq(ENV_NS_PATH), Mockito.eq(AZURE_CLOUD_LOCATION + ":" + AZURE_SUBSCRIPTION_ID));
         Assert.assertEquals(argument.getValue(), expectedCapacity);
     }
@@ -293,7 +318,7 @@ public class CapacityProcessorTest {
         ArgumentCaptor<HashMap> argument= ArgumentCaptor.forClass(HashMap.class);
 
         capacityProcessor.releaseCapacity(workOrder);
-        Mockito.verify(tektonClientMock, Mockito.times(1))
+        Mockito.verify(tektonClient, Mockito.times(1))
                 .releaseResources(argument.capture(),
                                   Mockito.eq(ENV_NS_PATH),
                                   Mockito.eq(AZURE_CLOUD_LOCATION + ":" + AZURE_SUBSCRIPTION_ID));
@@ -353,11 +378,15 @@ public class CapacityProcessorTest {
 
     private CmsRfcRelation createComputeRfc(long ciId, String rfcAction, String size, CmsCI cloud) {
         CmsRfcRelation rel = createRfc(ciId, rfcAction, "bom.oneops.1.Compute", cloud);
-        CmsRfcAttribute attribute = new CmsRfcAttribute();
-        attribute.setAttributeName("size");
-        attribute.setNewValue(size);
-        attribute.setOldValue(size);
-        rel.getToRfcCi().addAttribute(attribute);
+        rel.getToRfcCi().addAttribute(new CmsRfcAttribute("size", size, size));
+
+        return rel;
+    }
+
+    private CmsRfcRelation createStorageRfc(long ciId, String rfcAction, String volumeType, String sliceCount, CmsCI cloud) {
+        CmsRfcRelation rel = createRfc(ciId, rfcAction, "bom.oneops.1.Storage", cloud);
+        rel.getToRfcCi().addAttribute(new CmsRfcAttribute("volume_type", volumeType, volumeType));
+        rel.getToRfcCi().addAttribute(new CmsRfcAttribute("slice_count", sliceCount, sliceCount));
 
         return rel;
     }

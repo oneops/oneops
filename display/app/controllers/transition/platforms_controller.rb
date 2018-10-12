@@ -145,44 +145,24 @@ class Transition::PlatformsController < Base::PlatformsController
   end
 
   def cloud_configuration
-    @cloud.relationAttributes.attributes.merge!(params[:attributes])
-    ok = check_primary_cloud
-    ok &&= execute(@cloud, :save)
+    @update_clouds.each {|cloud| cloud.relationAttributes.attributes.merge!(params[:attributes])}
 
-    respond_to do |format|
-      format.js do
-        error = @cloud.errors.present?
-        if error
-          load_clouds
-          flash[:error] = @cloud.errors.full_messages.join(' ')
-        end
-      end
-
-      format.json { render_json_ci_response(ok, @cloud) }
+    if check_primary_cloud(@update_clouds)
+      @update_clouds.each {|cloud| break unless execute(cloud, :save)}
     end
+
+    render_clouds_response
   end
 
   def cloud_priority
-    @cloud.relationAttributes.priority = params[:priority]
-    ok = check_primary_cloud
-    if ok
-      ok = Transistor.update_platform_cloud(@platform.ciId, @cloud)
-      @cloud.errors.add(:base, "Failed to change cloud priority for #{@cloud.toCi.ciName}.") unless ok
+    priority = params[:priority]
+    @update_clouds.each {|cloud| cloud.relationAttributes.priority = priority}
+
+    if check_primary_cloud(@update_clouds)
+      @update_clouds.each {|cloud| break unless Transistor.update_platform_cloud(@platform.ciId, cloud)}
     end
 
-    respond_to do |format|
-      format.js do
-        error = @cloud.errors.present?
-        if error
-          load_clouds
-          flash[:error] = @cloud.errors.full_messages.join(' ')
-        end
-
-        render :action => :cloud_configuration
-      end
-
-      format.json { render_json_ci_response(ok, @cloud) }
-    end
+    render_clouds_response
   end
 
 
@@ -218,10 +198,16 @@ class Transition::PlatformsController < Base::PlatformsController
   end
 
   def find_cloud
-    cloud_id = params[:cloud_id].to_i
     load_clouds
-    @cloud = @clouds.find {|c| c.toCiId == cloud_id}
-    not_found("Cloud #{cloud_id} not found for platform #{@platform && @platform.ciId} in #{@platform && @platform.nsPath}") unless @cloud
+    cloud_ids = params[:cloud_ids].presence || [params[:cloud_id]]
+    @update_clouds = cloud_ids.inject([]) do |a, id|
+      cloud = @clouds.find {|c| c.toCiId == id.to_i || c.toCi.ciName == id}
+      a << cloud
+      a
+    end
+    if @update_clouds.blank?
+      not_found("Cloud #{cloud_ids} not found for platform #{@platform && @platform.ciId} in #{@platform && @platform.nsPath}")
+    end
   end
 
   def load_clouds
@@ -232,9 +218,25 @@ class Transition::PlatformsController < Base::PlatformsController
                                               :includeToCi     => true}).sort_by {|o| o.toCi.ciName}
   end
 
-  def check_primary_cloud
+  def check_primary_cloud(update_clouds)
     ok = @clouds.find {|c| c.relationAttributes.adminstatus != 'offline' && c.relationAttributes.priority == '1'}
-    @cloud.errors.add(:base, 'This change will remove all primary clouds for this platform.') unless ok
+    update_clouds.each {|c| c.errors.add(:base, 'This change will leave no operating primary clouds for this platform.')} unless ok
     return ok
+  end
+
+  def render_clouds_response
+    cloud_with_errors = @update_clouds.find {|c| c.errors.present?}
+    respond_to do |format|
+      format.js do
+        if cloud_with_errors
+          load_clouds
+          flash[:error] = cloud_with_errors.errors.full_messages.join(' ')
+        end
+
+        render :action => :cloud_configuration
+      end
+
+      format.json { render_json_ci_response(cloud_with_errors.blank?, @update_clouds.size == 1 ? @update_clouds.first : @update_clouds) }
+    end
   end
 end

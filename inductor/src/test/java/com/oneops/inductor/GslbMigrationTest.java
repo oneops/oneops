@@ -1,7 +1,9 @@
 package com.oneops.inductor;
 
+import static com.oneops.inductor.FqdnExecutor.GSLB_MIGRATION_CUTOVER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonParser;
@@ -43,13 +45,44 @@ public class GslbMigrationTest {
   @Test
   @Ignore
   public void migration() {
-    CmsActionOrderSimple ao =
-        gson.fromJson(
-            ResourceUtils.readResourceAsString("/gslb-migration.json"), CmsActionOrderSimple.class);
-    Response res = fqdnExec.execute(ao, System.getProperty("tmp.dir"));
+    CmsActionOrderSimple ao = getActionOrder("/gslb-migration.json", true);
+
+    Response res = fqdnExec.execute(ao, System.getProperty("java.io.tmpdir"));
     assertEquals(res.getResult(), Result.SUCCESS);
     assertNotNull(ao.resultCi);
     assertEquals(OpsActionState.complete, ao.getActionState());
+  }
+
+  @Test
+  @Ignore
+  public void migrationWithoutCutOver() {
+    CmsActionOrderSimple ao = getActionOrder("/gslb-migration.json", false);
+
+    Response res = fqdnExec.execute(ao, System.getProperty("java.io.tmpdir"));
+    assertEquals(res.getResult(), Result.SUCCESS);
+    assertNull(ao.resultCi);
+    assertEquals(OpsActionState.complete, ao.getActionState());
+  }
+
+  @Test
+  @Ignore
+  public void rollback() {
+    CmsActionOrderSimple ao = getActionOrder("/gslb-rollback.json", true);
+
+    Response res = fqdnExec.execute(ao, System.getProperty("java.io.tmpdir"));
+    assertEquals(res.getResult(), Result.SUCCESS);
+    assertNotNull(ao.resultCi);
+    assertEquals(OpsActionState.complete, ao.getActionState());
+  }
+
+  private CmsActionOrderSimple getActionOrder(String resource, boolean cnameCutOver) {
+    CmsActionOrderSimple ao =
+        gson.fromJson(ResourceUtils.readResourceAsString(resource), CmsActionOrderSimple.class);
+
+    Map<String, String> config = new HashMap<>();
+    config.put(GSLB_MIGRATION_CUTOVER, String.valueOf(cnameCutOver));
+    ao.setConfig(config);
+    return ao;
   }
 
   @Test

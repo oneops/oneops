@@ -26,15 +26,14 @@
     <div class="input-append" style="margin-left: -3px">
       <% field_opts = {:class    => 'hash_value',
                        :onchange => onchange} %>
-      <% if pattern.is_a?(Array) %>
-        <% pattern += [value] if value.present? && pattern.none? { |e| value == (e.is_a?(Array) ? e.last : e) } %>
-        <%= select_tag("#{attribute_name}_value",
-                       raw(%(<option disabled="disabled" value>#{placeholders[:value]}</option>#{options_for_select(pattern, value)})),
-                       field_opts) %>
+      <% pattern_x = pattern.is_a?(Hash) ? pattern[key] : pattern %>
+      <% if pattern_x.is_a?(Array) %>
+        <% pattern_x += [value] if value.present? && pattern_x.none? { |e| value == (e.is_a?(Array) ? e.last : e) } %>
+        <%= select_tag("#{attribute_name}_value", options_for_select(pattern_x, value), field_opts) %>
       <% else %>
         <%= text_field_tag("#{attribute_name}_value",
                            value,
-                           field_opts.merge(:pattern     => pattern,
+                           field_opts.merge(:pattern_x   => pattern,
                                             :placeholder => placeholders[:value])) %>
       <% end %>
 

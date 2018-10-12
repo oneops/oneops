@@ -41,7 +41,7 @@ public class SearchDal {
 
     public int createIndex(String indexName, String indexJson) throws IOException {
         if (esHost == null) {
-            log.warn("ES host not set as system property");
+            log.warn("ES host not set as system property, can not create index: " + indexName);
             return 400;
         }
 

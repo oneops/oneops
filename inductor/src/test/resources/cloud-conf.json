@@ -1,0 +1,38 @@
+{
+  "org": {
+    "cloud-exact": {
+      "service": {
+        "classname": {
+          "attr1": "org & cloud exact match"
+        }
+      }
+    },
+    "cloud-regex.*": {
+      "service": {
+        "classname": {
+          "attr1": "org & cloud regex match"
+        }
+      }
+    }
+  },
+  "cloud-exact": {
+    "service": {
+      "classname": {
+        "attr1": "cloud exact match"
+      }
+    }
+  },
+  "cloud-regex.*": {
+    "service": {
+      "classname": {
+        "attr1": "cloud regex match"
+      }
+    }
+  },
+  "service": {
+    "classname": {
+      "attr2": "keywhiz.lookup(secret_name)",
+      "attr1": "service match"
+    }
+  }
+}

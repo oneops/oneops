@@ -1324,4 +1324,15 @@ class ApplicationController < ActionController::Base
     name = versions.first.respond_to?(:ciName) ? :ciName : :to_s
     versions.sort_by {|v| s = v.send(name).split('.'); asc * (s[0].to_i * 10000000 + s[1].to_i * 10000 + s[2].to_i)}
   end
+
+
+  def render_csv(data, fields, fields_to_escape = nil)
+    delimiter = params[:delimiter].presence || ','
+    csv = fields.join(delimiter) << "\n"
+    data.each do |o|
+      fields_to_escape.each {|f| o[f] = %("#{o[f]}")} if fields_to_escape.present?
+      csv << fields.inject([]) {|a, k| a << o[k]}.join(delimiter) << "\n"
+    end
+    render :text => csv #, :content_type => 'text/data_string'
+    end
 end

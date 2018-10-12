@@ -21,6 +21,9 @@ import static org.mockito.Mockito.when;
 import javax.jms.JMSException;
 import javax.jms.TextMessage;
 
+import com.oneops.cms.util.CmsConstants;
+import com.oneops.controller.cms.CMSClient;
+import com.oneops.controller.workflow.ExecutionManager;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.testng.annotations.BeforeClass;
@@ -122,10 +125,33 @@ public class CmsListenerTest {
 		return co;
 		
 	}
+	private CmsOpsProcedure createCmsOpsProcedure(OpsProcedureState state, String nsPath){
+		CmsOpsProcedure co = new CmsOpsProcedure();
+		co.setProcedureState(state);
+		co.setNsPath(nsPath);
+		return co;
+
+	}
 	private CmsRelease createCmsRelease(String releaseType){
 		CmsRelease cr = new CmsRelease();
 		cr.setReleaseType(releaseType);
 		return cr;
 		
+	}
+
+	@Test
+	public void isProcDeployerEnabled() throws Exception{
+		TextMessage message = mock(TextMessage.class);
+		when(message.getStringProperty("source")).thenReturn("opsprocedure");
+		when(message.getJMSCorrelationID()).thenReturn(null);
+		CMSClient cmsClient = mock(CMSClient.class);
+		when(cmsClient.getVarByMatchingCriteriaBoolean(CmsConstants.PROC_DEPLOYER_ENABLED_PROPERTY, "/")).thenReturn(true);
+		listener.setCmsClient(cmsClient);
+		ExecutionManager executionManager = mock(ExecutionManager.class);
+		listener.setExecutionManager(executionManager);
+		String msgJson = gson.toJson(createCmsOpsProcedure(OpsProcedureState.active, "/"));
+		when(message.getText()).thenReturn(msgJson);
+		listener.setProcDeployerEnabledFlag(true);
+		listener.onMessage(message);
 	}
 }

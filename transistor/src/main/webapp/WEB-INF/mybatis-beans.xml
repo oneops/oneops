@@ -172,5 +172,6 @@
         <property name="cmProcessor" ref="cmsCmProcessor" />
         <property name="rfcProcessor" ref="cmsRfcProcessor" />
         <property name="tektonClient" ref="tektonClient" />
+        <property name="exprParser" ref="exprParser"/>
     </bean>
 </beans>

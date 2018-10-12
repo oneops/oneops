@@ -8,9 +8,7 @@ import com.oneops.cms.util.CmsUtil;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.*;
 
 import static org.testng.Assert.*;
 
@@ -33,18 +31,19 @@ import static org.testng.Assert.*;
  *******************************************************************************/
 public class BomRfcBulkProcessorTest {
     BomRfcBulkProcessor proc;
+
     @Before
-    public void setup(){
+    public void setup() {
         CmsUtil cmsUtil = new CmsUtil();
         cmsUtil.setCmsCrypto(new CmsCryptoDES());
         cmsUtil.setCountOfErrorsToReport(5);
         proc = new BomRfcBulkProcessor();
         proc.setCmsUtil(cmsUtil);
     }
-    
+
     @Test
-    public void processAndValidateVars(){
-        
+    public void processAndValidateVars() {
+
         ArrayList<CmsCI> cis = new ArrayList<>();
         CmsCI ci = new CmsCI();
         ci.setCiName("testCi");
@@ -61,16 +60,16 @@ public class BomRfcBulkProcessorTest {
         ci.addAttribute(attribute2);
         cis.add(ci);
 
-       
-       //assertThrows(CIValidationException.class,() -> proc.processAndValidateVars(cis, new HashMap<>(), new HashMap<>(), new HashMap<>()));
+
+        //assertThrows(CIValidationException.class,() -> proc.processAndValidateVars(cis, new HashMap<>(), new HashMap<>(), new HashMap<>()));
         try {
             proc.processAndValidateVars(cis, new HashMap<>(), new HashMap<>(), new HashMap<>());
             fail();
-        } catch (CIValidationException exception){
+        } catch (CIValidationException exception) {
             String message = exception.getMessage();
             assertNotNull(message);
             assertTrue(message.contains("testAttribute1") && message.contains("testAttribute2") && message.contains("test1") && message.contains("test2"));
-        } catch (Exception e){
+        } catch (Exception e) {
             fail(); // fail if any other exception thrown
         }
     }
@@ -111,4 +110,52 @@ public class BomRfcBulkProcessorTest {
         assertEquals(bomCis.get(6).getCiName(), ci_2.getCiName());
     }
 
+    @Test
+    public void testSufficientComputesCheckPass() {
+        Map<String, List<CmsCI>> computesWithClouds = new HashMap<>();
+       //cloud # 1 with at threshold # of computes
+        ArrayList computes = new ArrayList();
+        for (int i = 0; i <= BomRfcBulkProcessor.MIN_COMPUTES_SCALE; i++) {
+            computes.add(new CmsCI());
+        }
+        computesWithClouds.put("cloud_1", computes);
+
+        //cloud # 2 with above threshold # of computes
+        computes = new ArrayList();
+        for (int i = 0; i < BomRfcBulkProcessor.MIN_COMPUTES_SCALE + 2; i++) {
+            computes.add(new CmsCI());
+        }
+        computesWithClouds.put("cloud_2", computes);
+        assertTrue(new BomRfcBulkProcessor().hasSufficientComputes(computesWithClouds, 1, 3));
+    }
+
+    @Test
+    public void testSufficientComputesCheckFail() {
+        Map<String, List<CmsCI>> computesWithClouds = new HashMap<>();
+        //cloud # 1 with at threshold # of computes
+        ArrayList computes = new ArrayList();
+        for (int i = 0; i <= BomRfcBulkProcessor.MIN_COMPUTES_SCALE; i++) {
+            computes.add(new CmsCI());
+        }
+        computesWithClouds.put("cloud_1", computes);
+
+        //cloud # 2 with below threshold # of computes
+        computes = new ArrayList();
+        for (int i = 0; i < BomRfcBulkProcessor.MIN_COMPUTES_SCALE - 1; i++) {
+            computes.add(new CmsCI());
+        }
+        computesWithClouds.put("cloud_2", computes);
+        assertFalse(new BomRfcBulkProcessor().hasSufficientComputes(computesWithClouds, 1, 3));
+
+        //now add more computes to both clouds , still should fail because of the minComputesInEachCloud param value
+        computes = new ArrayList();
+        for (int i = 0; i < BomRfcBulkProcessor.MIN_COMPUTES_SCALE * 3; i++) {
+            computes.add(new CmsCI());
+        }
+        computesWithClouds.get("cloud_1").addAll(computes);
+        computesWithClouds.get("cloud_2").addAll(computes);
+
+        assertFalse(new BomRfcBulkProcessor().hasSufficientComputes(computesWithClouds, 1,
+                computesWithClouds.get("cloud_1").size()));
+    }
 }

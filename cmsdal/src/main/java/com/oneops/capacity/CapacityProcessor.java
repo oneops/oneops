@@ -10,6 +10,9 @@ import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.cms.util.domain.CmsVar;
 import org.apache.log4j.Logger;
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.transaction.support.TransactionSynchronizationAdapter;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -27,8 +30,10 @@ public class CapacityProcessor {
     private CmsCmProcessor cmProcessor;
     private CmsRfcProcessor rfcProcessor;
     private TektonClient tektonClient;
+    private ExpressionParser exprParser;
 
     private Gson gson = new Gson();
+    private Map<String, Expression> expressionCache = new HashMap<>();
 
     public void setCmProcessor(CmsCmProcessor cmProcessor) {
         this.cmProcessor = cmProcessor;
@@ -40,6 +45,10 @@ public class CapacityProcessor {
 
     public void setTektonClient(TektonClient tektonClient) {
         this.tektonClient = tektonClient;
+    }
+
+    public void setExprParser(ExpressionParser exprParser) {
+        this.exprParser = exprParser;
     }
 
     public boolean isCapacityManagementEnabled(String nsPath) {
@@ -54,9 +63,7 @@ public class CapacityProcessor {
         return false;
     }
 
-    public Map<String, Map<String, Integer>> calculateCapacity(String nsPath, Collection<CmsCI> cis, Collection<CmsCIRelation> deployedToRels) {
-//        if (!isCapacityManagementEnabled(nsPath)) return null;
-
+    public Map<String, Map<String, Integer>> calculateCapacity(Collection<CmsCI> cis, Collection<CmsCIRelation> deployedToRels) {
         Map<String, Object> mappings = getCloudProviderMappings();
         if (mappings == null) return null;
 
@@ -179,7 +186,7 @@ public class CapacityProcessor {
 
         if (!capacity.isEmpty()) {
             String subscriptionId = cloudInfo.getSubscriptionId();
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+            afterCommit(new TransactionSynchronizationAdapter() {
                 @Override
                 public void afterCommit() {
                     tektonClient.commitReservation(capacity, nsPath, subscriptionId);
@@ -202,13 +209,17 @@ public class CapacityProcessor {
 
         if (!capacity.isEmpty()) {
             String subscriptionId = cloudInfo.getSubscriptionId();
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+            afterCommit(new TransactionSynchronizationAdapter() {
                 @Override
                 public void afterCommit() {
                     tektonClient.releaseResources(capacity, nsPath, subscriptionId);
                 }
             });
         }
+    }
+
+    void afterCommit(TransactionSynchronizationAdapter adapter) {
+        TransactionSynchronizationManager.registerSynchronization(adapter);
     }
 
     private String getReservationNsPath(String fullNsPath) {
@@ -288,9 +299,9 @@ public class CapacityProcessor {
                                                                 Collection<CmsRfcRelation> deployedToRels,
                                                                 Map<Long, CloudInfo> cloudInfoMap,
                                                                 Map<String, Object> mappings) {
-        Map<String, Map<String, Integer>> reservation = new HashMap<>();
+        Map<String, Map<String, Integer>> capacity = new HashMap<>();
 
-        if (cis == null) return reservation;
+        if (cis == null) return capacity;
 
         Map<Long, Long> ciToCloudMap = deployedToRels.stream()
                 .collect(toMap(CmsRfcRelation::getFromCiId, CmsRfcRelation::getToCiId));
@@ -299,14 +310,14 @@ public class CapacityProcessor {
             CloudInfo cloudInfo = cloudInfoMap.get(ciToCloudMap.get(rfcCI.getCiId()));
             Map<String, Integer> ciCapacity = getCapacityForCi(rfcCI, cloudInfo, mappings);
             if (!ciCapacity.isEmpty()) {
-                Map<String, Integer> subCapacity = reservation.computeIfAbsent(cloudInfo.getSubscriptionId(), (k) -> new HashMap<>());
+                Map<String, Integer> subCapacity = capacity.computeIfAbsent(cloudInfo.getSubscriptionId(), (k) -> new HashMap<>());
                 for (String resource : ciCapacity.keySet()) {
                     subCapacity.put(resource, subCapacity.computeIfAbsent(resource, (k) -> 0) + ciCapacity.get(resource));
                 }
             }
         }
 
-        return reservation;
+        return capacity;
     }
 
     private Map<String, Integer> getCapacityForCi(CmsRfcCI rfcCi, CloudInfo cloudInfo, Map<String, Object> mappings) {
@@ -324,6 +335,7 @@ public class CapacityProcessor {
         Map<String, Object> classMappings = (Map<String, Object>) providerMappings.get(classNameSplit[classNameSplit.length - 1].toLowerCase());
         if (classMappings == null) return capacity;
 
+        StandardEvaluationContext exprContext = null;
         for (String attrName : classMappings.keySet()) {
             Map<String, Object> attrMappings = (Map<String, Object>) classMappings.get(attrName);
             Map<String, Object> resources = null;
@@ -343,7 +355,37 @@ public class CapacityProcessor {
 
             if (resources == null) continue;
             for (String resource : resources.keySet()) {
-                capacity.put(resource, capacity.computeIfAbsent(resource, (k) -> 0) + ((Double) resources.get(resource)).intValue());
+                Object resourceMapping = resources.get(resource);
+                if (resourceMapping instanceof String) {
+
+                    String expressionString = (String) resourceMapping;
+                    try {
+                        Expression expression = expressionCache.get(expressionString);
+                        if (expression == null) {
+                            expression = exprParser.parseExpression(expressionString);
+                            expressionCache.put(expressionString, expression);
+                        }
+                        if (exprContext == null) {
+                            exprContext = new StandardEvaluationContext(rfcCi);
+                        }
+                        resourceMapping = expression.getValue(exprContext);
+                    } catch (Exception e) {
+                        logger.error("Failed to parse/evaluate expression '" + expressionString + "': " + e.getMessage());
+                    }
+                }
+
+                Integer resourceValue;
+                if (resourceMapping instanceof Double) {
+                    resourceValue = ((Double) resourceMapping).intValue();
+                } else if (resourceMapping instanceof Integer) {
+                    resourceValue = (Integer) resourceMapping;
+                } else {
+                    continue;
+                }
+
+                if (resourceValue > 0) {
+                    capacity.put(resource, capacity.computeIfAbsent(resource, (k) -> 0) + resourceValue);
+                }
             }
         }
 

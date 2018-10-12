@@ -985,8 +985,9 @@ public class CmRestController extends AbstractRestController {
 
 	@RequestMapping(value="/cm/simple/vars/{varName}", method = RequestMethod.GET)
 	@ResponseBody
-	public CmsVar getCmSimpleVar2(@PathVariable String varName){
-		CmsVar var = cmManager.getCmSimpleVar(varName);
+	public CmsVar getCmSimpleVar2(@PathVariable String varName,
+								 @RequestParam(value = "criteria", required = false) String criteria){
+		CmsVar var = criteria == null ? cmManager.getCmSimpleVar(varName) : cmManager.getCmSimpleVar(varName, criteria);
 		if (var == null) throw new ResourceNotFoundException();
 		return var;
 	}
@@ -1033,6 +1034,13 @@ public class CmRestController extends AbstractRestController {
 		scopeVerifier.verifyScope(scope, baseCi);
 		cmManager.deleteAltNs(ciId, nsId);
 		return  "";
+	}
+
+	@RequestMapping(value="/cm/vars/criteria", method = RequestMethod.GET)
+	@ResponseBody
+	public CmsVar getCmVarCriteria(@RequestParam String var,
+			@RequestParam String criteria){
+		return cmManager.getCmVarByLongestMatchingCriteria(var, criteria);
 	}
 
 }
