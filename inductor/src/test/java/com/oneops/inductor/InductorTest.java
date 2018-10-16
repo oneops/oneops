@@ -321,8 +321,8 @@ public class InductorTest {
 
     assertNotNull("Invalid kitchen config.", yamlConfig);
     if (remote) {
-      assertTrue(config.contains("ruby_bindir: <%= ruby_path %>"));
       assertTrue(config.contains("root_path: /tmp/verifier-190494"));
+      assertTrue(config.contains("custom_serverspec_command: sudo -E env WORKORDER="));
     }
   }
 
@@ -341,8 +341,8 @@ public class InductorTest {
     Object winYaml = yaml.load(config);
 
     assertNotNull("Invalid kitchen config.", winYaml);
-    assertTrue(config.contains("ruby_bindir: <%= ruby_path %>"));
     assertTrue(config.contains("root_path: c:/tmp/verifier-190494"));
+    assertTrue(config.contains("custom_serverspec_command: WORKORDER="));
   }
 
 
