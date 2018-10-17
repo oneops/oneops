@@ -1053,7 +1053,7 @@ public abstract class AbstractOrderExecutor {
       String circuitName = getCookbookPath(wo.getClassName());
       String customCmd =
       "GEM_HOME=/tmp/verifier/gems "
-      + "<%= ruby_path %>/bundler install "
+      + "<%= ruby_path %>/bundle install "
       + "--gemfile=\"/home/oneops/"
       + circuitName
       + "/components/kitchen-integration/Gemfile\"";
