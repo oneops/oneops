@@ -410,6 +410,41 @@
         "updated": "Jul 10, 2018 11:57:59 AM"
       }
     },
+    "dns": {
+      "stub-dfw2b": {
+        "nsId": 70189,
+        "ciAttributes": {
+          "cloud_dns_id": "testdnsid",
+          "password": "test9876",
+          "zone": "qa.walmart.com",
+          "host": "tes-api.test.com",
+          "view_attr": "Internal",
+          "username": "iaassvc"
+        },
+        "attrProps": {
+          "IS_SECURED": {
+            "password": "true"
+          }
+        },
+        "altNs": {},
+        "ciId": 114693,
+        "ciName": "infoblox-qa",
+        "ciClassName": "cloud.service.Infoblox",
+        "impl": "oo::chef-11.4.0",
+        "nsPath": "/testing/_clouds/ctf3",
+        "ciGoid": "70189-1802-114693",
+        "comments": "",
+        "ciState": "default",
+        "lastAppliedRfcId": 0,
+        "createdBy": "jpise",
+        "updatedBy": "jayesh",
+        "created": "Jan 20, 2014 3:23:30 PM",
+        "updated": "Sep 11, 2018 12:33:56 PM"
+      }
+    }
+  },
+
+
     "compute": {
       "stub-dfw2b": {
         "nsId": 125389677,

@@ -32,6 +32,9 @@ import static com.oneops.inductor.InductorConstants.DELETE;
 import static com.oneops.inductor.InductorConstants.ERROR_RESPONSE_CODE;
 import static com.oneops.inductor.InductorConstants.EXTRA_RUN_LIST;
 import static com.oneops.inductor.InductorConstants.FAILED;
+import static com.oneops.inductor.InductorConstants.INFOBLOX_CN;
+import static com.oneops.inductor.InductorConstants.INFOBLOX_PARAM;
+import static com.oneops.inductor.InductorConstants.INFOBLOX_SN;
 import static com.oneops.inductor.InductorConstants.KEYWHIZ_BASE_PATH;
 import static com.oneops.inductor.InductorConstants.KEYWHIZ_PREFIX;
 import static com.oneops.inductor.InductorConstants.KNOWN;
@@ -63,6 +66,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import com.google.gson.internal.LinkedTreeMap;
 import org.apache.commons.httpclient.util.DateUtil;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -119,7 +123,9 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
           new CommonCloudConfigurationsHelper(logger, getLogKey(wo));
       final Map<String, Object> servicesMap =
           getServicesMap(commonCloudConfigurationsHelper, cloudConfig, cloudName, orgName);
-      updateCiAttributes(wo, commonCloudConfigurationsHelper, servicesMap);
+
+      updateCiAttributes(
+          wo, commonCloudConfigurationsHelper, getEnhancedServiceMap(wo, cloudName, servicesMap));
     }
     // compute::replace will do a delete and add - only for old pre-versioned compute
     String[] classParts = wo.getRfcCi().getCiClassName().split("\\.");
@@ -180,25 +186,29 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
       CmsWorkOrderSimple wo,
       CommonCloudConfigurationsHelper commonCloudConfigurationsHelper,
       Map<String, Object> servicesMap) {
+
     String cloudName = getCloudName(wo);
     Map<String, Map<String, CmsCISimple>> services = wo.getServices();
+
     services.forEach(
         (serviceKey, serviceValue) -> {
           try {
             if (serviceValue.containsKey(cloudName)) {
               String className = getShortenedClass(serviceValue.get(cloudName).getCiClassName());
+
               Map<String, Object> cloudCommonCiAttributes =
                   commonCloudConfigurationsHelper.findClassCiAttributes(
                       commonCloudConfigurationsHelper.findServiceClasses(servicesMap, serviceKey),
                       className);
               logger.info(
                   getLogKey(wo)
-                      + "Updating "
+                      + "Verifying  "
                       + cloudName
                       + " "
                       + serviceKey
                       + " attributes for class name "
                       + className);
+
               cloudCommonCiAttributes.forEach(
                   (ciAttrKey, ciAttrValue) -> {
                     try {
@@ -216,7 +226,9 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                             .put(ciAttrKey, value);
                       }
                     } catch (Exception e) {
-                      logger.info(getLogKey(wo) + e.getMessage());
+                      logger.info(
+                          String.format(
+                              " Work Order Exception  :: %s %s", getLogKey(wo), e.getMessage()));
                     }
                   });
             }
@@ -239,6 +251,58 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
       }
     }
     return placeHolderValue;
+  }
+
+  public Map<String, Object> getEnhancedServiceMap(
+      CmsWorkOrderSimple wo,
+      String cloudName,
+      Map<String, Object> servicesMap) {
+    // If infoblox is not in inputted cloud's work order, no need to enhanced service map
+    if (!wo.getServices().containsKey(INFOBLOX_SN)
+        || wo.getServices().get(INFOBLOX_SN).get(cloudName) == null) {
+      return servicesMap;
+    }
+    String woInfobloxValue =
+        wo.getServices().get(INFOBLOX_SN).get(cloudName).getCiAttributes().get(INFOBLOX_PARAM);
+    if (woInfobloxValue == null) {
+      return servicesMap;
+    }
+
+    final Map<String, Object> enMap = new HashMap<>();
+
+    servicesMap
+        .entrySet()
+        .forEach(
+            e -> {
+              Map<String, Object> data = (Map<String, Object>) e.getValue();
+              if (e.getKey().equalsIgnoreCase(INFOBLOX_SN)) {
+                if (data.containsKey(INFOBLOX_CN)) {
+                  Map<Object, Object> ibService =
+                      getFromInfoblox(woInfobloxValue, data, INFOBLOX_CN);
+                  enMap.put(e.getKey(), ibService);
+                }
+              } else {
+                enMap.put(e.getKey(), e.getValue());
+              }
+            });
+
+    return enMap;
+  }
+
+  public Map<Object, Object> getFromInfoblox(
+      String patternParam, Map<String, Object> data, String servicename) {
+
+    Map<Object, Object> ibloxConfig = new HashMap<>();
+
+    List<Object> iBloxList = (List) data.get(servicename);
+
+    for (Object obj : iBloxList) {
+
+      if (((Map<Object, Object>) obj).get("host").toString().equalsIgnoreCase(patternParam)) {
+        ibloxConfig.put(servicename, obj);
+      }
+    }
+    return ibloxConfig;
   }
 
   public Map<String, Object> getServicesMap(
