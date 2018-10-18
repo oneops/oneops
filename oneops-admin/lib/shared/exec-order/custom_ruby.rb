@@ -34,9 +34,9 @@ module ExecOrderUtils
         elsif RUBY_VERSION.to_i < 2 && @component == 'compute'
           result = true
           info('Required for compute deployments in Openstack')
-        elsif @os_version == 'centos6'
+        elsif %w(centos6 ubuntu14).include?(@os_version)
           result = true
-          info('Required for Centos6 in Openstack')
+          info("Required for #{@os_version} in Openstack")
         end
       end
 
