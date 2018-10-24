@@ -8,7 +8,7 @@ module ExecOrderUtils
 
     def initialize(workorder, component)
       require 'fileutils'
-      @wo_hash = JSON.parse(File.read(workorder))
+      @wo_hash = JSON.parse(File.read(workorder, :encoding => 'UTF-8'))
       set_env_vars
       @custom_ruby_dir = File.join(PARENT_DIR, @custom_ruby_version)
       @provider = provider
