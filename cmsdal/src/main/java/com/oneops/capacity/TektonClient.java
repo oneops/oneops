@@ -32,9 +32,11 @@ import static java.util.stream.Collectors.toMap;
 public class TektonClient {
     public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
-    private Gson gson = new Gson();
     private static Logger logger = Logger.getLogger(TektonClient.class);
+
+    private Gson gson = new Gson();
     private String tektonBaseUrl = System.getProperty("tekton.base.url", "http://localhost:9000");
+    private boolean strictReservation = !System.getProperty("tekton.reservation.strict", "true").equalsIgnoreCase("false");
     private String authHeader = Base64.getEncoder().encodeToString(System.getProperty("tekton.auth.token", "").getBytes());
 
     public Map<String, String> precheckReservation(Map<String, Map<String, Integer>> capacity, String nsPath, String createdBy) {
@@ -45,7 +47,7 @@ public class TektonClient {
         try {
             RequestBody body = RequestBody.create(JSON, gson.toJson(reservations));
             Request request = new Request.Builder()
-                    .url(tektonBaseUrl + "/api/v1/quota/precheck")
+                    .url(tektonBaseUrl + (strictReservation ? "/api/v2/quota/precheck" : "/api/v1/quota/precheck"))
                     .addHeader("Content-Type", "application/json")
                     .addHeader("Authorization", authHeader)
                     .post(body)
@@ -66,7 +68,11 @@ public class TektonClient {
             if (status.equalsIgnoreCase("ok")) {
                 logger.info(nsPath + "- Successfully prechecked capacity " + reservations);
                 return new HashMap<>();
+            } else if (status.equalsIgnoreCase("subscription_not_setup")) {
+                logger.info(nsPath + " - Subscription is not set up to enformce capacity pre-check: " + reservations);
+                return new HashMap<>();
             } else if (status.equalsIgnoreCase("quota_not_setup")) {
+                // This should not happen when using V2 (strict quota enforcement).
                 logger.info(nsPath + " - No quotas are set up to pre-check capacity: " + reservations);
                 return new HashMap<>();
             } else if (status.equalsIgnoreCase("not_enough_capacity")) {
@@ -91,7 +97,7 @@ public class TektonClient {
         try {
             RequestBody body = RequestBody.create(JSON, gson.toJson(reservations));
             Request request = new Request.Builder()
-                    .url(tektonBaseUrl + "/api/v1/quota/bulkReservation")
+                    .url(tektonBaseUrl + (strictReservation ? "/api/v2/quota/reserve" : "/api/v1/quota/reservation/"))
                     .addHeader("Content-Type", "application/json")
                     .addHeader("Authorization", authHeader)
                     .post(body)
@@ -112,7 +118,10 @@ public class TektonClient {
             String status = reservationsResponse.getStatus();
             if (status.equalsIgnoreCase("ok")) {
                 logger.info(nsPath + "- Successfully reserved capacity " + reservations);
+            } else if (status.equalsIgnoreCase("subscription_not_setup")) {
+                logger.info(nsPath + " - Subscription is not set up to enforce capacity reservation: " + reservations);
             } else if (status.equalsIgnoreCase("quota_not_setup")) {
+                // This should not happen when using V2 (strict quota enforcement).
                 logger.info(nsPath + " - No quotas are set up to reserve: " + reservations);
             } else if (status.equalsIgnoreCase("not_enough_capacity")) {
                 logger.info(nsPath + " - No enough capacity to reserve: " + reservations);
