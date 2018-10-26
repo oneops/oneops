@@ -8,8 +8,7 @@ module ExecOrderUtils
 
     def initialize(workorder, component)
       require 'fileutils'
-      require 'rubygems'
-      if Gem::Version.new(RUBY_VERSION) > Gem::Version.new('1.8.7')
+      if RUBY_VERSION.to_f >= 1.9
         @wo_hash = JSON.parse(File.read(workorder, :encoding => 'UTF-8'))
       else
         @wo_hash = JSON.parse(File.read(workorder))
