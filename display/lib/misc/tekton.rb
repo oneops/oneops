@@ -138,13 +138,16 @@ def request(uri, req, msg)
         result = JSON.parse(body)
       end
     elsif response.is_a?(Net::HTTPNotFound)
+    elsif response.is_a?(Net::HTTPUnauthorized)
+      say 'Invalid credentials, please login'.red
+      @params.tekton_host = nil
+      @params.oneops_host = nil
+      @params.tekton_auth = nil
+      @tt_cookie = nil
+      exit(1)
     elsif response.is_a?(Net::HTTPClientError) || response.is_a?(Net::HTTPServerError)
       body = response.respond_to?(:body) ? response.body : ''
       say "Failed: #{body}".red
-      exit(1)
-    elsif response.is_a?(Net::HTTPUnauthorized)
-      say 'Invalid credentials, please login'.red
-      @tt_cookie = nil
       exit(1)
     else
       raise Exception.new('Bad response.')
@@ -747,6 +750,8 @@ def execute(action, *args)
       orgs.each do |o|
         while (true)
           quota = tt_request("#{v2_url}subscription/#{s}/entity/#{o}/quota", 'Getting quota')
+          result[s] ||= {}
+          result[s][o] = quota
           show_quota("#{cursor_control}#{s.bold} => #{o.bold}", quota) unless quota.empty?
           break if @params.refresh == 0 || subs.size > 1 || orgs.size > 1
           begin
@@ -828,12 +833,11 @@ def execute(action, *args)
     subs.each do |s|
       orgs = execute('org:prompt', s, org_name)
       orgs.each do |o|
-        result = execute('quota', s, o)
-        limits    = result[s][o][:limit]
-        next if limits.empty?
-        confirm = limits.find {|e| e.last > 0} || limits.first
+        quota = execute('quota', s, o)[s][o]
+        next if quota.empty?
+        confirm = quota.entries.find {|e| e.last.limit > 0} || quota.entries.last
         blurt "Confirm delete by entering limit for #{confirm.first}: "
-        if ask.to_i == confirm.last
+        if ask.to_i == confirm.last.limit
           tt_request("#{v2_url}subscription/#{s}/entity/#{o}", 'Deleting quota', {}, 'DELETE')
           say "#{s.bold} => #{o} - #{'deleted'.green}"
         else
@@ -978,7 +982,7 @@ def run(args)
   end
 
   if @params.tekton_auth.empty? && @action != 'login' && @action != 'logout' && @action != 'help'
-    say "Specify tekton auth with '--ta' option or use 'login' command.".red
+    say "Specify tekton auth with '--ta' option or use 'login' command to start a session.".red
     action_help('login')
   end
 
@@ -1017,7 +1021,7 @@ end
   'help'                  => ['help [actions|ACTION]', 'display help: full descriptiin or list of avaialble actions or specific action'],
   'version'               => ['version', 'display CLI and tekton server versions'],
 
-  'login'                 => ['login [-e ENV] [USERNAME [PASSWORD]]', 'log in for running Tekton commands, defaults to \'prod\' environment if not specified'],
+  'login'                 => ['login [-e prod|stg|dev|local] [USERNAME [PASSWORD]]', 'log in for running Tekton commands, defaults to \'prod\' environment if not specified'],
   'logout'                => ['logout [USERNAME [PASSWORD]]', "log out after running Tekton commands\n"],
 
   'admins'                => ['admins ', 'list global admins'],
@@ -1170,9 +1174,15 @@ if @repl
       say Readline::HISTORY.to_a
     else
       input.split(';').each do |command|
-        if command == 'exit' || command == 'quit'
+        action = command.split(/\s/,2).first
+        if action == 'exit' || action == 'quit'
           File.write(HISTORY_FILE_NAME, Readline::HISTORY.to_a[[Readline::HISTORY.size - 1000, 0].max..-1].join("\n"))
           exit
+        elsif action == 'login'
+          @params.tekton_host = nil
+          @params.oneops_host = nil
+          @params.tekton_auth = nil
+          File.delete(SESSION_FILE_NAME) if File.exist?(SESSION_FILE_NAME)
         end
 
         begin
