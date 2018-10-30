@@ -85,8 +85,8 @@
                                   :url     => disable_assembly_transition_environment_path(@assembly, @environment, :platformCiIds => @platforms.map(&:toCiId)),
                                   :method  => :put,
                                   :remote  => true,
-                                  :confirm => 'Disable environment...',
-                                  :body    => raw('<p>This action will disable all platforms and generate a release that needs to be deployed in order to remove all cloud components related to this environment.</p>
+                                  :confirm => 'Disable environment?',
+                                  :body    => raw('<p>This action will <b>disable all platforms</b> and generate a release that needs to be deployed in order to remove all instances in this environment.</p>
                                                    <p>If you want to proceed select OK below and proceed with a "Commit & Deploy" action. If you change your mind you can "Discard" the release.</p>
                                                    <p>Note that disable action will not remove any configuration for this environment and you can enable the platforms at a later time.</p>
                                                    <p><strong class="label label-important">WARNING: No application data will be saved.</strong></p>')) %>

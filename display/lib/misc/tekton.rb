@@ -7,10 +7,10 @@ require 'net/http'
 require 'io/console'
 require 'readline'
 
-SESSION_FILE_NAME  = '.tekton'
-HISTORY_FILE_NAME  = '.tekton_hist'
+SESSION_FILE_NAME  = "#{Dir.home}/.tekton"
+HISTORY_FILE_NAME  = "#{Dir.home}/.tekton_hist"
 
-@use_session = false   #  Set to fails  and swtich to FQDN to disable session auth.
+@use_session = false   #  Set to false and swtich to FQDN to disable session auth.
 
 TEKTON_HOSTS = {:local => 'http://localhost:9000',
                 :dev   => 'http://tekton.dev.prod.walmart.com',
@@ -137,13 +137,17 @@ def request(uri, req, msg)
         say response.body if @params.verbose > 1
         result = JSON.parse(body)
       end
-    elsif response.is_a?(Net::HTTPClientError) || response.is_a?(Net::HTTPServerError)
-      body = response.respond_to?(:body) ? response.body : ''
-      say "Failed: #{body}".red
     elsif response.is_a?(Net::HTTPNotFound)
     elsif response.is_a?(Net::HTTPUnauthorized)
       say 'Invalid credentials, please login'.red
+      @params.tekton_host = nil
+      @params.oneops_host = nil
+      @params.tekton_auth = nil
       @tt_cookie = nil
+      exit(1)
+    elsif response.is_a?(Net::HTTPClientError) || response.is_a?(Net::HTTPServerError)
+      body = response.respond_to?(:body) ? response.body : ''
+      say "Failed: #{body}".red
       exit(1)
     else
       raise Exception.new('Bad response.')
@@ -159,6 +163,10 @@ def request(uri, req, msg)
 
   say "done in #{(Time.now - ts).to_f.round(1)}sec." if @params.verbose > 0
   return result, response
+end
+
+def v2_url
+  @params.tekton_host.gsub(/api\/v\d+\//, 'api/v2/')
 end
 
 def set_tekton_auth(username, password = nil)
@@ -252,15 +260,15 @@ def sub_quota(sub, limits)
   say
 end
 
-def full_quota(title, limits, usage, available, available_threshold = nil)
+def show_quota(title, quota, available_threshold = nil)
   if available_threshold
-    quotas = limits.select do |resource, limit|
-      r_limit = limit.to_f
-      r_avail = available[resource].to_i
+    quotas = quota.select do |resource, r_quota|
+      r_limit = r_quota.limit.to_f
+      r_avail = r_quota.available.to_f
       r_limit <= 0 || (r_avail / r_limit) <= available_threshold
     end
   else
-    quotas = limits
+    quotas = quota
   end
   return if quotas.empty?
 
@@ -268,22 +276,23 @@ def full_quota(title, limits, usage, available, available_threshold = nil)
   say '  Resource                      | Used      | Reserved  | Available | Limit     '
   say '  ------------------------------|-----------|-----------|-----------|-----------'
   quotas.keys.sort.each do |resource|
-    r_limit = limits[resource].to_i
-    r_avail = available[resource].to_i
-    r_usage = usage[resource].to_i
-    say "  #{resource.ljust(30)}|#{r_usage.to_s.rjust(10)} |#{(r_limit - r_usage - r_avail).to_s.rjust(10)} |#{r_avail.to_s.rjust(10).green} |#{r_limit.to_s.rjust(10).blue}"
+    r_quota = quota[resource]
+    say "  #{resource.ljust(30)}|#{r_quota.used.to_s.rjust(10)} |#{r_quota.reserved.to_s.rjust(10)} |#{r_quota.available.to_s.rjust(10).green} |#{r_quota.limit.to_s.rjust(10).blue}"
   end
   say
 end
 
-def full_quota_totals(title, limits, usage, available)
-  unless limits.empty?
-    totals = [limits, usage, available].inject([]) do |a, quotas|
-      a << quotas.values.inject({}) {|h, group_quotas| h.update(group_quotas) {|__, value1, value2| value1 + value2}}
+def show_quota_totals(title, quotas)
+  return if quotas.empty?
+  totals = quotas.values.inject({}) do |h, group_quotas|
+    group_quotas.each_pair do |resource, resource_quota|
+      h[resource] ||= {}
+      h[resource].update(resource_quota) {|__, value1, value2| value1.to_i + value2.to_i}
     end
-    say '=' * 80
-    full_quota(title, *totals)
+    h
   end
+  say '=' * 80
+  show_quota(title, totals)
 end
 
 def usage(title, oo_usage, tt_usage, diff_only = false)
@@ -332,7 +341,7 @@ end
 def execute(action, *args)
   result = nil
   if action == 'version'
-    say 'CLI version:    1.2.2'
+    say 'CLI version:    1.2.3'
     info = tt_request('server/version', 'Getting tekton version')
     say "Tekton version: #{info.version} (#{info.timestamp})"
     say "Tekton host:    #{@params.tekton_host}"
@@ -713,25 +722,19 @@ def execute(action, *args)
     subs = execute('sub:prompt', sub)
     subs.each do |sub_name|
       required_arg('subscription', sub_name)
-      limits = tt_request("quota/subscription/#{sub_name}", 'Getting quotas')
-      usage = tt_request("quota/usage/subscription/#{sub_name}", 'Getting usages')
-      available = tt_request("quota/available/subscription/#{sub_name}", 'Getting usages')
-      limits.keys.sort.each {|org| full_quota("#{sub_name.bold} => #{org.bold}", limits[org], usage[org], available[org], @params.depleted_threshold)} unless limits.empty?
-
-      full_quota_totals("#{sub_name} => TOTAL".bold, limits, usage, available) unless limits.size < 2 || @params.depleted_threshold
+      quotas = tt_request("#{v2_url}subscription/#{sub_name}/quotas", 'Getting quotas')
+      quotas.keys.sort.each {|org| show_quota("#{sub_name.bold} => #{org.bold}", quotas[org], @params.depleted_threshold)}
+      show_quota_totals("#{sub_name} => TOTAL".bold, quotas) if quotas.size > 1 && !@params.depleted_threshold
     end
 
   elsif action == 'org:quotas'
     org = args[0]
     required_arg('org', org)
     orgs = execute('org:prompt', nil, org)
-    orgs.each do |org|
-      limits = tt_request("quota/entity/#{org}", 'Getting limits')
-      usage = tt_request("quota/usage/entity/#{org}", 'Getting usages')
-      available = tt_request("quota/available/entity/#{org}", 'Getting available')
-      limits.keys.sort.each {|sub| full_quota("#{org.bold} => #{sub.bold}", limits[sub], usage[sub], available[sub], @params.depleted_threshold)} unless limits.empty?
-
-      full_quota_totals("#{org} => TOTAL".bold, limits, usage, available) unless limits.size < 2 || @params.depleted_threshold
+    orgs.each do |org_name|
+      quotas = tt_request("#{v2_url}entity/#{org_name}/quotas", 'Getting quotas')
+      quotas.keys.sort.each {|sub| show_quota("#{org_name.bold} => #{sub.bold}", quotas[sub], @params.depleted_threshold)}
+      show_quota_totals("#{org_name} => TOTAL".bold, quotas) if quotas.size > 1 && !@params.depleted_threshold
     end
 
   elsif action == 'quota'
@@ -746,21 +749,17 @@ def execute(action, *args)
       orgs = execute('org:prompt', s, org)
       orgs.each do |o|
         while (true)
-          limits = tt_request("quota/#{s}/#{o}", 'Getting quota')
-          unless limits.empty?
-            usage = tt_request("quota/usage/#{s}/#{o}", 'Getting usage')
-            available = tt_request("quota/available/#{s}/#{o}", 'Getting available')
-            result[s] ||= {}
-            result[s][o] = {:limit => limits, :usage => usage, :availability => available}
-            full_quota("#{cursor_control}#{s.bold} => #{o.bold}", limits, usage, available)
-          end
+          quota = tt_request("#{v2_url}subscription/#{s}/entity/#{o}/quota", 'Getting quota')
+          result[s] ||= {}
+          result[s][o] = quota
+          show_quota("#{cursor_control}#{s.bold} => #{o.bold}", quota) unless quota.empty?
           break if @params.refresh == 0 || subs.size > 1 || orgs.size > 1
           begin
             sleep(@params.refresh)
           rescue Interrupt
             exit
           end
-          cursor_control = "\e[#{limits.size + 4}A\r"
+          cursor_control = "\e[#{quota.size + 4}A\r"
         end
       end
     end
@@ -834,13 +833,12 @@ def execute(action, *args)
     subs.each do |s|
       orgs = execute('org:prompt', s, org_name)
       orgs.each do |o|
-        result = execute('quota', s, o)
-        limits    = result[s][o][:limit]
-        next if limits.empty?
-        confirm = limits.find {|e| e.last > 0} || limits.first
+        quota = execute('quota', s, o)[s][o]
+        next if quota.empty?
+        confirm = quota.entries.find {|e| e.last.limit > 0} || quota.entries.last
         blurt "Confirm delete by entering limit for #{confirm.first}: "
-        if ask.to_i == confirm.last
-          tt_request("#{@params.tekton_host.gsub(/api\/v\d+\//, 'api/v2/')}subscription/#{s}/entity/#{o}", 'Deleting quota', {}, 'DELETE')
+        if ask.to_i == confirm.last.limit
+          tt_request("#{v2_url}subscription/#{s}/entity/#{o}", 'Deleting quota', {}, 'DELETE')
           say "#{s.bold} => #{o} - #{'deleted'.green}"
         else
           say "Not confirmed, skipping.".yellow
@@ -949,6 +947,15 @@ end
 
 def run(args)
   t = Time.now
+
+  @show_help = false
+  @params.verbose         = 0
+  @params.force           = false
+  @params.only_missing    = false
+  @params.transfer_buffer = 0
+  @params.refresh         = 0
+  @params.mismatch_only   = false
+  @params.fix_mismatch    = false
   begin
     @action, *@args = @opt_parser.parse(args)
   rescue OptionParser::ParseError => e
@@ -957,8 +964,6 @@ def run(args)
   end
 
   if @action.empty?
-    general_help if @show_help
-
     say 'Specify ACTION!'.red
     say "#{actions_help}\nUse '-h' or 'help' action to see full help."
     exit(1)
@@ -971,13 +976,13 @@ def run(args)
   end
   action_help(@action) if @show_help
 
-  if @action != 'login' && File.exist?(SESSION_FILE_NAME) && %w(tekton_host oneops_host tekton_auth).none? {|key| @params[key]}
+  if %w(tekton_host oneops_host tekton_auth).none? {|key| @params[key]} && @action != 'login' && File.exist?(SESSION_FILE_NAME)
     cfg = JSON.parse(File.read(SESSION_FILE_NAME))
     %w(tekton_host oneops_host tekton_auth).each {|key| @params[key.to_sym] = cfg[key] unless cfg[key].empty?}
   end
 
   if @params.tekton_auth.empty? && @action != 'login' && @action != 'logout' && @action != 'help'
-    say "Specify tekton auth with '--ta' option or use 'login' command.".red
+    say "Specify tekton auth with '--ta' option or use 'login' command to start a session.".red
     action_help('login')
   end
 
@@ -1004,15 +1009,19 @@ def run(args)
   @params.oneops_host = "https://#{@params.oneops_host}" unless @params.oneops_host.start_with?('http')
   @params.oneops_host = @params.oneops_host.terminate_with('/')
 
+  @args = @args.select {|a| a =~ /\w/}
   execute(@action, *@args)
   say "Done #{@action.bold} in #{(Time.now - t).round(1)} sec" if @params.verbose > 0
 end
 
+#------------------------------------------------------------------------------------------------
+# Start here.
+#------------------------------------------------------------------------------------------------
 @actions = {
   'help'                  => ['help [actions|ACTION]', 'display help: full descriptiin or list of avaialble actions or specific action'],
   'version'               => ['version', 'display CLI and tekton server versions'],
 
-  'login'                 => ['login [-e ENV] [USERNAME [PASSWORD]]', 'log in for running Tekton commands, defaults to \'prod\' environment if not specified'],
+  'login'                 => ['login [-e prod|stg|dev|local] [USERNAME [PASSWORD]]', 'log in for running Tekton commands, defaults to \'prod\' environment if not specified'],
   'logout'                => ['logout [USERNAME [PASSWORD]]', "log out after running Tekton commands\n"],
 
   'admins'                => ['admins ', 'list global admins'],
@@ -1050,14 +1059,13 @@ end
   'quota:delete'          => ['quota:delete SUB,...|?[SUB_REGEX]|*[SUB_REGEX] ORG,...|?[ORG_REGEX]|*[ORG_REGEX]', "delete existing quota (with confirmation)\n"],
 
   'oo:resources'          => ['oo:resources', 'list resource types in OneOps'],
-  'oo:resources:transfer' => ['oo:resources:transfer [-f]', 'transfer resources types in OneOps to Tekton (idempotent!)'],
+  'oo:resources:transfer' => ['oo:resources:transfer [-f]', 'transfer resource definitions in OneOps to Tekton (idempotent!)'],
   'oo:subs'               => ['oo:subs ORG [CLOUD_REGEX]', 'list subsctiptions in OneOps'],
   'oo:subs:transfer'      => ['oo:subs:transfer  [-f] ORG [CLOUD_REGEX]', 'transfer subsctiptions in OneOps to Tekton  (idempotent!)'],
   'oo:sub:usage'          => ['oo:sub:usage [--mismatch [--fix]] SUB,...|?[SUB_REGEX]|*[SUB_REGEX] [ORG,...]', 'For a given subscription list usage in OneOps and compare with usage in Tekton'],
   'oo:org:usage'          => ['oo:org:usage ORG [CLOUD_REGEX]', 'For a given org list usage in OneOps and compare with usage in Tekton'],
   'oo:org:usage:transfer' => ['oo:org:usage:transfer [-f [--omr]] [-b BUFFER_%] ORG [CLOUD_REGEX]', "convert current usage in OneOps into quota in Tekton or update usage for existing Tekton quota with the current ussage in OneOps (idempotent!)\n"]
 }
-
 @usage = <<-USAGE
 #{'Usage:'.bold}
     #{__FILE__} [OPTIONS] ACTION ARGUMENTS
@@ -1107,21 +1115,7 @@ USAGE
          #{__FILE__} logout
 FOOTER
 
-
-#------------------------------------------------------------------------------------------------
-# Start here.
-#------------------------------------------------------------------------------------------------
-__COLOR = true
-@params = OpenStruct.new(:verbose            => 0,
-                         :force              => false,
-                         :only_missing       => false,
-                         :transfer_buffer    => 0,
-                         :depleted_threshold => nil,
-                         :refresh            => 0,
-                         :mismatch_only      => false,
-                         :fix_mismatch       => false)
-
-@show_help = false
+@params = OpenStruct.new
 @opt_parser = OptionParser.new do |opts|
   opts.banner = <<-HELP
   Tool to query and to configure subscription, org and soft quota data in Tekton directly or based on current usage in OneOps.
@@ -1180,23 +1174,28 @@ if @repl
       say Readline::HISTORY.to_a
     else
       input.split(';').each do |command|
-        if command == 'exit' || command == 'quit'
+        action = command.split(/\s/,2).first
+        if action == 'exit' || action == 'quit'
           File.write(HISTORY_FILE_NAME, Readline::HISTORY.to_a[[Readline::HISTORY.size - 1000, 0].max..-1].join("\n"))
           exit
+        elsif action == 'login'
+          @params.tekton_host = nil
+          @params.oneops_host = nil
+          @params.tekton_auth = nil
+          File.delete(SESSION_FILE_NAME) if File.exist?(SESSION_FILE_NAME)
         end
 
         begin
           t = Time.now
           cmd = command.gsub(/^time\s+/i, '')
-          @show_help = false
-          @params.verbose = 0
-          @params.force = false
-          @params.only_missing = false
-          @params.transfer_buffer = 0
-          @params.refresh = 0
-          @params.mismatch_only = false
-          @params.fix_mismatch = false
-          run(cmd.strip.split(/\s+/))
+          begin
+            run(cmd.strip.split(/\s+/))
+          rescue SystemExit => e
+            exit(e.status)
+          rescue Exception => e
+            say e.message.red
+            say "   #{e.backtrace.join("\n   ")}" if @params.verbose > 0
+          end
           say "Done in #{(Time.now - t).round(1).to_s.bold} sec" unless cmd == command
         rescue SystemExit
         end
