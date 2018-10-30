@@ -17,39 +17,20 @@
  */
 package com.oneops.inductor;
 
-import static com.oneops.cms.util.CmsConstants.MANAGED_VIA;
-import static com.oneops.cms.util.CmsConstants.RESPONSE_ENQUE_TS;
-import static com.oneops.cms.util.CmsConstants.SEARCH_TS_PATTERN;
-import static com.oneops.inductor.InductorConstants.ADD;
-import static com.oneops.inductor.InductorConstants.ADD_FAIL_CLEAN;
-import static com.oneops.inductor.InductorConstants.AFTER_ATTACHMENT;
-import static com.oneops.inductor.InductorConstants.ATTACHMENT;
-import static com.oneops.inductor.InductorConstants.BEFORE_ATTACHMENT;
-import static com.oneops.inductor.InductorConstants.CLOUD_CONFIG_FILE_PATH;
-import static com.oneops.inductor.InductorConstants.COMPLETE;
-import static com.oneops.inductor.InductorConstants.COMPUTE;
-import static com.oneops.inductor.InductorConstants.DELETE;
-import static com.oneops.inductor.InductorConstants.ERROR_RESPONSE_CODE;
-import static com.oneops.inductor.InductorConstants.EXTRA_RUN_LIST;
-import static com.oneops.inductor.InductorConstants.FAILED;
-import static com.oneops.inductor.InductorConstants.INFOBLOX_CN;
-import static com.oneops.inductor.InductorConstants.INFOBLOX_PARAM;
-import static com.oneops.inductor.InductorConstants.INFOBLOX_SN;
-import static com.oneops.inductor.InductorConstants.KEYWHIZ_BASE_PATH;
-import static com.oneops.inductor.InductorConstants.KEYWHIZ_PREFIX;
-import static com.oneops.inductor.InductorConstants.KNOWN;
-import static com.oneops.inductor.InductorConstants.LOG;
-import static com.oneops.inductor.InductorConstants.LOGGED_BY;
-import static com.oneops.inductor.InductorConstants.MONITOR;
-import static com.oneops.inductor.InductorConstants.OK_RESPONSE_CODE;
-import static com.oneops.inductor.InductorConstants.ONEOPS_USER;
-import static com.oneops.inductor.InductorConstants.REMOTE;
-import static com.oneops.inductor.InductorConstants.REPLACE;
-import static com.oneops.inductor.InductorConstants.UPDATE;
-import static com.oneops.inductor.InductorConstants.WATCHED_BY;
-import static com.oneops.inductor.util.JSONUtils.convertJsonToMap;
-import static com.oneops.inductor.util.ResourceUtils.readExternalFile;
-import static java.lang.String.format;
+import com.codahale.metrics.MetricRegistry;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.stream.JsonReader;
+import com.oneops.cms.dj.domain.CmsRfcCIBasic;
+import com.oneops.cms.dj.domain.RfcHint;
+import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
+import com.oneops.cms.simple.domain.CmsCISimple;
+import com.oneops.cms.simple.domain.CmsRfcCISimple;
+import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
+import com.oneops.cms.util.CmsConstants;
+import org.apache.commons.httpclient.util.DateUtil;
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.StringReader;
@@ -62,27 +43,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import com.google.gson.internal.LinkedTreeMap;
-import org.apache.commons.httpclient.util.DateUtil;
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
-
-import com.codahale.metrics.MetricRegistry;
-import com.google.gson.JsonSyntaxException;
-import com.google.gson.stream.JsonReader;
-import com.oneops.cms.dj.domain.CmsRfcCIBasic;
-import com.oneops.cms.dj.domain.RfcHint;
-import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
-import com.oneops.cms.simple.domain.CmsCISimple;
-import com.oneops.cms.simple.domain.CmsRfcCISimple;
-import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
-import com.oneops.cms.util.CmsConstants;
-import com.oneops.inductor.util.ResourceUtils;
+import static com.oneops.cms.util.CmsConstants.MANAGED_VIA;
+import static com.oneops.cms.util.CmsConstants.RESPONSE_ENQUE_TS;
+import static com.oneops.cms.util.CmsConstants.SEARCH_TS_PATTERN;
+import static com.oneops.inductor.InductorConstants.*;
+import static java.lang.String.format;
 
 /** WorkOrder specific processing */
 public class WorkOrderExecutor extends AbstractOrderExecutor {
@@ -113,20 +80,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
   @Override
   public Map<String, String> process(CmsWorkOrderSimpleBase o, String correlationId) {
     CmsWorkOrderSimple wo = (CmsWorkOrderSimple) o;
-    Map<String, Object> cloudConfig = readCloudConfig(KEYWHIZ_BASE_PATH + CLOUD_CONFIG_FILE_PATH);
-    if (cloudConfig.isEmpty()) {
-      logger.info(getLogKey(wo) + "No config found, continuing with what is provided in WO.");
-    } else {
-      String cloudName = getCloudName(wo);
-      String orgName = getOrganizationName(wo);
-      CommonCloudConfigurationsHelper commonCloudConfigurationsHelper =
-          new CommonCloudConfigurationsHelper(logger, getLogKey(wo));
-      final Map<String, Object> servicesMap =
-          getServicesMap(commonCloudConfigurationsHelper, cloudConfig, cloudName, orgName);
 
-      updateCiAttributes(
-          wo, commonCloudConfigurationsHelper, getEnhancedServiceMap(wo, cloudName, servicesMap));
-    }
     // compute::replace will do a delete and add - only for old pre-versioned compute
     String[] classParts = wo.getRfcCi().getCiClassName().split("\\.");
     if (classParts.length < 3 && isWorkOrderOfCompute(wo) && isAction(wo, REPLACE)) {
@@ -182,147 +136,13 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     return buildResponseMessage(wo, correlationId);
   }
 
-  public void updateCiAttributes(
-      CmsWorkOrderSimple wo,
-      CommonCloudConfigurationsHelper commonCloudConfigurationsHelper,
-      Map<String, Object> servicesMap) {
 
-    String cloudName = getCloudName(wo);
-    Map<String, Map<String, CmsCISimple>> services = wo.getServices();
 
-    services.forEach(
-        (serviceKey, serviceValue) -> {
-          try {
-            if (serviceValue.containsKey(cloudName)) {
-              String className = getShortenedClass(serviceValue.get(cloudName).getCiClassName());
 
-              Map<String, Object> cloudCommonCiAttributes =
-                  commonCloudConfigurationsHelper.findClassCiAttributes(
-                      commonCloudConfigurationsHelper.findServiceClasses(servicesMap, serviceKey),
-                      className);
-              logger.info(
-                  getLogKey(wo)
-                      + "Verifying  "
-                      + cloudName
-                      + " "
-                      + serviceKey
-                      + " attributes for class name "
-                      + className);
 
-              cloudCommonCiAttributes.forEach(
-                  (ciAttrKey, ciAttrValue) -> {
-                    try {
-                      String value = ciAttrValue.toString();
-                      if (value.contains(KEYWHIZ_PREFIX)) {
-                        value = getFromKeywhiz(ciAttrKey, value);
-                      }
-                      if (value != null) {
 
-                        logger.info(getLogKey(wo) + "Changing component attribute: " + ciAttrKey);
-                        wo.getServices()
-                            .get(serviceKey)
-                            .get(cloudName)
-                            .getCiAttributes()
-                            .put(ciAttrKey, value);
-                      }
-                    } catch (Exception e) {
-                      logger.info(
-                          String.format(
-                              " Work Order Exception  :: %s %s", getLogKey(wo), e.getMessage()));
-                    }
-                  });
-            }
-          } catch (Exception e) {
-            logger.info(getLogKey(wo) + e.getMessage());
-          }
-        });
-  }
 
-  private String getFromKeywhiz(String ciAttrKey, String ciAttrValue) {
-    String placeHolderValue = null;
-    Matcher matcher = Pattern.compile("\\((.*?)\\)").matcher(ciAttrValue);
-    if (matcher.find()) {
-      ciAttrValue = getCiAttributeValueFromKeywhiz(matcher.group(1));
-      if (!ciAttrValue.isEmpty()) {
-        Map<String, Object> secretsMap = convertJsonToMap(ciAttrValue);
-        if (secretsMap.containsKey(ciAttrKey)) {
-          placeHolderValue = secretsMap.get(ciAttrKey).toString();
-        }
-      }
-    }
-    return placeHolderValue;
-  }
-
-  public Map<String, Object> getEnhancedServiceMap(
-      CmsWorkOrderSimple wo,
-      String cloudName,
-      Map<String, Object> servicesMap) {
-    // If infoblox is not in inputted cloud's work order, no need to enhanced service map
-    if (!wo.getServices().containsKey(INFOBLOX_SN)
-        || wo.getServices().get(INFOBLOX_SN).get(cloudName) == null) {
-      return servicesMap;
-    }
-    String woInfobloxValue =
-        wo.getServices().get(INFOBLOX_SN).get(cloudName).getCiAttributes().get(INFOBLOX_PARAM);
-    if (woInfobloxValue == null) {
-      return servicesMap;
-    }
-
-    final Map<String, Object> enMap = new HashMap<>();
-
-    servicesMap
-        .entrySet()
-        .forEach(
-            e -> {
-              Map<String, Object> data = (Map<String, Object>) e.getValue();
-              if (e.getKey().equalsIgnoreCase(INFOBLOX_SN)) {
-                if (data.containsKey(INFOBLOX_CN)) {
-                  Map<Object, Object> ibService =
-                      getFromInfoblox(woInfobloxValue, data, INFOBLOX_CN);
-                  enMap.put(e.getKey(), ibService);
-                }
-              } else {
-                enMap.put(e.getKey(), e.getValue());
-              }
-            });
-
-    return enMap;
-  }
-
-  public Map<Object, Object> getFromInfoblox(
-      String patternParam, Map<String, Object> data, String servicename) {
-
-    Map<Object, Object> ibloxConfig = new HashMap<>();
-
-    List<Object> iBloxList = (List) data.get(servicename);
-
-    for (Object obj : iBloxList) {
-
-      if (((Map<Object, Object>) obj).get("host").toString().equalsIgnoreCase(patternParam)) {
-        ibloxConfig.put(servicename, obj);
-      }
-    }
-    return ibloxConfig;
-  }
-
-  public Map<String, Object> getServicesMap(
-      CommonCloudConfigurationsHelper commonCloudConfigurationsHelper,
-      Map<String, Object> cloudConfig,
-      String cloudName,
-      String orgName) {
-    Map<String, Object> servicesMap =
-        commonCloudConfigurationsHelper.findServicesAtOrgLevel(cloudConfig, orgName, cloudName);
-    if (servicesMap.isEmpty()) {
-      servicesMap =
-          commonCloudConfigurationsHelper.findServicesAtCloudLevel(cloudConfig, cloudName);
-      if (servicesMap.isEmpty()) {
-        servicesMap = cloudConfig;
-      }
-    }
-    return servicesMap;
-  }
-
-  private String getOrganizationName(CmsWorkOrderSimple wo) {
+  public String getOrganizationName(CmsWorkOrderSimple wo) {
     String orgName = "";
     if (wo.getPayLoad().containsKey("Organization")) {
       if (!wo.getPayLoad().get("Organization").isEmpty()) {
@@ -332,20 +152,13 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     return orgName;
   }
 
-  private String getCloudName(CmsWorkOrderSimple wo) {
+  public String getCloudName(CmsWorkOrderSimple wo) {
     return wo.getCloud().getCiName();
   }
 
-  private Map<String, Object> readCloudConfig(String path) {
-    //  String confDir = System.getProperty("conf.dir", "");
 
-    String jsonContent = ResourceUtils.readExternalFile(path);
-    return convertJsonToMap(jsonContent);
-  }
 
-  private String getCiAttributeValueFromKeywhiz(String secretName) {
-    return readExternalFile(KEYWHIZ_BASE_PATH + secretName);
-  }
+
 
   @Override
   protected List<String> getRunList(CmsWorkOrderSimpleBase wo) {

@@ -17,30 +17,27 @@
  */
 package com.oneops.inductor;
 
-import static com.oneops.inductor.InductorConstants.CLOUD_CONFIG_FILE_PATH;
-import static com.oneops.inductor.util.ResourceUtils.readResourceAsString;
-
-import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.log4j.Logger;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.gson.Gson;
-import com.google.gson.stream.JsonReader;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.inductor.util.JSONUtils;
 import com.oneops.inductor.util.ResourceUtils;
-
 import junit.framework.Assert;
+import org.apache.log4j.Logger;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+
+import static com.oneops.inductor.InductorConstants.CLOUD_CONFIG_FILE_PATH;
+import static com.oneops.inductor.Listener.getCmsWorkOrderSimpleBase;
+import static com.oneops.inductor.util.ResourceUtils.readResourceAsString;
 
 public class WoExecutorTest {
 
@@ -145,44 +142,6 @@ public class WoExecutorTest {
     Assert.assertEquals(gson.toJson(searchPaths), gson.toJson(expectedResult));
   }
 
-  @Test
-  public void testWorkorderCiAttributesReplace() {
-    CmsWorkOrderSimple cmsWorkorder;
-    cmsWorkorder = (CmsWorkOrderSimple) getWorkOrderOf(localWo, CmsWorkOrderSimple.class);
-    String cloudName = getCloudName(cmsWorkorder);
-    String orgName = getOrganizationName(cmsWorkorder);
-    final Map<String, Object> servicesMap =
-        woExecutor.getServicesMap(commonCloudConfigurationsHelper, cloudConfig, cloudName, orgName);
-    final Map<String, Object> enhancedServicesMap =
-        woExecutor.getEnhancedServiceMap(cmsWorkorder, cloudName, servicesMap);
-    woExecutor.updateCiAttributes(
-        cmsWorkorder, commonCloudConfigurationsHelper, enhancedServicesMap);
-    Assert.assertEquals(
-        "test3",
-        cmsWorkorder.getServices().get("dns").get("stub-dfw2b").getCiAttributes().get("password"));
-  }
-
-  @Test
-  // make sure updateCiAttributes not updating attributes that are not provided in cloud config.
-  public void testWorkorderCiAttributes() {
-    CmsWorkOrderSimple cmsWorkorder;
-    cmsWorkorder = (CmsWorkOrderSimple) getWorkOrderOf(localWo, CmsWorkOrderSimple.class);
-    String cloudName = getCloudName(cmsWorkorder);
-    String orgName = getOrganizationName(cmsWorkorder);
-    final Map<String, Object> servicesMap =
-        woExecutor.getServicesMap(commonCloudConfigurationsHelper, cloudConfig, cloudName, orgName);
-    final Map<String, Object> servicesMaps =
-        woExecutor.getEnhancedServiceMap(cmsWorkorder, cloudName, servicesMap);
-    woExecutor.updateCiAttributes(cmsWorkorder, commonCloudConfigurationsHelper, servicesMaps);
-    org.junit.Assert.assertEquals(
-        "testdnsid",
-        cmsWorkorder
-            .getServices()
-            .get("dns")
-            .get("stub-dfw2b")
-            .getCiAttributes()
-            .get("cloud_dns_id"));
-  }
 
   private String getOrganizationName(CmsWorkOrderSimple wo) {
     String orgName = "";
@@ -199,11 +158,7 @@ public class WoExecutorTest {
   }
 
   private CmsWorkOrderSimpleBase getWorkOrderOf(String msgText, Class c) {
-    CmsWorkOrderSimpleBase wo;
-    JsonReader reader = new JsonReader(new StringReader(msgText));
-    reader.setLenient(true);
-    wo = gson.fromJson(reader, c);
-    return wo;
+    return getCmsWorkOrderSimpleBase(msgText, c, gson);
   }
 
   @Test
