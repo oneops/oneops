@@ -97,15 +97,15 @@ public class TektonClient {
         try {
             RequestBody body = RequestBody.create(JSON, gson.toJson(reservations));
             Request request = new Request.Builder()
-                    .url(tektonBaseUrl + (strictReservation ? "/api/v2/quota/reserve" : "/api/v1/quota/reservation/"))
+                    .url(tektonBaseUrl + (strictReservation ? "/api/v2/quota/reserve" : "/api/v1/quota/bulkReservation/"))
                     .addHeader("Content-Type", "application/json")
                     .addHeader("Authorization", authHeader)
                     .post(body)
                     .build();
 
             Response response = new OkHttpClient().newCall(request).execute();
-            responseCode = response.code();
             responseBody = response.body().string();
+            responseCode = response.code();
         } catch (Exception e) {
             logger.error(nsPath + " - Error to reserve capacity: " + reservations +
                                  ". HTTP response code: " + (responseCode > 0 ? responseCode : "N/A") +
