@@ -36,7 +36,7 @@ module Search
         param :query, 'include_to_ci', :string, :optional, 'Include full "toCi" object in the resultset: applicable to relation searches only.'
         param :query, 'from_class_name', :string, :optional, 'Filter based on "fromCi" class name: supported for CMS searches only.'
         param :query, 'to_class_name', :string, :optional, 'Filter based on "toCi" class name: supported for CMS searches only.'
-        param :query, 'pluck', :string, :optional, 'Restrict resultset to the values of this field only (e.g. "private_ip")'
+        param :query, 'pluck', :string, :optional, 'Restrict resultset to the values of attributes names or expression (e.g. "private_ip", "toCi", "nsPath,fromCi.ciName,fromCi.ciAttributes.ostype")'
         param :query, 'size', :string, :optional, 'Resutlset record max size: supported for ES searches only.'
         response :unauthorized
         response :unprocessable_entity
@@ -65,10 +65,10 @@ module Search
 
     relation_search = rel_name.present?
 
-    pluck_attr      = params[:pluck]
-    pluck_attr      = attr_name if pluck_attr.blank? && attr_name.present? && attr_value.blank? # TODO:deprecated: plucking via 'attr_name' param if 'attr_value' is not passed in
-    pluck           = pluck_attr.present?
-    pluck_attr_path = parse_attr_path(pluck_attr, relation_search) if pluck
+    pluck_attr       = params[:pluck]
+    pluck_attr       = attr_name if pluck_attr.blank? && attr_name.present? && attr_value.blank? # TODO:deprecated: plucking via 'attr_name' param if 'attr_value' is not passed in
+    pluck            = pluck_attr.present?
+    pluck_attr_paths = parse_attr_path(pluck_attr, relation_search) if pluck
 
     @search_results = []
 
@@ -120,7 +120,7 @@ module Search
 
         if filter && deep_filter
           # Need to do further "deep attribute" filtering on-the-fly filtering.
-          filter_attr_path = parse_attr_path(filter_attr, relation_search)
+          filter_attr_path = parse_attr_path(filter_attr, relation_search).first
           @search_results = @search_results.select do |r|
             value = filter_attr_path.inject(r) do |r, name|
               rr = r.try(name.to_sym)
@@ -140,7 +140,7 @@ module Search
       if query.present? || class_name.present?
         begin
           search_params = {:nsPath => "#{ns_path}#{'*' unless ns_path.include?('*')}", :size => max_size}
-          search_params[:_source] = pluck_attr_path.join('.') if pluck
+          search_params[:_source] = pluck_attr_paths.map {|p| p.join('.')} if pluck
           if query.present?
             search_params[:query] = {:query => query, :lenient => true}
             search_params[:query][:fields] = %w(ciAttributes.* ciClassName ciName) unless query.match(/\w+:\s?./)   # advanced query string with explicit filed nmaes specified.
@@ -168,10 +168,10 @@ module Search
 
     if pluck
       @search_results = @search_results.map do |r|
-        pluck_attr_path.inject(r) do |r, name|
-          rr = r.try(name.to_sym)
-          break r unless r
-          rr
+        if pluck_attr_paths.size > 1
+          pluck_attr_paths.to_map_with_value {|path| [path.join('.'), eval_attr_path(path, r)]}
+        else
+          eval_attr_path(pluck_attr_paths.first, r)
         end
       end
     end
@@ -209,11 +209,20 @@ module Search
   private
 
   def parse_attr_path(attr, is_relation)
-    attr_path = attr.split('.')
-    if attr_path.size == 1 && !%w(nsPath ciClassName ciName ciId ciRelationId created updated createdBy updateBy relationAttributes ciAttributes comments).include?(attr_path.first)
-      attr_path = attr_path.unshift(is_relation ? 'relationAttributes' : 'ciAttributes')
+    properties = %w(nsPath ciClassName ciName ciId ciRelationId created updated createdBy updateBy relationAttributes ciAttributes comments fromCi toCi)
+    attr.split(',').inject([]) do |a, path_string|
+      path = path_string.split('.')
+      if path.size == 1 && !properties.include?(path.first)
+        path = path.unshift(is_relation ? 'relationAttributes' : 'ciAttributes')
+      end
+      a << path
     end
+  end
 
-    return attr_path
+  def eval_attr_path(path, target)
+    path.inject(target) do |r, name|
+      break r if r.nil?
+      r.try(name.to_sym)
+    end
   end
 end
