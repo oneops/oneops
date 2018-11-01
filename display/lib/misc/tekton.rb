@@ -15,7 +15,7 @@ HISTORY_FILE_NAME  = "#{Dir.home}/.tekton_hist"
 TEKTON_HOSTS = {:local => 'http://localhost:9000',
                 :dev   => 'http://tekton.dev.prod.walmart.com',
                 :stg   => 'http://tekton.stg.prod.walmart.com:9000',
-                # :prod  => 'http://10.120.220.37:9000'}
+                # :prod  => 'http://10.120.220.37:9000'}   #  secondary
                 :prod  => 'http://tekton.prod0718.walmart.com'}
 TEKTON_HOSTS[:default] = TEKTON_HOSTS[:prod]
 
@@ -43,10 +43,10 @@ class String
 
   [[:bold, "\e[1m"], [:invert, "\e[7m"], [:red, "\e[31m"], [:green, "\e[32m"], [:yellow, "\e[33m"], [:blue, "\e[34m"]].each do |(name, code)|
     define_method(name) {|background = false|
-      @@with_color ? "#{send("#{name}!", background)}\e[0m" : self
+      @@with_color ? "\e[0m#{"\e[7m" if background}#{code}#{self}\e[0m" : self
     }
     define_method("#{name}!".to_sym) {|background = false|
-      @@with_color ? "\e[0m#{"\e[7m" if background}#{code}#{self}" : self
+      @@with_color ? "#{"\e[7m" if background}#{code}#{self}" : self
     }
   end
 
@@ -341,7 +341,7 @@ end
 def execute(action, *args)
   result = nil
   if action == 'version'
-    say 'CLI version:    1.2.3'
+    say 'CLI version:    1.2.4'
     info = tt_request('server/version', 'Getting tekton version')
     say "Tekton version: #{info.version} (#{info.timestamp})"
     say "Tekton host:    #{@params.tekton_host}"
@@ -393,7 +393,7 @@ def execute(action, *args)
   elsif action == 'oo:subs:transfer'
     subs = execute!('oo:subs', *args)
     subs.each_pair {|name, _| execute('subs:add', name, name.split(':').first)}
-    execute('resources')
+    execute('subs')
 
   elsif action == 'oo:sub:usage'
     sub_name, orgs, _ = args
@@ -768,10 +768,13 @@ def execute(action, *args)
     sub_name, org_name, *resources = args
     required_arg('subscription', sub_name)
     required_arg('org', org_name)
+    known_resources = tt_request('resource', 'Fetching resources').inject({}) {|h, r| h[r.name] = r.name; h}
     values = resources && resources.inject({}) do |h, u|
       name, _ = u.split(/[+-]?[=]/, 2)
-      expr = u[name.size..-1]
-      h[name] = expr unless name.empty? || expr.empty?
+      if known_resources.include?(name)
+        expr = u[name.size..-1]
+        h[name] = expr unless name.empty? || expr.empty?
+      end
       h
     end
     required_arg('resources', values)
@@ -782,7 +785,12 @@ def execute(action, *args)
       orgs.each do |o|
 
         sub = tt_request("subscription/#{s}", "Fetching subscription '#{s}'")
-        execute!('subs:add', s) unless sub
+        unless sub
+          # execute!('subs:add', s)
+          say "Subscription '#{s}' does not exist.  Add subscription first with:".red
+          say " \tsubs:add #{s}".blue
+          exit(1)
+        end
 
         org = tt_request("org/#{o}", "Fetching org '#{o}'")
         execute!('orgs:add', o) unless org
@@ -939,9 +947,13 @@ def execute(action, *args)
   return result
 end
 
+def action_regex(action)
+  /#{action.gsub(/\W+/, '\w*:')}\w*$/
+end
+
 def match_action(action)
   return nil if action.empty?
-  regex = /#{action.gsub(/\W+/, '\w*:')}\w*$/
+  regex = action_regex(action)
   @actions.keys.find {|k| (regex =~ k) == 0}
 end
 
@@ -1064,7 +1076,7 @@ end
   'oo:subs:transfer'      => ['oo:subs:transfer  [-f] ORG [CLOUD_REGEX]', 'transfer subsctiptions in OneOps to Tekton  (idempotent!)'],
   'oo:sub:usage'          => ['oo:sub:usage [--mismatch [--fix]] SUB,...|?[SUB_REGEX]|*[SUB_REGEX] [ORG,...]', 'For a given subscription list usage in OneOps and compare with usage in Tekton'],
   'oo:org:usage'          => ['oo:org:usage ORG [CLOUD_REGEX]', 'For a given org list usage in OneOps and compare with usage in Tekton'],
-  'oo:org:usage:transfer' => ['oo:org:usage:transfer [-f [--omr]] [-b BUFFER_%] ORG [CLOUD_REGEX]', "convert current usage in OneOps into quota in Tekton or update usage for existing Tekton quota with the current ussage in OneOps (idempotent!)\n"]
+  'oo:org:usage:transfer' => ['oo:or./t(:' '):usage:transfer [-f [--omr]] [-b BUFFER_%] ORG [CLOUD_REGEX]', "convert current usage in OneOps into quota in Tekton or update usage for existing Tekton quota with the current ussage in OneOps (idempotent!)\n"]
 }
 @usage = <<-USAGE
 #{'Usage:'.bold}
@@ -1154,7 +1166,7 @@ if @repl
   Readline.completion_proc = lambda do |s|
     split = s.split(/\s+/, 2)
     if split.size == 1 && s[-1] != ' '
-      actions.grep(/^#{Regexp.escape(s)}/)
+      actions.grep(action_regex(s))
     else
       action = @actions[split.first]
       action ? ["Usage: #{action[0]}", ' ' * 100] : []
