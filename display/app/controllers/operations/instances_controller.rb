@@ -7,6 +7,8 @@ class Operations::InstancesController < ApplicationController
 
   CustomAction = Struct.new(:actionId, :actionName, :description)
 
+  helper_method :allow_replace?
+
   def self.load_custom_actions(component)
     Cms::Relation.all(:params => {:ciId              => component.ciId,
                                   :direction         => 'from',
@@ -186,15 +188,33 @@ class Operations::InstancesController < ApplicationController
     id = params[:id]
     if id.present?
       @instance = Cms::Ci.find(id)
-      @instance.state(params[:state], :relationName => 'bom.ManagedVia', :direction => 'to')
-      @error = @instance.errors.full_messages if @instance.errors.present?
+      # Temp hack to allow only global admins do lb replacement.
+      if allow_replace?([@instance])
+        @instance.state(params[:state], :relationName => 'bom.ManagedVia', :direction => 'to')
+        if @instance.errors.present?
+          @error = "Failed to process replace (#{@instance.errors.full_messages}). There are likely some pending deployment changes for this instance and/or other instances managed via this one. " +
+                   'Please deploy or discard pending deployment changes before proceeding with replace.';
+        end
+      else
+        @error = 'Only global admins are allowed to perform LB replacement.'
+      end
       respond_to do |format|
         format.js
         format.json { render_json_ci_response(@error.present?, @instance) }
       end
     else
       ids = params[:ids]
-      result, @error = Cms::Ci.state(ids, params[:state], :relationName => 'bom.ManagedVia', :direction => 'to')
+      # Temp hack to allow only global admins do lb replacement.
+      if allow_replace?(Cms::Ci.all(:params => {:ids => ids.join(',')}))
+        result, @error = Cms::Ci.state(ids, params[:state], :relationName => 'bom.ManagedVia', :direction => 'to')
+        if @error.present?
+          @error = "Failed to process bulk replace (#{@error}). There are likely some pending deployment changes for some of the selected instances and/or other instances managed via these ones. " +
+                   ' Please deploy or discard pending deployment changes for these instances before proceeding with bulk replace.';
+        end
+      else
+        @error = 'Only global admins are allowed to perform LB replacement.'
+      end
+
       respond_to do |format|
         format.js do
           @instance = Cms::Ci.find(ids.first) if @error.present? && ids.size == 1
@@ -421,5 +441,10 @@ class Operations::InstancesController < ApplicationController
     availability_base_time = (availability[:total] - (availability[:states]['unknown'] || 0))
     availability[:availability] = availability_base_time > 0 ? (availability[:states]['good'] || 0).to_f / availability_base_time : nil
     return availability
+  end
+
+  def allow_replace?(instances)
+    class_names = Settings.replace_by_global_admin_only
+    class_names.blank? || !global_admin_mode? || is_global_admin? || instances.none? {|i| class_names.include?(i.ciClassName.split('.').last.downcase)}
   end
 end
