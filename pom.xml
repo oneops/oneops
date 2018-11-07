@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
-  <version>18.10.31-5</version>
+  <version>18.10.31-6-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>OneOps</name>
   <url>http://oneops.com</url>
@@ -11,7 +11,7 @@
     <connection>scm:git:git://gecgithub01.walmart.com/oneops/oneops.git</connection>
     <developerConnection>scm:git:git@gecgithub01.walmart.com:oneops/oneops.git</developerConnection>
     <url>https://gecgithub01.walmart.com/oneops/oneops</url>
-    <tag>release-18.10.31-5</tag>
+    <tag>release-17.09.06-01</tag>
   </scm>
 
   <properties>
