@@ -67,17 +67,18 @@
           </li>
         </ul>
         <% if has_operations?(@assembly.ciId) %>
-          <ul class="status-actions">
-            <li>
-              <%= link_confirm_busy(icon_button('undo', 'Undo Replace', 'info'),
-                                    :url     => state_assembly_operations_instance_path(@assembly, @instance, :params => {:state => 'default'}),
-                                    :body    => "This will mark the component instance '#{@instance.ciName}' back to the default state in OneOps and cancel the pending replacement.".html_safe,
-                                    :confirm => 'Undo Replace?',
-                                    :method  => :put) %>
-            </li>
-          </ul>
+          <% if allow_replace?([@instance])  # Temp hack to allow only global admins do lb replacement. %>
+            <ul class="status-actions">
+              <li>
+                <%= link_confirm_busy(icon_button('undo', 'Undo Replace', 'info'),
+                                      :url     => state_assembly_operations_instance_path(@assembly, @instance, :params => {:state => 'default'}),
+                                      :body    => "This will mark the component instance '#{@instance.ciName}' back to the default state in OneOps and cancel the pending replacement.".html_safe,
+                                      :confirm => 'Undo Replace?',
+                                      :method  => :put) %>
+              </li>
+            </ul>
+          <% end %>
         <% end %>
-
       </div>
     </li>
   <% end %>

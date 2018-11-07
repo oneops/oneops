@@ -102,6 +102,8 @@ defaults: &defaults
   search_http_timeout: <%= ENV['SEARCH_HTTP_TIMEOUT'] || 10 %>
   sensor_http_timeout: <%= ENV['SENSOR_HTTP_TIMEOUT'] || 300 %>
 
+  replace_by_global_admin_only: <%= ENV['REPLACE_BY_GLOBAL_ADMIN_ONLY'] || 'lb' %>
+
 development: &development
   <<: *defaults
 
