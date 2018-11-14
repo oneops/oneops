@@ -201,6 +201,8 @@ module ExecOrderUtils
       if @wo_hash['workorder']['services'].key?('compute')
         cloud_name = @wo_hash['workorder']['cloud']['ciName']
         cs = @wo_hash['workorder']['services']['compute'][cloud_name]
+      elsif @wo_hash['workorder']['payLoad'].key?('compute_service')
+        cs = @wo_hash['workorder']['payLoad']['compute_service'].first
       end
       cs
     end

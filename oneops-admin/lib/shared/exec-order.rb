@@ -53,7 +53,7 @@ end
 #Custom ruby install
 custom_ruby_installed = nil
 if ostype !~ /windows/ &&
-  %w[compute volume os].include?(component)
+  %w[compute volume os objectstore].include?(component)
 
   cr = ExecOrderUtils::CustomRuby.new(json_context, component)
   if cr.custom_ruby_required?
