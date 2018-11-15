@@ -20,6 +20,7 @@ package com.oneops.inductor;
 import com.codahale.metrics.MetricRegistry;
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
+import com.oneops.cms.cm.ops.domain.OpsActionState;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.execution.Response;
 import com.oneops.cms.execution.Result;
@@ -106,27 +107,27 @@ public class Listener implements MessageListener, ApplicationContextAware {
     logger.info(this);
 
     Runtime.getRuntime()
-        .addShutdownHook(
-            new Thread(
-                () -> {
-                  DefaultMessageListenerContainer listenerContainer =
-                      (DefaultMessageListenerContainer)
-                          applicationContext.getBean("listenerContainer");
-                  logger.info("Stopping listener container...");
-                  listenerContainer.stop();
-                  while (activeThreads.get() > 0) {
-                    logger.info(
-                        "Shutdown in progress. sleeping for 10sec. activeThreads: "
-                            + activeThreads);
-                    try {
-                      Thread.sleep(10000);
-                    } catch (InterruptedException e) {
-                      logger.info(
-                          "Got InterruptedException, but will still let the activeThreads complete.");
-                    }
-                  }
-                  logger.info("Shutdown done.");
-                }));
+            .addShutdownHook(
+                    new Thread(
+                            () -> {
+                              DefaultMessageListenerContainer listenerContainer =
+                                      (DefaultMessageListenerContainer)
+                                              applicationContext.getBean("listenerContainer");
+                              logger.info("Stopping listener container...");
+                              listenerContainer.stop();
+                              while (activeThreads.get() > 0) {
+                                logger.info(
+                                        "Shutdown in progress. sleeping for 10sec. activeThreads: "
+                                                + activeThreads);
+                                try {
+                                  Thread.sleep(10000);
+                                } catch (InterruptedException e) {
+                                  logger.info(
+                                          "Got InterruptedException, but will still let the activeThreads complete.");
+                                }
+                              }
+                              logger.info("Shutdown done.");
+                            }));
 
     File testDir = new File(dataDir, "../test");
     logger.info("Verification test directory created: " + testDir.mkdirs());
@@ -139,27 +140,27 @@ public class Listener implements MessageListener, ApplicationContextAware {
 
     if (freeMB < config.getMinFreeSpaceMB()) {
       DefaultMessageListenerContainer listenerContainer =
-          (DefaultMessageListenerContainer) applicationContext.getBean("listenerContainer");
+              (DefaultMessageListenerContainer) applicationContext.getBean("listenerContainer");
 
       logger.info(
-          "Stopping listener container due to "
-              + config.getDataDir()
-              + " free space mb: "
-              + freeMB
-              + " ... min_free_space_mb: "
-              + config.getMinFreeSpaceMB());
+              "Stopping listener container due to "
+                      + config.getDataDir()
+                      + " free space mb: "
+                      + freeMB
+                      + " ... min_free_space_mb: "
+                      + config.getMinFreeSpaceMB());
 
       listenerContainer.stop();
       while (activeThreads.get() > 0) {
         logger.error(
-            "Shutdown in progress due "
-                + config.getDataDir()
-                + " free space mb: "
-                + freeMB
-                + " ... min_free_space_mb: "
-                + config.getMinFreeSpaceMB()
-                + ". sleeping for 10sec. activeThreads: "
-                + activeThreads);
+                "Shutdown in progress due "
+                        + config.getDataDir()
+                        + " free space mb: "
+                        + freeMB
+                        + " ... min_free_space_mb: "
+                        + config.getMinFreeSpaceMB()
+                        + ". sleeping for 10sec. activeThreads: "
+                        + activeThreads);
         try {
           Thread.currentThread().sleep(10000);
         } catch (InterruptedException e) {
@@ -196,58 +197,60 @@ public class Listener implements MessageListener, ApplicationContextAware {
         CmsWorkOrderSimpleBase wo;
 
         switch (type) {
-            // WorkOrder
+          // WorkOrder
           case WORK_ORDER_TYPE:
-            {
-              long t = System.currentTimeMillis();
-              wo = getWorkOrderOf(msgText, CmsWorkOrderSimple.class);
-              wo.putSearchTag("iWoCrtTime", Long.toString(System.currentTimeMillis() - t));
+          {
+            long t = System.currentTimeMillis();
+            wo = getWorkOrderOf(msgText, CmsWorkOrderSimple.class);
+            wo.putSearchTag("iWoCrtTime", Long.toString(System.currentTimeMillis() - t));
 
-              String logKey = workOrderExecutor.getLogKey(wo);
-              logger.info(logKey + " Inductor: " + config.getIpAddr());
-              preProcess(wo);
-              wo.putSearchTag("rfcAction", wo.getAction());
+            String logKey = workOrderExecutor.getLogKey(wo);
+            logger.info(logKey + " Inductor: " + config.getIpAddr());
+            preProcess(wo);
+            wo.putSearchTag("rfcAction", wo.getAction());
 
-              // Enhance WorkOrder with configured ciAttributes
+            // Enhance WorkOrder with configured ciAttributes
 
-              wo = enhanceWorkOrderCiAttributes((CmsWorkOrderSimple) wo);
+            wo = enhanceWorkOrderCiAttributes((CmsWorkOrderSimple) wo);
 
-              Response response = runWoWithMatchingExecutor((CmsWorkOrderSimple) wo);
-              if (response == null || response.getResult() == Result.NOT_MATCHED) {
-                responseMsgMap = workOrderExecutor.processAndVerify(wo, correlationID);
+            Response response = runWoWithMatchingExecutor((CmsWorkOrderSimple) wo);
+            if (response == null || response.getResult() == Result.NOT_MATCHED) {
+              responseMsgMap = workOrderExecutor.processAndVerify(wo, correlationID);
 
-                if (computeKciFailed(responseMsgMap)) {
-                  CmsWorkOrderSimple workorder = updateWorkOrderWithAction(wo, ADD_FAIL_CLEAN);
-                  workOrderExecutor.process(workorder, correlationID);
-                }
-              } else {
-                responseMsgMap = response.getResponseMap();
-                postExecTags(wo);
+              if (computeKciFailed(responseMsgMap)) {
+                CmsWorkOrderSimple workorder = updateWorkOrderWithAction(wo, ADD_FAIL_CLEAN);
+                workOrderExecutor.process(workorder, correlationID);
               }
-              break;
+            } else {
+              responseMsgMap = response.getResponseMap();
+              postExecTags(wo);
             }
-            // ActionOrder
+            break;
+          }
+          // ActionOrder
           case ACTION_ORDER_TYPE:
-            {
-              long t = System.currentTimeMillis();
-              CmsActionOrderSimple actionOrderSimple;
-              actionOrderSimple = getActionOrderOf(msgText, CmsActionOrderSimple.class);
-              actionOrderSimple.putSearchTag("iAoCrtTime", Long.toString(System.currentTimeMillis() - t));
-              preProcess(actionOrderSimple);
+          {
+            long t = System.currentTimeMillis();
+            CmsActionOrderSimple actionOrderSimple;
+            actionOrderSimple = getActionOrderOf(msgText, CmsActionOrderSimple.class);
+            actionOrderSimple.putSearchTag(
+                    "iAoCrtTime", Long.toString(System.currentTimeMillis() - t));
+            preProcess(actionOrderSimple);
 
-              // Enhance ActionOrder with configured ciAttributes
+            // Enhance ActionOrder with configured ciAttributes
 
-              actionOrderSimple = enhanceActionOrderCiAttributes(actionOrderSimple);
+            actionOrderSimple = enhanceActionOrderCiAttributes(actionOrderSimple);
 
-              Response response = runAoWithMatchingExecutor(actionOrderSimple);
-              if (response == null || response.getResult() == Result.NOT_MATCHED) {
-                responseMsgMap = actionOrderExecutor.processAndVerify(actionOrderSimple, correlationID);
-              } else {
-                responseMsgMap = response.getResponseMap();
-                postExecTags(actionOrderSimple);
-              }
-              break;
+            Response response = runAoWithMatchingExecutor(actionOrderSimple);
+            if (response == null || response.getResult() == Result.NOT_MATCHED) {
+              responseMsgMap =
+                      actionOrderExecutor.processAndVerify(actionOrderSimple, correlationID);
+            } else {
+              responseMsgMap = response.getResponseMap();
+              postExecTags(actionOrderSimple);
             }
+            break;
+          }
           default:
             logger.error(new IllegalArgumentException("Unknown msg type - " + type));
             msg.acknowledge();
@@ -311,7 +314,7 @@ public class Listener implements MessageListener, ApplicationContextAware {
 
   private void postExecTags(CmsWorkOrderSimpleBase wo) {
     wo.putSearchTag(
-        CmsConstants.RESPONSE_ENQUE_TS, DateUtil.formatDate(new Date(), SEARCH_TS_PATTERN));
+            CmsConstants.RESPONSE_ENQUE_TS, DateUtil.formatDate(new Date(), SEARCH_TS_PATTERN));
   }
 
   private CmsWorkOrderSimpleBase getWorkOrderOf(String msgText, Class c) {
@@ -338,14 +341,14 @@ public class Listener implements MessageListener, ApplicationContextAware {
   private void setStateFile(CmsWorkOrderSimpleBase wo) {
     String filename = getStateFileName();
     String content =
-        System.currentTimeMillis()
-            + " "
-            + wo.getClassName()
-            + "::"
-            + wo.getAction()
-            + " "
-            + wo.getNsPath()
-            + System.lineSeparator();
+            System.currentTimeMillis()
+                    + " "
+                    + wo.getClassName()
+                    + "::"
+                    + wo.getAction()
+                    + " "
+                    + wo.getNsPath()
+                    + System.lineSeparator();
     writeStateFile(filename, content);
   }
 
@@ -388,7 +391,7 @@ public class Listener implements MessageListener, ApplicationContextAware {
     String currentDate = formatDate(new Date(), SEARCH_TS_PATTERN);
     long currentTime = parseDate(currentDate, SEARCH_TS_FORMATS).getTime();
     long requestEnqueTime =
-        parseDate(wo.getSearchTags().get(REQUEST_ENQUE_TS), SEARCH_TS_FORMATS).getTime();
+            parseDate(wo.getSearchTags().get(REQUEST_ENQUE_TS), SEARCH_TS_FORMATS).getTime();
     return currentTime - requestEnqueTime;
   }
 
@@ -449,26 +452,36 @@ public class Listener implements MessageListener, ApplicationContextAware {
     CmsWorkOrderSimple workOrderSimple = wo;
 
     Map<String, Object> cloudConfig = readCloudConfig(KEYWHIZ_BASE_PATH + CLOUD_CONFIG_FILE_PATH);
+    String cloudName = wo.getCloud().getCiName();
+    String orgName = getOrganizationName(workOrderSimple);
+    if (StringUtils.isBlank(cloudName)||StringUtils.isBlank(orgName)) {
+      logger.info(
+              workOrderExecutor.getLogKey(wo)
+                      + "Cloudname or Orgname not present in Work Order, exectuion failed");
+
+      wo.setDpmtRecordState(FAILED);
+      wo.setComments("Organization info not present in Work Order, execution failed");
+      return wo;
+    }
     if (cloudConfig.isEmpty()) {
       logger.info(
-          actionOrderExecutor.getLogKey(wo)
-              + "No config found, continuing with what is provided in WO/AO.");
+              workOrderExecutor.getLogKey(wo)
+                      + "No config found, continuing with what is provided in Work Order.");
 
       return wo;
     }
 
-    String cloudName = wo.getCloud().getCiName();
-    String orgName = getOrganizationName(workOrderSimple);
     CommonCloudConfigurationsHelper commonCloudConfigurationsHelper =
-        new CommonCloudConfigurationsHelper(logger, getLogKey(workOrderSimple));
+            new CommonCloudConfigurationsHelper(logger, getLogKey(workOrderSimple));
     final Map<String, Object> servicesMap =
-        getServicesMap(commonCloudConfigurationsHelper, cloudConfig, cloudName, orgName);
+            getServicesMap(commonCloudConfigurationsHelper, cloudConfig, cloudName, orgName);
 
-    updateCiAttributes(
-        workOrderSimple,
-        commonCloudConfigurationsHelper,
-        getEnhancedServiceMap(workOrderSimple.getServices(), cloudName, servicesMap));
-
+    if (servicesMap != null && workOrderSimple.getServices() != null) {
+      updateCiAttributes(
+          workOrderSimple,
+          commonCloudConfigurationsHelper,
+          getEnhancedServiceMap(workOrderSimple.getServices(), cloudName, servicesMap));
+}
     return workOrderSimple;
   }
 
@@ -476,25 +489,39 @@ public class Listener implements MessageListener, ApplicationContextAware {
     CmsActionOrderSimple workOrderSimple = wo;
 
     Map<String, Object> cloudConfig = readCloudConfig(KEYWHIZ_BASE_PATH + CLOUD_CONFIG_FILE_PATH);
+
+    String cloudName = wo.getCloud().getCiName();
+    String orgName = getOrganizationNameforActionOrder(workOrderSimple);
+    if (StringUtils.isBlank(cloudName)||StringUtils.isBlank(orgName)) {
+      logger.info(
+              actionOrderExecutor.getLogKey(wo)
+                      + "Cloudname or Orgname not present in Action Order, execution failed");
+
+
+      wo.setActionState(OpsActionState.failed);
+      wo.setComments("Organization info not present in Action Order, execution failed");
+      return wo;
+    }
     if (cloudConfig.isEmpty()) {
       logger.info(
-          actionOrderExecutor.getLogKey(wo)
-              + "No config found, continuing with what is provided in AO.");
+              actionOrderExecutor.getLogKey(wo)
+                      + "No config found, continuing with what is provided in AO.");
 
       return wo;
     }
 
-    String cloudName = wo.getCloud().getCiName();
-    String orgName = getOrganizationNameforActionOrder(workOrderSimple);
     CommonCloudConfigurationsHelper commonCloudConfigurationsHelper =
-        new CommonCloudConfigurationsHelper(logger, getLogKey(workOrderSimple));
+            new CommonCloudConfigurationsHelper(logger, getLogKey(workOrderSimple));
     final Map<String, Object> servicesMap =
-        getServicesMap(commonCloudConfigurationsHelper, cloudConfig, cloudName, orgName);
+            getServicesMap(commonCloudConfigurationsHelper, cloudConfig, cloudName, orgName);
 
-    updateCiAttributesforActionOrder(
-        workOrderSimple,
-        commonCloudConfigurationsHelper,
-        getEnhancedServiceMap(workOrderSimple.getServices(), cloudName, servicesMap));
+    if(servicesMap!=null&&workOrderSimple.getServices()!=null){
+      updateCiAttributesforActionOrder(
+              workOrderSimple,
+              commonCloudConfigurationsHelper,
+              getEnhancedServiceMap(workOrderSimple.getServices(), cloudName, servicesMap));
+    }
+
 
     return workOrderSimple;
   }
@@ -508,38 +535,52 @@ public class Listener implements MessageListener, ApplicationContextAware {
 
   public String getOrganizationNameforActionOrder(CmsActionOrderSimple wo) {
     String orgName = "";
-    if (wo.getPayLoad().containsKey("Organization")) {
-      if (!wo.getPayLoad().get("Organization").isEmpty()) {
-        orgName = wo.getPayLoad().get("Organization").get(0).getCiName();
+    if (wo.getPayLoad() != null) {
+      if (wo.getPayLoad().containsKey("Organization")) {
+        if (!wo.getPayLoad().get("Organization").isEmpty()) {
+          orgName = wo.getPayLoad().get("Organization").get(0).getCiName();
+        }
       }
     }
+    if(StringUtils.isBlank(orgName)){
+      orgName=  StringUtils.substringBetween(wo.getNsPath(),"/","/");
+    }
+    logger.info("::: In Action Order Organization Name ::::    " + orgName);
     return orgName;
   }
 
   public String getOrganizationName(CmsWorkOrderSimple wo) {
     String orgName = "";
-    if (wo.getPayLoad().containsKey("Organization")) {
-      if (!wo.getPayLoad().get("Organization").isEmpty()) {
-        orgName = wo.getPayLoad().get("Organization").get(0).getCiName();
+    if (wo.getPayLoad() != null) {
+      if (wo.getPayLoad().containsKey("Organization")) {
+        if (!wo.getPayLoad().get("Organization").isEmpty()) {
+          orgName = wo.getPayLoad().get("Organization").get(0).getCiName();
+        }
       }
     }
+    if(StringUtils.isBlank(orgName)){
+      orgName=  StringUtils.substringBetween(wo.getNsPath(),"/","/");
+
+    }
+    logger.info(":::: In Work Order Organization Name ::::    "+orgName);
     return orgName;
   }
+
 
   public String getCloudName(CmsWorkOrderSimple wo) {
     return wo.getCloud().getCiName();
   }
 
   public Map<String, Object> getServicesMap(
-      CommonCloudConfigurationsHelper commonCloudConfigurationsHelper,
-      Map<String, Object> cloudConfig,
-      String cloudName,
-      String orgName) {
+          CommonCloudConfigurationsHelper commonCloudConfigurationsHelper,
+          Map<String, Object> cloudConfig,
+          String cloudName,
+          String orgName) {
     Map<String, Object> servicesMap =
-        commonCloudConfigurationsHelper.findServicesAtOrgLevel(cloudConfig, orgName, cloudName);
+            commonCloudConfigurationsHelper.findServicesAtOrgLevel(cloudConfig, orgName, cloudName);
     if (servicesMap.isEmpty()) {
       servicesMap =
-          commonCloudConfigurationsHelper.findServicesAtCloudLevel(cloudConfig, cloudName);
+              commonCloudConfigurationsHelper.findServicesAtCloudLevel(cloudConfig, cloudName);
       if (servicesMap.isEmpty()) {
         servicesMap = cloudConfig;
       }
@@ -548,100 +589,93 @@ public class Listener implements MessageListener, ApplicationContextAware {
   }
 
   public void updateCiAttributes(
-      CmsWorkOrderSimple wo,
-      CommonCloudConfigurationsHelper commonCloudConfigurationsHelper,
-      Map<String, Object> servicesMap) {
+          CmsWorkOrderSimple wo,
+          CommonCloudConfigurationsHelper commonCloudConfigurationsHelper,
+          Map<String, Object> servicesMap) {
 
     String cloudName = getCloudName(wo);
     Map<String, Map<String, CmsCISimple>> services = wo.getServices();
 
     enhanceServices(
-        commonCloudConfigurationsHelper,
-        servicesMap,
-        cloudName,
-        services,
-        getLogKey(wo));
+            commonCloudConfigurationsHelper, servicesMap, cloudName, services, getLogKey(wo));
   }
 
   public void enhanceServices(
-      CommonCloudConfigurationsHelper commonCloudConfigurationsHelper,
-      Map<String, Object> servicesMap,
-      String cloudName,
-      Map<String, Map<String, CmsCISimple>> services,
-      String logKey) {
+          CommonCloudConfigurationsHelper commonCloudConfigurationsHelper,
+          Map<String, Object> servicesMap,
+          String cloudName,
+          Map<String, Map<String, CmsCISimple>> services,
+          String logKey) {
     services.forEach(
-        (serviceKey, serviceValue) -> {
-          try {
-            if (serviceValue.containsKey(cloudName)) {
-              String className = getShortenedClass(serviceValue.get(cloudName).getCiClassName());
+            (serviceKey, serviceValue) -> {
+              try {
+                if (serviceValue.containsKey(cloudName)) {
+                  String className = getShortenedClass(serviceValue.get(cloudName).getCiClassName());
 
-              Map<String, Object> cloudCommonCiAttributes =
-                  commonCloudConfigurationsHelper.findClassCiAttributes(
-                      commonCloudConfigurationsHelper.findServiceClasses(servicesMap, serviceKey),
-                      className);
-              logger.info(
-                  logKey
-                      + "Verifying  "
-                      + cloudName
-                      + " "
-                      + serviceKey
-                      + " attributes for class name "
-                      + className);
+                  Map<String, Object> cloudCommonCiAttributes =
+                          commonCloudConfigurationsHelper.findClassCiAttributes(
+                                  commonCloudConfigurationsHelper.findServiceClasses(servicesMap, serviceKey),
+                                  className);
+                  logger.info(
+                          logKey
+                                  + "Verifying  "
+                                  + cloudName
+                                  + " "
+                                  + serviceKey
+                                  + " attributes for class name "
+                                  + className);
 
-              cloudCommonCiAttributes.forEach(
-                  (ciAttrKey, ciAttrValue) -> {
-                    try {
-                      String value = ciAttrValue.toString();
-                      if (value.contains(KEYWHIZ_PREFIX)) {
-                        value = getFromKeywhiz(ciAttrKey, value);
-                      }
-                      if (value != null) {
+                  cloudCommonCiAttributes.forEach(
+                          (ciAttrKey, ciAttrValue) -> {
+                            try {
+                              String value = ciAttrValue.toString();
+                              if (value.contains(KEYWHIZ_PREFIX)) {
+                                value = getFromKeywhiz(ciAttrKey, value);
+                              }
+                              if (value != null) {
 
-                        logger.info(logKey + "Changing component attribute: " + ciAttrKey);
-                        services
-                            .get(serviceKey)
-                            .get(cloudName)
-                            .getCiAttributes()
-                            .put(ciAttrKey, value);
-                      }
-                    } catch (Exception e) {
-                      logger.info(
-                          String.format(" Action/Work Order Exception  :: %s %s", logKey, e.getMessage()));
-                    }
-                  });
-            }
-          } catch (Exception e) {
-            logger.info(logKey + e.getMessage());
-          }
-        });
+                                logger.info(logKey + "Changing component attribute: " + ciAttrKey);
+                                services
+                                        .get(serviceKey)
+                                        .get(cloudName)
+                                        .getCiAttributes()
+                                        .put(ciAttrKey, value);
+                              }
+                            } catch (Exception e) {
+                              logger.info(
+                                      String.format(
+                                              " Action/Work Order Exception  :: %s %s", logKey, e.getMessage()));
+                            }
+                          });
+                }
+              } catch (Exception e) {
+                logger.info(logKey + e.getMessage());
+              }
+            });
   }
 
   public void updateCiAttributesforActionOrder(
-      CmsActionOrderSimple wo,
-      CommonCloudConfigurationsHelper commonCloudConfigurationsHelper,
-      Map<String, Object> servicesMap) {
+          CmsActionOrderSimple wo,
+          CommonCloudConfigurationsHelper commonCloudConfigurationsHelper,
+          Map<String, Object> servicesMap) {
 
     String cloudName = wo.getCloud().getCiName();
     Map<String, Map<String, CmsCISimple>> services = wo.getServices();
 
     enhanceServices(
-        commonCloudConfigurationsHelper,
-        servicesMap,
-        cloudName,
-        services,
-        getLogKey(wo));
+            commonCloudConfigurationsHelper, servicesMap, cloudName, services, getLogKey(wo));
   }
 
   public Map<String, Object> getEnhancedServiceMap(
-      Map<String, Map<String, CmsCISimple>> services,
-      String cloudName,
-      Map<String, Object> servicesMap) {
+          Map<String, Map<String, CmsCISimple>> services,
+          String cloudName,
+          Map<String, Object> servicesMap) {
     // If infoblox is not in inputted cloud's work order, no need to enhanced service map
     if (!services.containsKey(INFOBLOX_SN) || services.get(INFOBLOX_SN).get(cloudName) == null) {
       return servicesMap;
     }
     String woInfobloxValue =
-        services.get(INFOBLOX_SN).get(cloudName).getCiAttributes().get(INFOBLOX_PARAM);
+            services.get(INFOBLOX_SN).get(cloudName).getCiAttributes().get(INFOBLOX_PARAM);
     if (woInfobloxValue == null) {
       return servicesMap;
     }
@@ -649,26 +683,26 @@ public class Listener implements MessageListener, ApplicationContextAware {
     final Map<String, Object> enMap = new HashMap<>();
 
     servicesMap
-        .entrySet()
-        .forEach(
-            e -> {
-              Map<String, Object> data = (Map<String, Object>) e.getValue();
-              if (e.getKey().equalsIgnoreCase(INFOBLOX_SN)) {
-                if (data.containsKey(INFOBLOX_CN)) {
-                  Map<Object, Object> ibService =
-                      getFromInfoblox(woInfobloxValue, data, INFOBLOX_CN);
-                  enMap.put(e.getKey(), ibService);
-                }
-              } else {
-                enMap.put(e.getKey(), e.getValue());
-              }
-            });
+            .entrySet()
+            .forEach(
+                    e -> {
+                      Map<String, Object> data = (Map<String, Object>) e.getValue();
+                      if (e.getKey().equalsIgnoreCase(INFOBLOX_SN)) {
+                        if (data.containsKey(INFOBLOX_CN)) {
+                          Map<Object, Object> ibService =
+                                  getFromInfoblox(woInfobloxValue, data, INFOBLOX_CN);
+                          enMap.put(e.getKey(), ibService);
+                        }
+                      } else {
+                        enMap.put(e.getKey(), e.getValue());
+                      }
+                    });
 
     return enMap;
   }
 
   public Map<Object, Object> getFromInfoblox(
-      String patternParam, Map<String, Object> data, String servicename) {
+          String patternParam, Map<String, Object> data, String servicename) {
 
     Map<Object, Object> ibloxConfig = new HashMap<>();
 
