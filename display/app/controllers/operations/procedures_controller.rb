@@ -3,10 +3,10 @@ class Operations::ProceduresController < ApplicationController
 
   helper_method :allow_access?
 
-  swagger_controller :procedures, 'Operations Procedures/Actions Management'
+  swagger_controller :procedures, 'Operations Procedure/Action Management'
 
   swagger_api :index do
-    summary 'Fetches operations procedures.'
+    summary 'Fetch operations procedures.'
     notes 'Returns a list of most recently created operations procedures (including individual actions) for a given ' \
           'anchor (use <b>ciId</b> param) or action target CI (use <b>actionCiId</b> param) or namespace (use <b>ns_path</b> param).'
     param_org_name
@@ -17,8 +17,6 @@ class Operations::ProceduresController < ApplicationController
     param :query, 'name', :string, :optional, 'Procedure name (the same action name except for some cases of dedicated pack-defined procedures) to filter results.'
     param :query, 'size', :number, :optional, 'Max number of procedures to return (default and max value is 100).'
     param :query, 'include_actions', :boolean, :optional, 'true|false. Include actions in response - applicable only when querying by <b>ns_path</b> (default: true).'
-    response :unauthorized
-    response :unprocessable_entity
   end
   def index
     anchor_ci_id = params[:ciId]
@@ -123,6 +121,50 @@ class Operations::ProceduresController < ApplicationController
     new
   end
 
+  swagger_api :create do
+    summary 'Create and start a procedure or action.'
+    param_org_name
+    param :body, :body, :json, :required, 'See examples above.'
+    notes <<-NOTE
+JSON body payload examples.
+'Restart' action for single instance with ciId=2146947:
+<pre style="white-space:pre-wrap">
+{
+  "cms_procedure": {
+    "procedureCiId": "0",
+    "procedureName": "restart-instance",
+    "ciId": "2146947",
+    "procedureState": "active",
+    "definition": "{\"name\":\"restart\",\"flow\":[],\"actions\":[{\"actionName\":\"restart\"}]}"
+  }
+}
+</pre>
+'Reboot' action for all instances of component with ciId=2091578 at the same time:
+<pre style="white-space:pre-wrap">
+{
+  "cms_procedure": {
+    "procedureCiId": "0",
+    "procedureName": "reboot-all-instances",
+    "ciId": "2091578",
+    "procedureState": "active",
+    "definition": "{\"name\":\"reboot\",\"flow\":[{\"relationName\":\"base.RealizedAs\",\"direction\":\"from\",\"actions\":[{\"actionName\":\"reboot\",\"stepNumber\":1,\"isCritical\":true}]}]}"
+  }
+}
+</pre>
+'Repair' action for 4 instances of component with ciId=2091578 two at a time:
+<pre style="white-space:pre-wrap">
+{
+  "cms_procedure": {
+    "procedureCiId": "0",
+    "procedureName": "repair-by-two",
+    "ciId": "2091578",
+    "procedureState": "active",
+    "definition": "{\"name\":\"repair\",\"flow\":[{\"relationName\":\"base.RealizedAs\",\"direction\":\"from\",\"targetIds\":[2146947,2146948],\"actions\":[{\"actionName\":\"repair\",\"stepNumber\":1,\"isCritical\":true}]},{\"relationName\":\"base.RealizedAs\",\"direction\":\"from\",\"targetIds\":[2146950,2146951],\"actions\":[{\"actionName\":\"repair\",\"stepNumber\":2,\"isCritical\":true}]}]}"
+  }
+}
+</pre>
+NOTE
+  end
   def create
     @procedure = Cms::Procedure.build(params[:cms_procedure])
     return unauthorized unless allow_access?(@procedure.ciId, false)

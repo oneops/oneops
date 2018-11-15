@@ -2,6 +2,8 @@ class Transition::DeploymentsController < ApplicationController
   before_filter :find_assembly_and_environment, :except => [:log_data, :time_stats, :progress]
   before_filter :find_deployment, :only => [:status, :show, :edit, :update, :time_stats, :progress]
 
+  swagger_controller :deployments, 'Environment Deployment Functions'
+
   def index
     if @environment || @assembly
       @source = params[:source].presence || (request.format.html? || request.format.xhr? ? 'es' : 'cms')
@@ -143,6 +145,28 @@ class Transition::DeploymentsController < ApplicationController
     end
   end
 
+  swagger_api :bom do
+    summary 'Commit open release changes (optionally) and preview plan for pending deployment changes.'
+    param_path_parent_ids :assembly, :environment
+    param :query, :commit, :string, :optional, "Set to 'true' to commit open environment release."
+    param :query, :exclude_platforms, :string, :optional, 'Commas separated list of platform CI IDs to be excluded from deployment plan.'
+    param :query, :desc, :string, :optional, 'Optional release commit comments.'
+    param :query, :cost, :string, :optional, "Set to 'true' to return cost change info for deployment plan."
+    param :query, :capacity, :string, :optional, "Set to 'true' to return capacity increase/decrease info for deployment plan."
+    notes <<-NOTE
+This request allows to preview deployment plan. Optionally you can commit open release changes for environment before
+generating the plan.  Since deployment plan is generated in-memory only with no persistence it should not take too long
+and therefore this is a blocking request.
+JSON body payload example:
+<pre>
+{
+  "commit": "true",
+  "desc": "Some env commit comments"
+  "capacity": "true"
+}
+</pre>
+NOTE
+  end
   def bom
     data = nil
     if @environment.ciState == 'locked'
@@ -203,8 +227,28 @@ class Transition::DeploymentsController < ApplicationController
     end
   end
 
+  swagger_api :create do
+    summary 'Create and start deployment.'
+    param_path_parent_ids :assembly, :environment
+    param :form, 'cms_deployment[exclude_platforms]', :string, :optional, 'Commas separated list of platform CI IDs to be excluded from deployment.'
+    param :form, 'cms_deployment[comments]', :string, :optional, 'Optional deployment comments.'
+    notes <<-NOTE
+JSON body payload example:
+<pre>
+{
+  "cms_deployment": {
+    "exclude_platforms": "",
+    "comments": "Some deployment comments",
+    "nsPath": "/oneops/dynatrace/e1/bom"
+  }
+}
+</pre>
+NOTE
+  end
   def create
-    deployment_hash   = params[:cms_deployment]
+    deployment_hash = params[:cms_deployment]
+    deployment_hash[:nsPath] = environment_bom_ns_path(@environment)
+
     override_password = deployment_hash.delete(:override_password)
     @deployment       = Cms::Deployment.build(deployment_hash)
 
@@ -218,7 +262,7 @@ class Transition::DeploymentsController < ApplicationController
           ok = false
           @environment.errors.add('Cannot deploy: there is already an active deployment in progress for this environment.')
         else
-          ok, message = Transistor.deploy(@environment.ciId, @deployment, params[:exclude_platforms])
+          ok, message = Transistor.deploy(@environment.ciId, @deployment, params[:exclude_platforms] || '')
           if ok
             @environment.ciState = 'locked'
             @deployment = nil

@@ -4,25 +4,37 @@ class Swagger::Docs::Config
   end
 end
 
+module Swagger::Docs::Methods::ClassMethods
+  alias_method :swagger_api_base, :swagger_api
+
+  def swagger_api(action, params = {}, &block)
+    responses = params.delete(:responses)
+    swagger_api_base(action, params, &block)
+    swagger_api_base(action) do
+      if responses.blank?
+        response :ok
+        response :unauthorized
+        response :not_found
+        response :unprocessable_entity
+      else
+        responses.each {|r| response r} if responses.present?
+      end
+    end
+  end
+end
+
 class Swagger::Docs::SwaggerDSL
   def param_org_name
     param :path, 'org_name', :string, :required, 'Organization name'
   end
 
-  def param_parent_ci_id(name)
-    param :path,
-          "#{name}_id",
-          :string,
-          :required,
-          "#{name.capitalize.to_s} CI id (if consists of digits only) or name (otherwise). "
+  def param_path_ci_id(name)
+    param :path, 'id', :string, :required, "#{name.capitalize.to_s} id (ciId) or name (ciName)."
   end
 
-  def param_ci_id(name)
-    param :path,
-          'id',
-          :string,
-          :required,
-          "#{name.capitalize.to_s} CI id (if consists of digits only) or name (otherwise). "
+  def param_path_parent_ids(*names)
+    param_org_name
+    names.each {|n| param :path, "#{n}_id", :string, :required, "#{n.capitalize.to_s} id (ciId) or name (ciName)."}
   end
 end
 
