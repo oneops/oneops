@@ -13,7 +13,7 @@
     <% end %>
     <% builder.bottom raw("created #{time_ago_in_words(group.created_at)} by #{group.created_by}") %>
     <% builder.menu do %>
-      <%= link_to(icon('times', 'Leave'), account_group_member_path(group, current_user.id), :method => :delete, :remote => true, :confirm => "Leave group #{group.name}?") %>
+      <%= link_to(icon('download', 'Download members', 'faw-fw'), account_group_members_path(group, :format => :csv)) %>
     <% end %>
   <% end %>
 <% end %>

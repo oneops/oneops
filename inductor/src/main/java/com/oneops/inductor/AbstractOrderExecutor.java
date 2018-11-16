@@ -1009,7 +1009,56 @@ public abstract class AbstractOrderExecutor {
     st.add("ruby_bindir", rubyBindir);
     st.add("provisioner_root_path", provisionerPath);
     st.add("verifier_root_path", getVerifierPath(wo));
+    st.add("custom_install", getCustomInstallCmd(wo));
+    st.add("custom_serverspec", getCustomServerspecCmd(wo));
     return st.render();
+  }
+
+  /**
+  * Returns custom serverspec command, building in env variables WORKORDER, GEM_PATH
+  *
+  * @param wo wo/ao.
+  * @return custom serverspec command
+  */
+  private String getCustomServerspecCmd(CmsWorkOrderSimpleBase wo) {
+
+    String sudo = isWinCompute(wo) ? "" : "sudo -E env ";
+    String wo_env = "WORKORDER=" + getRemoteFileName(wo) + " ";
+    String gem_path = isWinCompute(wo) ? "" : "GEM_PATH=$(<%= ruby_path %>/gem env gempath):/tmp/verifier/gems ";
+    String rubyPath = "<%= ruby_path %>/ruby ";
+    String rspecPath = isWinCompute(wo) ? "<%= ruby_path %>/rspec " : "/tmp/verifier/gems/bin/rspec ";
+    String custom_serverspec =
+      sudo
+      + wo_env
+      + gem_path
+      + rubyPath
+      + rspecPath
+      + getVerifierPath(wo) + "/data/" + wo.getAction() + "/serverspec/";
+
+    return custom_serverspec;
+  }
+
+  /**
+  * Returns custom install command for linux, empty string for windows
+  *
+  * @param wo wo/ao.
+  * @return custom  install serverspec command
+  */
+  private String getCustomInstallCmd(CmsWorkOrderSimpleBase wo) {
+
+    if (isWinCompute(wo)) {
+      return "''";
+    }
+    else {
+      String circuitName = getCookbookPath(wo.getClassName());
+      String customCmd =
+      "GEM_HOME=/tmp/verifier/gems "
+      + "<%= ruby_path %>/bundle install "
+      + "--gemfile=\"/home/oneops/"
+      + circuitName
+      + "/components/kitchen-integration/Gemfile\"";
+      return customCmd;
+    }
   }
 
   /**

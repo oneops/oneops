@@ -21,7 +21,7 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-impl              = ARGV[0]
+impl              = 'oo::chef-11.18.12' #ARGV[0]
 json_context      = ARGV[1]
 cookbook_path     = ARGV[2] || ''
 service_cookbooks = ARGV[3] || ''
@@ -42,6 +42,7 @@ if ostype =~ /windows/
   impl = 'oo::chef-12.11.18'
   json_context = prefix_root + json_context
 end
+lock_file = prefix_root + '/tmp/exec-order.lock'
 dsl, version = impl.split('::')[1].split('-') # ex) oo::chef-10.16.6::optional_uri_for_cookbook_or_module
 if !ENV['class'].nil? && !ENV['class'].empty?
   component = ENV['class'].downcase
@@ -49,12 +50,20 @@ else
   component = json_context.split('/').last.split('.').first.downcase
 end
 
+#Custom ruby install
+custom_ruby_installed = nil
+if ostype !~ /windows/ &&
+  %w[compute volume os objectstore].include?(component)
+
+  cr = ExecOrderUtils::CustomRuby.new(json_context, component)
+  if cr.custom_ruby_required?
+    cr.install_custom_ruby if cr.install_needed?
+    custom_ruby_installed = cr.installed_package_version
+  end
+end
+
 # set cwd to same dir as the exe-order.rb file
 Dir.chdir File.dirname(__FILE__)
-
-if !fast_image
-  gem_list = get_gem_list(dsl, version)
-end
 
 case dsl
 when "chef"
@@ -68,10 +77,10 @@ when "chef"
   #we want to make sure rubygems sources on the VM match rubygems_proxy env variable from compute cloud service
   #otherwise changes to the cloud service will require updating compute component
   #have to be called after chef is installed on windows, as that's the chef installation that also installs rubygems
-  if !fast_image
-    update_gem_sources(gem_sources, log_level)
-
+  update_gem_sources(gem_sources, log_level)
+  unless fast_image || custom_ruby_installed
     #Run bunle to insert/update neccessary gems if needed
+    puts 'Installing gems from a gemfile'
     install_using_prebuilt_gemfile(gem_sources, component, dsl, version)
   end
 
@@ -136,6 +145,7 @@ when "chef"
       bindir = custom_ruby_bindir
       ENV['GEM_PATH'] = '/home/oneops/ruby/2.0.0-p648/lib/ruby/gems/2.0.0'
       ENV['PATH'] = "#{custom_ruby_bindir}:#{ENV['PATH']}"
+      puts "Custom ruby found, bindir :#{bindir}"
     else # fall back to old method
       bindir = `gem env | grep 'EXECUTABLE DIRECTORY' | awk '{print $4}'`.to_s.chomp
     end
@@ -147,10 +157,14 @@ when "chef"
     cmd = "#{bindir}/chef-solo -l #{log_level} -F #{formatter} -c #{chef_config} -j #{json_context}"
   end
   puts cmd
-  system cmd
-  if $?.exitstatus != 0
-    puts "CHEF SOLO failed, #{$?}"
-    exit $?.exitstatus
+  #Obtain shared lock
+  File.open(lock_file, File::RDWR|File::CREAT, 0644) do |f|
+    f.flock(File::LOCK_SH)
+    system cmd
+    if $?.exitstatus != 0
+      puts "CHEF SOLO failed, #{$?}"
+      exit $?.exitstatus
+    end
   end
 
 when "puppet"
@@ -162,6 +176,7 @@ when "puppet"
   update_gem_sources(gem_sources, log_level)
 
   #Run bunle to insert/update neccessary gems if needed
+  gem_list = get_gem_list(dsl, version)
   gen_gemfile_and_install(gem_sources, gem_list, component, dsl, log_level)
 
   # run puppet apply for each item in the run_list

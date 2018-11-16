@@ -33,6 +33,7 @@ import java.util.Map;
 import com.oneops.cms.cm.ops.service.OpsProcedureProcessor;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.service.CmsDpmtProcessor;
+import com.oneops.cms.util.domain.CmsVar;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.apache.log4j.Logger;
 import org.springframework.http.HttpStatus;
@@ -393,23 +394,50 @@ public class CMSClientTest {
 	public void isDeployerStepsInLimitTrueTest(){
 		Integer[] stepTotals = {11,24,37,94,58};
 		when(cmsDpmtProcessor.getDeploymentDistinctStepsTotal(1234)).thenReturn(Arrays.asList(stepTotals));
-		assertEquals(cc.isDeployerStepsInLimit(100, 1234), true);
+		CmsVar var = new CmsVar();
+		var.setValue("100");
+		when(cmsCmProcessor.getCmSimpleVar("DEPLOYER_STEPS_LIMIT")).thenReturn(var);
+		assertEquals(cc.isDeployerStepsInLimit( 1234), true);
 	}
 
 	@Test
 	public void isDeployerStepsInLimitFalseTest(){
 		Integer[] stepTotals = {11,124,37,94,58};
 		when(cmsDpmtProcessor.getDeploymentDistinctStepsTotal(1234)).thenReturn(Arrays.asList(stepTotals));
-		assertEquals(cc.isDeployerStepsInLimit(100, 1234), false);
+		CmsVar var = new CmsVar();
+		var.setValue("100");
+		when(cmsCmProcessor.getCmSimpleVar("DEPLOYER_STEPS_LIMIT")).thenReturn(var);
+		assertEquals(cc.isDeployerStepsInLimit(1234), false);
 	}
 
 	@Test
 	public void isDeployerStepsInLimitNullZeroTest(){
 		when(cmsDpmtProcessor.getDeploymentDistinctStepsTotal(1234)).thenReturn(null);
-		assertEquals(cc.isDeployerStepsInLimit(100, 1234), false);
+		CmsVar var = new CmsVar();
+		var.setValue("100");
+		when(cmsCmProcessor.getCmSimpleVar("DEPLOYER_STEPS_LIMIT")).thenReturn(var);
+		assertEquals(cc.isDeployerStepsInLimit(1234), false);
 
 		Integer[] stepTotals = {};
 		when(cmsDpmtProcessor.getDeploymentDistinctStepsTotal(1234)).thenReturn(Arrays.asList(stepTotals));
-		assertEquals(cc.isDeployerStepsInLimit(100, 1234), false);
+		assertEquals(cc.isDeployerStepsInLimit(1234), false);
+	}
+
+	@Test
+	public void isDeployerStepsInLimitUndefinedTest(){
+		Integer[] stepTotals = {11,124,37,94,58};
+		when(cmsDpmtProcessor.getDeploymentDistinctStepsTotal(1234)).thenReturn(Arrays.asList(stepTotals));
+		when(cmsCmProcessor.getCmSimpleVar("DEPLOYER_STEPS_LIMIT")).thenReturn(null);
+		assertEquals(cc.isDeployerStepsInLimit(1234), false);
+	}
+
+	@Test
+	public void isDeployerStepsInLimitNumberFormatTest(){
+		Integer[] stepTotals = {11,124,37,94,58};
+		CmsVar var = new CmsVar();
+		var.setValue("NumberFormatException");
+		when(cmsDpmtProcessor.getDeploymentDistinctStepsTotal(1234)).thenReturn(Arrays.asList(stepTotals));
+		when(cmsCmProcessor.getCmSimpleVar("DEPLOYER_STEPS_LIMIT")).thenReturn(var);
+		assertEquals(cc.isDeployerStepsInLimit(1234), false);
 	}
 }

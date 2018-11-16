@@ -303,6 +303,12 @@ class SupportController < ReportsController
     return unauthorized unless is_global_admin?
 
     @groups = Group.where(:name => Settings.global_admin_groups.split(',')).all
+    respond_to do |format|
+      format.html
+      format.json do
+        result = @groups.inject
+      end
+    end
   end
 
   def cost
@@ -464,15 +470,5 @@ class SupportController < ReportsController
     end
 
     unauthorized unless has_support_permission?(perm)
-  end
-
-  def render_csv(data, fields, fields_to_escape = nil)
-    delimiter = params[:delimiter].presence || ','
-    csv = fields.join(delimiter) << "\n"
-    data.each do |o|
-      fields_to_escape.each {|f| o[f] = %("#{o[f]}")} if fields_to_escape.present?
-      csv << fields.inject([]) {|a, k| a << o[k]}.join(delimiter) << "\n"
-    end
-    render :text => csv #, :content_type => 'text/data_string'
   end
 end

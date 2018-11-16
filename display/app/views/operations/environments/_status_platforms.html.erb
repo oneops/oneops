@@ -1,45 +1,41 @@
-<% enabled_platforms_count = @platforms.reject{ |e| e.relationAttributes.enabled != 'true' }.count %>
-<% disabled_platforms_count = @platforms.reject{ |e| e.relationAttributes.enabled == 'true' }.count %>
+<% enabled_platforms_count = @platforms.reject {|e| e.relationAttributes.enabled != 'true'}.count %>
+<% disabled_platforms_count = @platforms.reject {|e| e.relationAttributes.enabled == 'true'}.count %>
 <% instane_count = @platform_instance_counts.values.sum %>
-<% if disabled_platforms_count == 0 %>
-	<li class="status-marker">
-		<div class="marker">
-			<%= status_marker('platforms', 'enabled', 'label-success') %>
-		</div>
-		<div class="description">
-			<ul>
-				<li><%= icon('info-circle') %> All <%= @platforms.count %> platforms are <b>enabled</b></li>
-				<li><%= icon('arrow-left') %> Go to <%= link_to highlight('transition','info'), assembly_transition_environment_path(@assembly,@environment) %>
-					to disable platforms</li>
-				<li><%= icon('check-circle') %> Environment has total of <%= highlight(instane_count, 'info') %> deployed instances</li>
-			</ul>
-		</div>
-	</li>
-<% elsif disabled_platforms_count == @platforms.count %>
-	<li class="status-marker">
-		<div class="marker">
-			<%= status_marker('platforms', 'disabled') %>
-		</div>
-		<div class="description">
-			<ul>
-				<li><%= icon('info-circle') %> All <%= @platforms.count %> platforms are <b>disabled</b></li>
-				<li><%= icon('arrow-left') %> Go to <%= link_to highlight('transition','info'), assembly_transition_environment_path(@assembly,@environment) %> to enable platforms</li>
-			</ul>
-		</div>
-	</li>
-<% else %>
-	<li class="status-marker">
-		<div class="marker">
-			<%= status_marker('platforms', 'partial', 'label-success') %>
-		</div>
-		<div class="description">
-			<ul>
-				<li><%= icon('info-circle') %> <b><%= enabled_platforms_count %></b> of <%= @platforms.count %> platforms are <b>enabled</b></li>
-				<li><%= icon('arrow-left') %> Go to <%= link_to highlight('transition','info'), assembly_transition_environment_path(@assembly,@environment) %> to enable or disable platforms</li>
-				<li><%= icon('check-circle') %> Environment has total of <%= highlight(instane_count, 'info') %> deployed instances</li>
-			</ul>
-		</div>
-	</li>
-<% end %>
+<li class="status-marker">
+  <div class="marker">
+    <% if disabled_platforms_count == 0 %>
+      <%= status_marker('platforms', 'enabled', 'label-success') %>
+    <% elsif disabled_platforms_count == @platforms.count %>
+      <%= status_marker('platforms', 'disabled') %>
+    <% else %>
+      <%= status_marker('platforms', 'partial', 'label-success') %>
+    <% end %>
+  </div>
+  <div class="description">
+    <dl class="dl-horizontal">
+      <dt><%= icon('info-circle') %></dt>
+      <% if disabled_platforms_count == 0 %>
+        <dd>All <%= @platforms.count %> platforms are <b>enabled</b></dd>
+      <% elsif disabled_platforms_count == @platforms.count %>
+        <dd>All <%= @platforms.count %> platforms are <b>disabled</b></dd>
+      <% else %>
+        <dd><b><%= enabled_platforms_count %></b> of <%= @platforms.count %> platforms are <b>enabled</b></dd>
+      <% end %>
+      <dt><%= icon('check-circle') %></dt>
+      <dd> Environment has total of <%= highlight(instane_count, 'info') %> deployed instances</dd>
+      <dt><%= icon('terminal') %></dt>
+      <dd>
+        Audit authorized SSH keys deployed to computes
+        <div class="dropdown inline-block">
+          <a class="dropdown-toggle" data-toggle="dropdown" href="#"><b>&nbsp;<%= icon('download') %></b></a>
+          <ul class="dropdown-menu">
+            <li><%= link_to(icon(site_icon(:csv), 'to CSV', 'fa-fw'), authorized_keys_assembly_operations_environment_path(@assembly, @environment, :format => :csv)) %></li>
+            <li><%= link_to(icon(site_icon(:json), 'to JSON', 'fa-fw'), authorized_keys_assembly_operations_environment_path(@assembly, @environment, :format => :json), :target => '_blank') %></li>
+          </ul>
+        </div>
+      </dd>
+    </dl>
+  </div>
+</li>
 
 

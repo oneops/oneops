@@ -877,18 +877,22 @@ public class ManifestRfcBulkProcessor {
 		List<String> rfcNames = platformRfcs.getRfcList().stream().map(CmsRfcCI::getCiName).collect(Collectors.toList());
 		
 		t.start();
-		monitorEdges.values().stream().forEach(edge -> {
+		monitorEdges.values().forEach(edge -> {
 			CmsCIRelation tmplRelation = edge.templateRel;
 			Set<String> processedManifests = new HashSet<>();
 			if (!edge.userRels.isEmpty()) {
 				for (CmsCIRelation designRelation : edge.userRels) {
-					CmsRfcCI monitorFromRfc = null;
+					CmsRfcCI monitorFromRfc;
 					long designFromCiId = designRelation.getFromCiId();
 					if (mrgMap.rfcDesignMap.containsKey(designFromCiId)) {
 						monitorFromRfc = mrgMap.rfcDesignMap.get(designFromCiId).get(0);
 					}
 					else {
-						long manifestFromCiId = mrgMap.designIdsMap.get(designFromCiId).get(0);
+						List<Long> manifestFromCiIds = mrgMap.designIdsMap.get(designFromCiId);
+						if (manifestFromCiIds == null || manifestFromCiIds.size() < 1) {
+							continue;
+						}
+						long manifestFromCiId = manifestFromCiIds.get(0);
 						monitorFromRfc = cmRfcMrgProcessor.getCiById(manifestFromCiId, "df");
 					}
 					processMonitor(tmplRelation, designRelation, manifestPlat, context, platformRfcs, monitorFromRfc, existingMonitorsMap, rfcNames);

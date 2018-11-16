@@ -108,6 +108,7 @@ public class CMSClient {
     private OpsProcedureProcessor opsProcedureProcessor;
 
     public static final String ONEOPS_SYSTEM_USER = "oneops-system";
+    public static final String deployerStepsLimit = "DEPLOYER_STEPS_LIMIT";
 
     public void setCmsDpmtProcessor(CmsDpmtProcessor cmsDpmtProcessor) {
         this.cmsDpmtProcessor = cmsDpmtProcessor;
@@ -988,9 +989,20 @@ public class CMSClient {
         return false;
     }
 
-    public boolean isDeployerStepsInLimit(int deploymentStepsLimit, long deploymentId) {
+    public boolean isDeployerStepsInLimit(long deploymentId) {
+        CmsVar var = cmsCmProcessor.getCmSimpleVar(deployerStepsLimit);
+        if(var == null){
+            return false;
+        }
+        int deploymentStepsLimit;
+        try {
+            deploymentStepsLimit = Integer.parseInt(var.getValue());
+        }catch(NumberFormatException nfe){
+            logger.error("DEPLOYER_STEPS_LIMIT not a number");
+            return false;
+        }
         List<Integer> stepsTotal = cmsDpmtProcessor.getDeploymentDistinctStepsTotal(deploymentId);
-        if(stepsTotal == null || (stepsTotal !=null && stepsTotal.size() == 0)){
+        if(stepsTotal == null || (stepsTotal != null && stepsTotal.size() == 0)){
             return false;
         }
         for(Integer st: stepsTotal){
