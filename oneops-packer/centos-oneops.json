@@ -58,8 +58,13 @@
       "destination": "/tmp/deploy_circuits.sh"
     },
     {
+      "type": "file",
+      "source": "script/oneops/sync_circuits.sh",
+      "destination": "/tmp/sync_circuits.sh"
+    },
+    {
       "type": "shell",
-      "inline": [ "sudo mkdir -p /home/oneops", "sudo mv /tmp/deploy_circuits.sh /home/oneops/deploy_circuits.sh" ]
+      "inline": [ "sudo mkdir -p /home/oneops", "sudo mv /tmp/deploy_circuits.sh /home/oneops/deploy_circuits.sh", "sudo mv /tmp/sync_circuits.sh /home/oneops/sync_circuits.sh" ]
     },
     {
       "environment_vars": [

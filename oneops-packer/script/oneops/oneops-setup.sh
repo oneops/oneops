@@ -96,25 +96,10 @@ export CIRCUIT_LOCAL_ASSET_STORE_ROOT=/opt/oneops/app/public/_circuit
 rm -fr circuit
 circuit init
 
-cd "$BUILD_BASE"
-
-if [ -d "$BUILD_BASE/circuit-oneops-1" ]; then
-  echo "doing git pull on circuit-oneops-1"
-  cd "$BUILD_BASE/circuit-oneops-1"
-  git pull
-else
-  echo "doing git clone"
-  git clone "$GITHUB_URL/circuit-oneops-1.git"
-fi
-sleep 2
-
-cd "$BUILD_BASE/circuit-oneops-1"
-circuit install
-
 echo "install inductor as ooadmin"
 adduser ooadmin 2>/dev/null
 
-chown -R ooadmin:ooadmin "$BUILD_BASE/circuit-oneops-1"
+chown -R ooadmin:ooadmin "$BUILD_BASE"
 
 cd /opt/oneops
 chown ooadmin /opt/oneops
@@ -144,6 +129,10 @@ inductor add --mqhost localhost \
 mkdir -p /opt/oneops/inductor/lib
 \cp /opt/activemq/conf/client.ts /opt/oneops/inductor/lib/client.ts
 ln -sf /home/oneops/build/circuit-oneops-1 .
+ln -sf /home/oneops/build/circuit-main-1 .
+ln -sf /home/oneops/build/circuit-walmartlabs-1 .
+ln -sf /home/oneops/build/circuit-main-2 .
+ln -sf /home/oneops/build/circuit-walmartlabs-2 .
 inductor start
 "
 inductor install_initd
