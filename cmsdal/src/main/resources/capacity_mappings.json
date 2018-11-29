@@ -195,54 +195,67 @@
       "size": {
         "XS": {
           "vCPU": 1,
+          "General": 1,
           "vm": 1
         },
         "S": {
           "vCPU": 1,
+          "General": 1,
           "vm": 1
         },
         "M": {
           "vCPU": 2,
+          "General": 2,
           "vm": 1
         },
         "L": {
           "vCPU": 4,
+          "General": 4,
           "vm": 1
         },
         "XL": {
           "vCPU": 8,
+          "General": 8,
           "vm": 1
         },
         "XXL": {
           "vCPU": 16,
+          "Deprecated": 16,
           "vm": 1
         },
         "3XL": {
           "vCPU": 32,
+          "Deprecated": 32,
           "vm": 1
         },
         "3XL-IO": {
           "vCPU": 32,
+          "Deprecated": 32,
           "vm": 1
         },
         "L-IO": {
           "vCPU": 6,
+          "High-IO": 6,
           "vm": 1
         },
         "XL-IO": {
           "vCPU": 12,
+          "High-IO": 12,
           "vm": 1
         },
         "XXL-IO": {
           "vCPU": 16,
+          "High-IO": 16,
           "vm": 1
         },
         "S-MEM": {
           "vCPU": 2,
+          "High-IO": 2,
           "vm": 1
         },
         "L-MEM": {
           "vCPU": 8,
+          "High-IO": 8,
           "vm": 1
         },
         "L-IO-LXD": {
@@ -267,46 +280,57 @@
         },
         "L-BD": {
           "vCPU": 16,
+          "BFD": 16,
           "vm": 1
         },
         "XL-BD": {
           "vCPU": 24,
+          "BFD": 24,
           "vm": 1
         },
         "M-WIN": {
           "vCPU": 2,
+          "General": 2,
           "vm": 1
         },
         "L-WIN": {
           "vCPU": 4,
+          "General": 4,
           "vm": 1
         },
         "XL-WIN": {
           "vCPU": 8,
+          "General": 8,
           "vm": 1
         },
         "XL-WIN-LDO": {
           "vCPU": 8,
+          "General": 8,
           "vm": 1
         },
         "L-NoSQL": {
           "vCPU": 6,
+          "NoSQL": 6,
           "vm": 1
         },
         "XL-NoSQL": {
           "vCPU": 12,
+          "NoSQL": 12,
           "vm": 1
         },
         "BM": {
           "vCPU": 56,
+          "Ironic": 1,
           "vm": 1
         },
         "BM-V1-56": {
           "vCPU": 56,
+          "Ironic": 1,
           "vm": 1
         },
         "BM-V2-56": {
           "vCPU": 56,
+          "Ironic": 1,
           "vm": 1
         }
       }
