@@ -533,6 +533,7 @@ Display::Application.routes.draw do
                 get 'logs',              :on => :member
                 put 'state',             :on => :member
                 get 'history',           :on => :member
+                get 'by_cloud',          :on => :collection
 
                 resources :monitors, :only => [:index, :show] do
                   get 'charts', :on => :member
@@ -614,6 +615,7 @@ Display::Application.routes.draw do
   end
 
   post 'notify' => 'relays#notify'
+  post 'gk' => 'relays#gk'
 
   match 'error' => 'welcome#error', :via => :all
   get '/404'  => 'welcome#not_found_error'

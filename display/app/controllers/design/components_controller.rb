@@ -137,11 +137,11 @@ Same as above with locking of 'sudoer' attribute
     "ciAttributes": {
       "authorized_keys": "[\"key1\",\"key2\",\"key3\"]",
       "sudoer": "true"
-    }
-  },
-  "ciAttrProps": {
-    "owner": {
-      "sudoer": "design"
+    },
+    "ciAttrProps": {
+      "owner": {
+        "sudoer": "design"
+      }
     }
   }
 }

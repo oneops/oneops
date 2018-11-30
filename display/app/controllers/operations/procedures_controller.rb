@@ -90,11 +90,25 @@ class Operations::ProceduresController < ApplicationController
         end
       end
 
-      @target_ids = params[:actionCiIds]
+      cloud_ids = params[:cloudCiIds]
+      if cloud_ids.blank?
+        # Specific instance ciIds.
+        @target_ids = params[:actionCiIds]
+      else
+        # All instances in specified clouds.
+        @target_ids = []
+        cloud_ids.each do |cloud_id|
+          @target_ids += Cms::Relation.all(:params => {:nsPath            => @anchor_ci.nsPath.gsub('/manifest/', '/bom/'),
+                                                       :relationShortName => 'RealizedAs',
+                                                       :toClassName       => @anchor_ci.ciClassName.sub(/^manifest./, 'bom.'),
+                                                       :attr              => "toCiName:like:#{@anchor_ci.ciName}-#{cloud_id}-%"}).map(&:toCiId)
+        end
+      end
+
       attachment_ci_id = params[:attachmentCiId].to_i
       action = {:actionName => name, :stepNumber => 1, :isCritical => true}
       action[:extraInfo] = attachment_ci_id if attachment_ci_id > 0
-      if @target_ids
+      if @target_ids.present?
         full_flow = flow = []
         direction = params[:direction] || 'from'
         relation_names = (params[:relationName] || 'base.RealizedAs').split(',')

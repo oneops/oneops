@@ -246,7 +246,7 @@ JSON body payload example:
 NOTE
   end
   def create
-    deployment_hash = params[:cms_deployment]
+    deployment_hash = params[:cms_deployment] || {}
     deployment_hash[:nsPath] = environment_bom_ns_path(@environment)
 
     override_password = deployment_hash.delete(:override_password)

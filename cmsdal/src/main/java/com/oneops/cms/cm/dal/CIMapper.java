@@ -17,14 +17,13 @@
  *******************************************************************************/
 package com.oneops.cms.cm.dal;
 
+import com.oneops.cms.cm.domain.*;
+import com.oneops.cms.util.domain.AttrQueryCondition;
+import org.apache.ibatis.annotations.Param;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import com.oneops.cms.cm.domain.*;
-import org.apache.ibatis.annotations.Param;
-
-import com.oneops.cms.util.domain.AttrQueryCondition;
 
 public interface CIMapper {
 	long getNextCmId();
@@ -66,7 +65,6 @@ public interface CIMapper {
 
 
 	List<CmsCIAttribute> getCIAttrs(long ciId); 
-	List<CmsCIAttribute> getCIAttrsByCiIdList(@Param("ciIds") List<Long> ciIds);
 	List<CmsCIAttribute> getCIAttrsNaked(long ciId);
 	List<CmsCIAttribute> getCIAttrsNakedByCiIdList(@Param("ciIds") List<Long> ciIds);
 	
@@ -75,42 +73,44 @@ public interface CIMapper {
 	List<Map<String,Object>> getCountBy3NsLikeGroupByNs(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("clazz") String clazz, @Param("name") String name);
 	
 	CmsCIRelation getCIRelation(long ciRelationId);
-	List<CmsCIRelation> getCIRelations(@Param("nsPath") String nsPath, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String fromClazzName, @Param("fromShortClazzName") String fromShortClazzName, @Param("toClazzName") String toClazzName, @Param("toShortClazzName") String toShortClazzName);
+	List<CmsCIRelation> getCIRelations(@Param("ns") String nsPath, @Param("nsLike") String nsLike, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String fromClazzName, @Param("fromShortClazzName") String fromShortClazzName, @Param("toClazzName") String toClazzName, @Param("toShortClazzName") String toShortClazzName, @Param("conditions") List<AttrQueryCondition> attrList);
 	List<CmsCIRelation> getCIRelationsByState(@Param("nsPath") String nsPath, @Param("relationName") String relationName, @Param("ciState") String ciState, @Param("fromClazzName") String fromClazzName, @Param("toClazzName") String toClazzName);
-	List<CmsCIRelation> getCIRelationsNsLike(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String fromClazzName, @Param("fromShortClazzName") String fromShortClazzName, @Param("toClazzName") String toClazzName, @Param("toShortClazzName") String toShortClazzName);
 	List<CmsCIRelation> getCIRelationsByStateNsLike(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("relationNames") List<String> relationNames, @Param("ciState") String ciState, @Param("fromClazzName") String fromClazzName, @Param("toClazzName") String toClazzName);
 	
 	List<CmsCIRelation> getFromCIRelations(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName, @Param("toShortClazzName") String toShortClazzName);
 	List<CmsCIRelation> getFromCIRelationsByToClassAndCiName(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName,@Param("toCiName") String toCiName);
 	List<CmsCIRelation> getFromCIRelationsByToCiIDs(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toCiIds") List<Long> toCiIds);
-	List<CmsCIRelation> getFromCIRelationsByNS(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName, @Param("toShortClazzName") String toShortClazzName, @Param("toNsPath") String toNsPath);
-	List<CmsCIRelation> getFromCIRelationsByNSLike(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName, @Param("toShortClazzName") String toShortClazzName, @Param("toNsPath") String toNsPath, @Param("toNsPathLike") String toNsPathLike);
 	List<CmsCIRelation> getFromCIRelationsByMultiRelationNames(@Param("fromId") long fromId, @Param("relationNames") List<String> relationNames, @Param("shortRelNames") List<String> shortRelNames);
-	//List<CmsCIRelation> getFromCIRelationsShortName(@Param("fromId") long fromId, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName);
 	long getCountFromCIRelationsByNS(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName, @Param("toNsPath") String toNsPath);
 	long getCountFromCIRelationsByNSLike(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName, @Param("toNsPath") String toNsPath, @Param("toNsPathLike") String toNsPathLike);
-	List<Map<String,Object>> getCountFromCIRelationsByNSLikeGroupByNs(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName, @Param("toNsPath") String toNsPath, @Param("toNsPathLike") String toNsPathLike);
-	List<Map<String,Object>> getCountCIRelationsByNSLikeGroupByFromCiId(@Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName, @Param("ns") String ns, @Param("nsLike") String nsLike);
-	List<Map<String,Object>> getCountCIRelationsByNSLikeAndRelName(@Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("nsLike") String nsLike);
-	
+
 	
 	List<CmsCIRelation> getToCIRelations(@Param("toId") long toId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String fromClazzName, @Param("fromShortClazzName") String fromShortClazzName);
 	List<CmsCIRelation> getToCIRelationsByFromCiIDs(@Param("toId") long toId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromCiIds") List<Long> fromCiIds);
 	List<CmsCIRelation> getToCIRelationsByNS(@Param("toId") long toId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String fromClazzName, @Param("fromShortClazzName") String fromShortClazzName, @Param("fromNsPath") String fromNsPath);
 	List<CmsCIRelation> getToCIRelationsByNSLike(@Param("toId") long toId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String fromClazzName, @Param("fromShortClazzName") String fromShortClazzName, @Param("fromNsPath") String fromNsPath, @Param("fromNsPathLike") String fromNsPathLike);
-	//List<CmsCIRelation> getToCIRelationsShortName(@Param("toId") long toId, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String fromClazzName);
 	long getCountToCIRelationsByNS(@Param("toId") long toId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String fromClazzName, @Param("fromNsPath") String fromNsPath);
 	long getCountToCIRelationsByNSLike(@Param("toId") long toId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String fromClazzName, @Param("fromNsPath") String fromNsPath, @Param("fromNsPathLike") String fromNsPathLike);
-	List<Map<String,Object>> getCountToCIRelationsByNSLikeGroupByNs(@Param("toId") long toId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String fromClazzName, @Param("fromNsPath") String fromNsPath, @Param("fromNsPathLike") String fromNsPathLike);
-	List<Map<String,Object>> getCountCIRelationsByNSLikeGroupByToCiId(@Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String toClazzName, @Param("ns") String ns, @Param("nsLike") String nsLike);
-	
+
+	List<Map<String, Object>> getRelationCounts(@Param("relationName") String relationName,
+												@Param("shortRelName") String shortRelName,
+												@Param("ns") String ns,
+												@Param("nsLike") String nsLike,
+												@Param("fromCiId") Long fromCiId,
+												@Param("toCiId") Long toCiId,
+												@Param("fromClazzName") String fromClazzName,
+												@Param("fromShortClazzName") String fromShortClazzName,
+												@Param("toClazzName") String toClazzName,
+												@Param("toShortClazzName") String toShortClazzName,
+												@Param("groupBy") String groupBy,
+												@Param("conditions") List<AttrQueryCondition> attrList);
+
 	List<CmsCIRelationAttribute> getCIRelationAttrs(long ciRelId);
 	List<CmsCIRelationAttribute> getCIRelationAttrsNaked(long ciRelId);
 
 	List<CmsCIRelation> getCIRelationsByFromCiIDs(@Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromCiIds") List<Long> fromCiIds);
 	List<CmsCIRelation> getCIRelationsByToCiIDs(@Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toCiIds") List<Long> toCiIds);
 
-	List<CmsCIRelationAttribute> getCIRelationAttrsByRelIdList(@Param("relIds") List<Long> relIds);
 	List<CmsCIRelationAttribute> getCIRelationAttrsNakedByRelIdList(@Param("relIds") List<Long> relIds);
 	
 	

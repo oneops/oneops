@@ -2,15 +2,19 @@ class Operations::ComponentsController < Base::ComponentsController
   def show
     respond_to do |format|
       format.html do
-        instances = Cms::Relation.all(:params => {:ciId              => @component.ciId,
-                                                  :direction         => 'from',
-                                                  :includeToCi       => false,
-                                                  :relationShortName => 'RealizedAs'})
-        if instances.size == 1
-          redirect_to assembly_operations_environment_platform_component_instance_path(@assembly, @environment, @platform, @component, instances.first.toCiId)
-        else
-          @procedures = Cms::Procedure.all(:params => {:ciId => @component.ciId, :limit => 100})
-        end
+        @instance_counts = Cms::Relation.count(:nsPath            => bom_platform_ns_path(@environment, @platform),
+                                               :relationShortName => 'DeployedTo',
+                                               :fromClassName     => @component.ciClassName.sub(/^manifest./, 'bom.'),
+                                               :attr              => "fromCiName:like:#{@component.ciName}-%",
+                                               :groupBy           => 'toCiId')
+Rails.logger.info "==== #{@instance_counts}"
+        @clouds = Cms::Relation.all(:params => {:relationName    => 'base.Consumes',
+                                                :ciId            => @platform.ciId,
+                                                :targetClassName => 'account.Cloud',
+                                                :direction       => 'from',
+                                                :includeToCi     => true})
+        @actions = Cms::CiMd.look_up(@component.ciClassName.sub(/^manifest./, 'bom.')).actions
+        @custom_actions = Operations::InstancesController.load_custom_actions(@component)
       end
 
       format.json {render_json_ci_response(true, @component)}
@@ -24,9 +28,9 @@ class Operations::ComponentsController < Base::ComponentsController
 
   def charts
     all_instance_ids = Cms::Relation.all(:params => {:ciId              => @component.ciId,
-                                                 :direction         => 'from',
-                                                 :relationShortName => 'RealizedAs',
-                                                 :includeToCi       => false}).map(&:toCiId)
+                                                     :direction         => 'from',
+                                                     :relationShortName => 'RealizedAs',
+                                                     :includeToCi       => false}).map(&:toCiId)
     instance_ids = params[:instance_ids]
     if instance_ids.blank?
       instance_ids = all_instance_ids

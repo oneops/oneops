@@ -22,10 +22,11 @@ import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.cms.util.domain.CmsVar;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * The Interface CmsCmManager.
@@ -59,25 +60,25 @@ public interface CmsCmManager {
 	List<CmsCIRelation> getFromCIRelations(long fromId, String relationName, String shortRelationName,List<Long> toCiIds);
 	List<CmsCIRelation> getFromCIRelations(long fromId, String relationName, String shortRelationName, String toClazzName);
 	List<CmsCIRelation> getFromCIRelations(long fromId, String relationName, String shortRelationName, String toClazzName, List<AttrQueryCondition> attrs);
-	List<CmsCIRelation> getFromCIRelationsByNs(long fromId, String relationName, String shortRelName, String toClazzName, String toNsPath);
 	List<CmsCIRelation> getToCIRelations(long toId, String relationName, String fromClazzName);
 	List<CmsCIRelation> getToCIRelations(long toId, String relationName, String shortRelationName, String fromClazzName);
 	List<CmsCIRelation> getToCIRelations(long toId, String relationName, String shortRelationName, List<Long> fromCiIds);
 	List<CmsCIRelation> getToCIRelations(long toId, String relationName, String shortRelationName, String fromClazzName, List<AttrQueryCondition> attrs);
-	List<CmsCIRelation> getToCIRelationsByNs(long toId, String relationName, String shortRelName, String fromClazzName, String fromNsPath);
-	List<CmsCIRelation> getCIRelations(String nsPath, String relationName, String shortRelName, String fromClazzName, String toClazzName);
-	List<CmsCIRelation> getCIRelationsNsLike(String nsPath, String relationName, String shortRelName, String fromClazzName, String toClazzName);
+	List<CmsCIRelation> getCIRelations(String nsPath, String relationName, String shortRelName, String fromClazzName, String toClazzName, List<AttrQueryCondition> conditions);
+	List<CmsCIRelation> getCIRelationsNsLike(String nsPath, String relationName, String shortRelName, String fromClazzName, String toClazzName, List<AttrQueryCondition> conditions);
 	void populateRelCis(List<CmsCIRelation> rels, boolean fromCis, boolean toCis);
-	
-	
-	long getCountFromCIRelationsByNS(long fromId,String relationName, String shortRelName, String toClazzName, String toNsPath, boolean recursive);
-	long getCountToCIRelationsByNS(long toId,String relationName, String shortRelName, String toClazzName, String toNsPath, boolean recursive);
-	Map<String, Long> getCountFromCIRelationsGroupByNs(long fromId, String relationName, String shortRelName, String toClazzName, String toNsPath);
-	Map<String, Long> getCountToCIRelationsGroupByNs(long toId, String relationName, String shortRelName, String toClazzName, String toNsPath);
-	Map<Long, Long> getCounCIRelationsGroupByFromCiId(String relationName, String shortRelName, String toClazzName, String nsPath);
-	Map<Long, Long> getCounCIRelationsGroupByToCiId(String relationName, String shortRelName, String fromClazzName, String nsPath);
-	
-	
+
+
+	Map<String, Long> getRelationCounts(String relationName,
+										String nsPath,
+										boolean recursive,
+										Long fromCiId,
+										Long toCiId,
+										String fromClassName,
+										String toClassName,
+										String groupBy,
+										List<AttrQueryCondition> conditions);
+
 	
 	Map<Long,List<Long>> getEnvState(long envId);
 	

@@ -18,15 +18,8 @@
 package com.oneops.cms.util;
 
 
-import static com.oneops.cms.util.CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF;
-import static com.oneops.cms.util.CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_CYCLIC_REF;
-
 import com.google.gson.Gson;
-import com.oneops.cms.cm.domain.CmsAltNs;
-import com.oneops.cms.cm.domain.CmsCI;
-import com.oneops.cms.cm.domain.CmsCIAttribute;
-import com.oneops.cms.cm.domain.CmsCIRelation;
-import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
+import com.oneops.cms.cm.domain.*;
 import com.oneops.cms.cm.ops.domain.CmsActionOrder;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.crypto.CmsCrypto;
@@ -38,26 +31,20 @@ import com.oneops.cms.dj.service.CmsRfcUtil;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.ExceptionConsolidator;
-import com.oneops.cms.simple.domain.CmsActionOrderSimple;
-import com.oneops.cms.simple.domain.CmsCIRelationSimple;
-import com.oneops.cms.simple.domain.CmsCISimple;
-import com.oneops.cms.simple.domain.CmsCISimpleWithTags;
-import com.oneops.cms.simple.domain.CmsRfcCISimple;
-import com.oneops.cms.simple.domain.CmsRfcRelationSimple;
-import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
+import com.oneops.cms.simple.domain.*;
 import com.oneops.cms.util.domain.AttrQueryCondition;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
+
+import static com.oneops.cms.util.CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF;
+import static com.oneops.cms.util.CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_CYCLIC_REF;
 
 /**
  * The Class CmsUtil.
@@ -1084,18 +1071,22 @@ public class CmsUtil {
     /**
      * Parses the conditions.
      *
-     * @param attrs the attrs
+     * @param conditions
      * @return the list
      */
-    public List<AttrQueryCondition> parseConditions(String[] attrs) {
+    public List<AttrQueryCondition> parseConditions(String[] conditions) {
+        if (conditions == null) return null;
+
         List<AttrQueryCondition> attrConds = new ArrayList<>();
-        for (String attrStr : attrs) {
-            String[] attrArray = attrStr.split(":");
-            AttrQueryCondition attrCondition = new AttrQueryCondition();
-            attrCondition.setAttributeName(attrArray[0]);
-            attrCondition.setCondition(attrArray[1]);
-            attrCondition.setAvalue(attrArray[2]);
-            attrConds.add(attrCondition);
+        for (String condition : conditions) {
+            for (String attrStr : condition.split(" AND ")) {
+                String[] attrArray = attrStr.split(":");
+                AttrQueryCondition attrCondition = new AttrQueryCondition();
+                attrCondition.setAttributeName(attrArray[0]);
+                attrCondition.setCondition(attrArray[1]);
+                attrCondition.setAvalue(attrArray[2]);
+                attrConds.add(attrCondition);
+            }
         }
         return attrConds;
     }
