@@ -220,17 +220,17 @@
         },
         "XXL": {
           "vCPU": 16,
-          "Deprecated": 16,
+          "Unsupported": 16,
           "vm": 1
         },
         "3XL": {
           "vCPU": 32,
-          "Deprecated": 32,
+          "Unsupported": 32,
           "vm": 1
         },
         "3XL-IO": {
           "vCPU": 32,
-          "Deprecated": 32,
+          "Unsupported": 32,
           "vm": 1
         },
         "L-IO": {
@@ -260,22 +260,27 @@
         },
         "L-IO-LXD": {
           "vCPU": 16,
+          "Unsupported": 16,
           "vm": 1
         },
         "XL-IO-LXD": {
           "vCPU": 24,
+          "Unsupported": 24,
           "vm": 1
         },
         "XXL-IO-LXD": {
           "vCPU": 32,
+          "Unsupported": 32,
           "vm": 1
         },
         "S-MEM-LXD": {
           "vCPU": 8,
+          "Unsupported": 8,
           "vm": 1
         },
         "L-MEM-LXD": {
           "vCPU": 16,
+          "Unsupported": 16,
           "vm": 1
         },
         "L-BD": {
