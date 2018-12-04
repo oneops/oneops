@@ -393,10 +393,10 @@ public class CapacityProcessor {
     }
 
     private void deleteReservations(String nsPath) {
-        Set<String> subs = cmProcessor.getCountCIRelationsGroupByToCiId("base.Consumes", null, null, nsPath)
+        Set<String> subs = cmProcessor.getRelationCounts("base.Consumes", nsPath, true, null, null, null, null, "toCiId", null)
                 .keySet()
                 .stream()
-                .map(this::getDeployedToCloudInfo)
+                .map(ciId -> getDeployedToCloudInfo(Long.parseLong(ciId)))
                 .filter(Objects::nonNull)
                 .map(CloudInfo::getSubscriptionId)
                 .collect(toSet());

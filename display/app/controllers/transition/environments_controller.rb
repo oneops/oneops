@@ -2,6 +2,8 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
   include ::Search
   before_filter :find_assembly_and_environment
 
+  swagger_controller :environments, 'Transition Environment Management'
+
   def index
     @environments = Cms::Relation.all(:params => {:ciId              => @assembly.ciId,
                                                   :direction         => 'from',
@@ -222,6 +224,32 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     end
   end
 
+
+  swagger_api :pull do
+    summary 'Pull design.'
+    param_path_parent_ids :assembly
+    param_path_ci_id :environment
+    param :form, :platform_availability, :string, :optional,
+          'Platform availability map for new platfroms coming from design. '\
+            'Keys are platform ciId or ciName, values are availability type: single|redundant|default.'
+    param :form, :async, :string, :optional,
+          "This request blocks until pull is complete, unless this set to 'true' to make this request asynchronous (preferred way). "\
+          "If not specified this request is blocking."
+    param :body, :body, :json, :optional
+    notes <<-NOTE
+Pull design is not available when there is open environment release. Use <em>'pull_status'</em> request to poll on status when this request is async
+(design pull can take up to few minutes for large environments).<br>
+JSON body payload example - 2 new platforms are coming from design:
+<pre>
+{
+  "platform_availability": {
+    "plat1": "single",
+    "plat2": "redundant"
+  }
+}
+</pre>
+NOTE
+  end
   def pull
     load_design_platforms
     transition_platforms = load_platforms.map(&:toCi)
@@ -253,6 +281,15 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     end
   end
 
+  swagger_api :pull do
+    summary 'Check pull design status.'
+    param_path_parent_ids :assembly
+    param_path_ci_id :environment
+    notes <<-NOTE
+Ths will return environment CI json.  Check the value of <em>ciState</em> field - it will be set to <b>manifest_locked</b>
+while pull is still in progress, it will reset to <em>default</em> once pull design is complete.
+NOTE
+  end
   def pull_status
     respond_to do |format|
       format.js

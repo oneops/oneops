@@ -1034,7 +1034,7 @@ end
   'version'               => ['version', 'display CLI and tekton server versions'],
 
   'login'                 => ['login [-e prod|stg|dev|local] [USERNAME [PASSWORD]]', 'log in for running Tekton commands, defaults to \'prod\' environment if not specified'],
-  'logout'                => ['logout [USERNAME [PASSWORD]]', "log out after running Tekton commands\n"],
+  'logout'                => ['logout', "log out after running Tekton commands\n"],
 
   'admins'                => ['admins ', 'list global admins'],
   'admins:add'            => ['admins:add USERNAME...', 'add users global admins'],

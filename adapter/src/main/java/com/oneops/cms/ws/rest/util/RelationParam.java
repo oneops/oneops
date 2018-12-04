@@ -1,94 +1,69 @@
 package com.oneops.cms.ws.rest.util;
 
+import com.oneops.cms.util.domain.AttrQueryCondition;
+
+import java.util.List;
+
 public class RelationParam {
 
-    private String nsPath;
-    private Long ciId;
-    private String direction;
     private String relationName;
-    private String shortRelationName;
-    private String targetClazz;
-    private String fromClazz;
+    private String nsPath;
     private boolean recursive;
+    private Long fromCiId;
+    private Long toCiId;
+    private String fromClass;
+    private String targetClass;
     private String groupBy;
+    private List<AttrQueryCondition> conditions;
 
-    public RelationParam(String nsPath, String relationName, String shortRelationName, String targetClazz, boolean recursive) {
+    public RelationParam(String relationName, String relationShortName, String nsPath, Boolean recursive, Long ciId, String direction, String fromClass, String targetClass, String groupBy, List<AttrQueryCondition> conditions) {
+        this.relationName = relationName == null ? relationShortName : relationName;
         this.nsPath = nsPath;
-        this.relationName = relationName;
-        this.shortRelationName = shortRelationName;
-        this.targetClazz = targetClazz;
-        this.recursive = recursive;
-    }
-
-    public String getNsPath() {
-        return nsPath;
-    }
-
-    public void setNsPath(String nsPath) {
-        this.nsPath = nsPath;
-    }
-
-    public Long getCiId() {
-        return ciId;
-    }
-
-    public void setCiId(Long ciId) {
-        this.ciId = ciId;
-    }
-
-    public String getDirection() {
-        return direction;
-    }
-
-    public void setDirection(String direction) {
-        this.direction = direction;
+        this.recursive = recursive == null ? false : recursive;
+        if ("from".equalsIgnoreCase(direction)) {
+            fromCiId = ciId;
+        } else if ("to".equalsIgnoreCase(direction)) {
+            toCiId = ciId;
+        }
+        this.fromClass = fromClass;
+        this.targetClass = targetClass;
+        this.groupBy = groupBy;
+        this.conditions = conditions;
     }
 
     public String getRelationName() {
         return relationName;
     }
 
-    public void setRelationName(String relationName) {
-        this.relationName = relationName;
-    }
-
-    public String getShortRelationName() {
-        return shortRelationName;
-    }
-
-    public void setShortRelationName(String shortRelationName) {
-        this.shortRelationName = shortRelationName;
-    }
-
-    public String getTargetClazz() {
-        return targetClazz;
-    }
-
-    public void setTargetClazz(String targetClazz) {
-        this.targetClazz = targetClazz;
+    public String getNsPath() {
+        return nsPath;
     }
 
     public boolean isRecursive() {
         return recursive;
     }
 
-    public void setRecursive(boolean recursive) {
-        this.recursive = recursive;
+    public Long getFromCiId() {
+        return fromCiId;
+    }
+
+    public Long getToCiId() {
+        return toCiId;
+    }
+
+    public String getFromClass() {
+        return fromClass;
+    }
+
+    public String getTargetClass() {
+        return targetClass;
     }
 
     public String getGroupBy() {
         return groupBy;
     }
 
-    public void setGroupBy(String groupBy) {
-        this.groupBy = groupBy;
-    }
-
-    public String getFromClazz() {
-        return fromClazz;
-    }
-
-    public void setFromClazz(String fromClazz) {
-        this.fromClazz = fromClazz;
+    public List<AttrQueryCondition> getConditions() {
+        return conditions;
     }
 }

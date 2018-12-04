@@ -12,17 +12,17 @@ module Search
               '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; https://SERVER/ORG/assemblies/ASSEMBLY/operations/environments/ENV/platforms/PLATFORM/search.json?source=es&class_name=Compute&query=workorder.cloud.ciName:dal*&pluck=private_ip' \
               '<br/>2. Get a list of FQDNs for a given environment from CMS:<br/>' \
               '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; https://SERVER/ORG/assemblies/ASSEMBLY/operations/environments/ENV/search.json?source=cms&class_name=Fqdn'
-        param_org_name
-        controller_name = base.class.name
-        if controller_name.end_with?('AssembliesController')
-          param_ci_id :assembly
+        controller_name = base.name
+        if controller_name.end_with?('OrganizationController')
+          param_org_name
+        elsif controller_name.end_with?('AssembliesController')
+          param_path_parent_ids :assembly
         elsif controller_name.end_with?('EnvironmentsController')
-          param_parent_ci_id :assembly
-          param_ci_id :environment
+          param_path_parent_ids :assembly
+          param_path_ci_id :environment
         elsif controller_name.end_with?('PlatformsController')
-          param_parent_ci_id :assembly
-          param_parent_ci_id :environment
-          param_ci_id :platform
+          param_path_parent_ids :assembly, :environment
+          param_path_ci_id :platform
         end
         param :query, 'ns_path', :string, :optional, 'Namespace to narrow implied namespace scope but can not be "wider" than current org/assembly/env/platform scope.'
         param :query, 'class_name', :string, :optional, 'CI class name. FUll and short names are both supported, i.e. "bom.oneops.1.Compute" vs "Compute"'
@@ -38,8 +38,6 @@ module Search
         param :query, 'to_class_name', :string, :optional, 'Filter based on "toCi" class name: supported for CMS searches only.'
         param :query, 'pluck', :string, :optional, 'Restrict resultset to the values of attributes names or expression (e.g. "private_ip", "toCi", "nsPath,fromCi.ciName,fromCi.ciAttributes.ostype")'
         param :query, 'size', :string, :optional, 'Resutlset record max size: supported for ES searches only.'
-        response :unauthorized
-        response :unprocessable_entity
       end
     end
   end

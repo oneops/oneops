@@ -575,76 +575,28 @@ public class CmRestController extends AbstractRestController {
 	@RequestMapping(value="/cm/simple/relations/count", method = RequestMethod.GET)
 	@ResponseBody
 	public Map<String, Long> getRelationsCounts(
-			@RequestParam(value="nsPath", required = true) String nsPath,
+			@RequestParam(value="nsPath", required = false) String nsPath,
+			@RequestParam(value="recursive", required = false)  Boolean recursive,
 			@RequestParam(value="ciId", required = false) Long ciId,
-			@RequestParam(value="direction", required = true) String direction, 
+			@RequestParam(value="direction", required = false) String direction,
 			@RequestParam(value="relationName", required = false) String relationName,
 			@RequestParam(value="relationShortName", required = false) String shortRelationName,
+			@RequestParam(value="fromClassName", required = false) String fromClazz,
 			@RequestParam(value="targetClassName", required = false) String targetClazz,
-			@RequestParam(value="recursive", required = false)  Boolean recursive,
 			@RequestParam(value="groupBy", required = false) String groupBy,
-			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
+			@RequestParam(value="attr", required = false)  String[] conditionsExpr,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope) {
 
-		if (scope != null) {
+		if (scope != null && nsPath != null) {
 			scopeVerifier.verifyScope(scope, nsPath);
 		}
-		if (recursive == null) {
-			recursive = false;
-		}
 		CmsDataHelper<RelationParam, Map<String, Long>> dataHelper = new CmsDataHelper<>();
-		RelationParam param = new RelationParam(nsPath, relationName, shortRelationName, targetClazz, recursive);
-		param.setCiId(ciId);
-		param.setDirection(direction);
-		param.setGroupBy(groupBy);
-		return dataHelper.execute(this::getRelationsCountsInternal, param, isOrgLevelRecursiveAccess(nsPath, recursive), "getRelationsCounts");
+		RelationParam param = new RelationParam(relationName, shortRelationName, nsPath, recursive, ciId, direction, fromClazz, targetClazz, groupBy, cmsUtil.parseConditions(conditionsExpr));
+		return dataHelper.execute(this::getRelationsCountsInternal, param, true, "getRelationsCounts");
 	}
 
 	private Map<String, Long> getRelationsCountsInternal(RelationParam param) {
-		if (param.getGroupBy() != null) {
-			if ("ciId".equals(param.getGroupBy())) {
-				Map<Long, Long> counts;
-				if ("from".equals(param.getDirection())) {
-					counts = cmManager.getCounCIRelationsGroupByFromCiId(param.getRelationName(), param.getShortRelationName(),
-							param.getTargetClazz(), param.getNsPath());
-				} else {
-					counts = cmManager.getCounCIRelationsGroupByToCiId(param.getRelationName(), param.getShortRelationName(),
-							param.getTargetClazz(), param.getNsPath());
-				}
-				//convert to Map<String,Long>
-				Map<String, Long> result = new HashMap<>(1);
-				for (Map.Entry<Long, Long> count : counts.entrySet()) {
-					result.put(count.getKey().toString(), count.getValue());
-				}
-				return result;
-			} else {
-				if ("from".equals(param.getDirection())) {
-					return cmManager.getCountFromCIRelationsGroupByNs(param.getCiId(), param.getRelationName(),
-							param.getShortRelationName(), param.getTargetClazz(), param.getNsPath());
-				} else {
-					return cmManager.getCountToCIRelationsGroupByNs(param.getCiId(), param.getRelationName(),
-							param.getShortRelationName(), param.getTargetClazz(), param.getNsPath());
-				}
-			}
-		} else {
-			Long count;
-			if ("from".equals(param.getDirection())) {
-				count = cmManager.getCountFromCIRelationsByNS(param.getCiId(), param.getRelationName(),
-						param.getShortRelationName(), param.getTargetClazz(), param.getNsPath(), param.isRecursive());
-			} else {
-				count = cmManager.getCountToCIRelationsByNS(param.getCiId(), param.getRelationName(),
-						param.getShortRelationName(), param.getTargetClazz(), param.getNsPath(), param.isRecursive());
-			}
-			Map<String, Long> result = new HashMap<>(1);
-			result.put("count", count);
-			return result;
-		}
-	}
-
-	private boolean isOrgLevelRecursiveAccess(String nsPath, Boolean recursive) {
-		if (nsPath != null && nsPath.length() > 1 && nsPath.endsWith("/")) {
-			nsPath = nsPath.substring(0, nsPath.length() - 1);
-		}
-		return recursive && nsPath.split("/").length <= 2;
+		return cmManager.getRelationCounts(param.getRelationName(), param.getNsPath(), param.isRecursive(), param.getFromCiId(), param.getToCiId(), param.getFromClass(), param.getTargetClass(), param.getGroupBy(), param.getConditions());
 	}
 
 
@@ -662,29 +614,33 @@ public class CmRestController extends AbstractRestController {
 			@RequestParam(value="value", required = false)  String valueType,
 			@RequestParam(value="recursive", required = false)  Boolean recursive,
 			@RequestParam(value="getEncrypted", required = false) String getEncrypted,
-			@RequestParam(value="attr", required = false)  String[] attrs,
+			@RequestParam(value="attr", required = false)  String[] conditionsExpr,
 			@RequestParam(value="targetIds", required = false)  Long[] targetIds,
 			@RequestParam(value="includeFromCi", required = false) String includeFromCi,
 			@RequestParam(value="includeToCi", required = false) String includeToCi,
 			@RequestParam(value="attrProps", required = false) String attrProps,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
-		
+
+		List<AttrQueryCondition> conditions = null;
+		if (conditionsExpr != null) {
+			conditions = cmsUtil.parseConditions(conditionsExpr);
+		}
+
 		List<CmsCIRelation> relList = null;
 		if (ciId != null) {
-			if (attrs != null) {
-				List<AttrQueryCondition> attrConds = cmsUtil.parseConditions(attrs); 
+			if (conditions != null) {
 				if ("from".equalsIgnoreCase(direction)) {
-					relList = cmManager.getFromCIRelations(ciId, relationName, shortRelationName, targetClazz, attrConds);
+					relList = cmManager.getFromCIRelations(ciId, relationName, shortRelationName, targetClazz, conditions);
 				} else if ("to".equalsIgnoreCase(direction)) {
-					relList = cmManager.getToCIRelations(ciId, relationName, shortRelationName, targetClazz, attrConds);
+					relList = cmManager.getToCIRelations(ciId, relationName, shortRelationName, targetClazz, conditions);
 				}
-			} else if(targetIds != null) {
+			} else if (targetIds != null) {
 				if ("from".equalsIgnoreCase(direction)) {
 					relList = cmManager.getFromCIRelations(ciId, relationName, shortRelationName, Arrays.asList(targetIds));
 				} else if ("to".equalsIgnoreCase(direction)) {
 					relList = cmManager.getToCIRelations(ciId, relationName, shortRelationName, Arrays.asList(targetIds));
 				}
-			} else {	
+			} else {
 				if ("from".equalsIgnoreCase(direction)) {
 					relList = cmManager.getFromCIRelations(ciId, relationName, shortRelationName, targetClazz);
 				} else if ("to".equalsIgnoreCase(direction)) {
@@ -694,19 +650,14 @@ public class CmRestController extends AbstractRestController {
 				}
 			}
 		} else if (nsPath != null) {
-			
 			if (recursive != null && recursive) {
-				RelationParam param = new RelationParam(nsPath, relationName, shortRelationName, targetClazz, recursive);
-				param.setFromClazz(fromClazz);
-				relList = getNsLikeRelations(param);
-
-			} else {	
-				relList = cmManager.getCIRelations(nsPath, relationName, shortRelationName, fromClazz, targetClazz);
+				relList = cmManager.getCIRelationsNsLike(nsPath, relationName, shortRelationName, fromClazz, targetClazz, conditions);
+			} else {
+				relList = cmManager.getCIRelations(nsPath, relationName, shortRelationName, fromClazz, targetClazz, conditions);
 			}
 			cmManager.populateRelCis(relList, includeFromCi != null, includeToCi != null);
 		} else {
-			throw new DJException(CmsError.DJ_MUST_SPECIFY_CI_ID_OR_NSPATH_ERROR,
-                                            "You must specify either ciId or nsPath ");
+			throw new DJException(CmsError.DJ_MUST_SPECIFY_CI_ID_OR_NSPATH_ERROR, "You must specify either ciId or nsPath ");
 		}
 
 		String[] relationAttrProps = null;
@@ -717,14 +668,9 @@ public class CmRestController extends AbstractRestController {
 		List<CmsCIRelationSimple> simpleList = new ArrayList<>();
 		for (CmsCIRelation rel : relList) {
 			scopeVerifier.verifyScope(scope, rel);
-			simpleList.add(cmsUtil.custCIRelation2CIRelationSimple(rel, valueType, getEncrypted!=null, relationAttrProps));
+			simpleList.add(cmsUtil.custCIRelation2CIRelationSimple(rel, valueType, getEncrypted != null, relationAttrProps));
 		}
 		return simpleList;
-	}
-
-	private List<CmsCIRelation> getNsLikeRelations(RelationParam param) {
-		return cmManager.getCIRelationsNsLike(param.getNsPath(), param.getRelationName(),
-				param.getShortRelationName(), param.getFromClazz(), param.getTargetClazz());
 	}
 
 	@RequestMapping(method=RequestMethod.POST, value="/cm/simple/relations")

@@ -40,7 +40,7 @@
                     <% cloud = @clouds[cloud_id] %>
                     <li class="pull-right">
                       <%= icon('cloud', link_to(cloud ? link_to(cloud.ciName, edit_cloud_path(cloud)) : cloud_id)) %>
-                      <% cloud_deployment_state_summary = class_rfcs.group_by{|rfc_ci| rfc_ci.deployment.dpmtRecordState}
+                      <% cloud_deployment_state_summary = cloud_rfcs.group_by{|rfc_ci| rfc_ci.deployment.dpmtRecordState}
                          cloud_deployment_state = ''
                          %w(failed canceled pending complete).each do |s|
                            if cloud_deployment_state_summary[s]
