@@ -55,9 +55,12 @@
      list_menu << {:id => 'instance_ips', :label => 'list of IPs...', :function => 'instance_ips'}
    end
    if has_operations
-     list_menu << nil if list_menu.size > 0
-     list_menu << {:id => 'bulk_replace',      :label => 'replace',      :function => 'bulk_replace'}
-     list_menu << {:id => 'bulk_undo_replace', :label => 'undo replace', :function => 'bulk_replace'}
+     # Temp hack to allow only global admins do lb replacement.
+     if @component.blank? || allow_replace?([@component])
+       list_menu << nil if list_menu.size > 0
+       list_menu << {:id => 'bulk_replace',      :label => 'replace',      :function => 'bulk_replace'}
+       list_menu << {:id => 'bulk_undo_replace', :label => 'undo replace', :function => 'bulk_replace'}
+     end
    end
 %>
 <%= section_panel 'Instances', :width => 'triple', :position => 'right', :menu => menu do %>

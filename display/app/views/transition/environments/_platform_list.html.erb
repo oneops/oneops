@@ -44,13 +44,11 @@
         <% end %>
       <% end %>
       <% unless rfc_action == 'delete' %>
-        <%= caption = enabled ? 'Disable' : 'Enable'
-            link_busy enabled ? icon('toggle-off', 'Disable') : icon('toggle-on', 'Enable'),
-              { :url          => toggle_assembly_transition_environment_platform_path(@assembly, @environment, ci),
-                :class        => 'toggle-platform',
-                :title        => caption,
-                :disable_with => 'wait...',
-                :remote       => true } %>
+        <% if enabled %>
+          <% link_to_function('Disable', %(disable_transition_assembly(null, [#{ci.ciId}]))) %>
+        <% else %>
+          <% link_to_function('Enable', %(enable_transition_assembly(null, [#{ci.ciId}]))) %>
+        <% end %>
       <% end %>
     <% end %>
   <% end %>
@@ -63,18 +61,25 @@
 
 <script>
   window.enable_transition_assembly = function (actionId, platformCiIds) {
-    window.platform_ids = $j.map(platformCiIds, function (i) {
-      return "platformCiIds[]=" + i;
-    }).join("&");
+    if (platformCiIds.length > 1) {
+      window.platform_ids = $j.map(platformCiIds, function (i) {
+        return "platformCiIds[]=" + i;
+      }).join("&");
 
-    render_modal("enable_transition_assembly",
-                 "<%= escape_javascript(render('base/shared/confirm_busy_block',
-                                               {:modal_id => 'enable_transition_assembly',
-                                                :url => enable_assembly_transition_environment_path,
-                                                :method => :put,
-                                                :confirm => 'Enable?',
-                                                :body    => 'Enable platforms?',
-                                                :with    => 'window.platform_ids'})) %>");
+      render_modal("enable_transition_assembly",
+                   "<%= escape_javascript(render('base/shared/confirm_busy_block',
+                                                 {:modal_id => 'enable_transition_assembly',
+                                                  :url => enable_assembly_transition_environment_path,
+                                                  :method => :put,
+                                                  :confirm => 'Enable?',
+                                                  :body    => 'Enable platforms?',
+                                                  :with    => 'window.platform_ids'})) %>");
+    }
+    else {
+      $j.ajax({url: "<%= enable_assembly_transition_environment_path(@assembly, @environment) %>",
+                type: 'PUT',
+                data: {platformCiIds: platformCiIds}});
+    }
   };
 
   window.disable_transition_assembly = function (actionId, platformCiIds) {
@@ -82,13 +87,28 @@
       return "platformCiIds[]=" + i;
     }).join("&");
 
-    render_modal("disable_transition_assembly",
-                 "<%= escape_javascript(render('base/shared/confirm_busy_block',
-                                               {:modal_id => 'disable_transition_assembly',
-                                                :url => disable_assembly_transition_environment_path,
-                                                :method => :put,
-                                                :confirm => 'Disable?',
-                                                :body    => 'Disable platforms?',
-                                                :with    => 'window.platform_ids'})) %>");
+    if (platformCiIds.length > 1) {
+      render_modal("disable_platforms_confirmation",
+                   "<%= escape_javascript(render('base/shared/confirm_busy_block',
+                                                 {:modal_id => 'disable_platforms_confirmation',
+                                                  :url => disable_assembly_transition_environment_path(@assembly, @environment),
+                                                  :method => :put,
+                                                  :confirm => 'Disable platforms?',
+                                                  :body    => raw('<p>This action will <b>disable several platforms</b> and generate a release that needs to be deployed in order to remove all related instances.</p>
+                                                                   <p>If you want to proceed select OK below and proceed with a "Commit & Deploy" action. If you change your mind you can "Discard" the release.</p>
+                                                                   <p>Note that disable action will not remove any configuration for this environment and you can enable the platforms at a later time.</p>
+                                                                   <p><strong class="label label-important">WARNING: No application data will be saved.</strong></p>'),
+                                                  :with    => 'window.platform_ids'})) %>");
+    }
+    else {
+      render_modal("disable_platform_confirmation",
+                   "<%= escape_javascript(render('base/shared/confirm_busy_block',
+                                                 {:modal_id => 'disable_platform_confirmation',
+                                                  :url => disable_assembly_transition_environment_path(@assembly, @environment),
+                                                  :method => :put,
+                                                  :confirm => 'Disable?',
+                                                  :body    => 'Disable platform?',
+                                                  :with    => 'window.platform_ids'})) %>");
+    }
   }
 </script>

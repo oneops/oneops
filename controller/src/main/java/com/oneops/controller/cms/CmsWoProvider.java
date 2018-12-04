@@ -17,29 +17,6 @@
  *******************************************************************************/
 package com.oneops.controller.cms;
 
-import static com.oneops.cms.util.CmsConstants.ATTR_NAME_AUTO_COMPLY;
-import static com.oneops.cms.util.CmsConstants.ATTR_NAME_ENABLED;
-import static com.oneops.cms.util.CmsConstants.ATTR_RUN_ON;
-import static com.oneops.cms.util.CmsConstants.ATTR_RUN_ON_ACTION;
-import static com.oneops.cms.util.CmsConstants.ATTR_VALUE_TYPE_DF;
-import static com.oneops.cms.util.CmsConstants.BASE_COMPLIES_WITH;
-import static com.oneops.cms.util.CmsConstants.BASE_PROVIDES;
-import static com.oneops.cms.util.CmsConstants.BOM_FQDN;
-import static com.oneops.cms.util.CmsConstants.CI_STATE_PENDING_DELETION;
-import static com.oneops.cms.util.CmsConstants.CLOUDSERVICEPREFIX;
-import static com.oneops.cms.util.CmsConstants.DEPENDS_ON;
-import static com.oneops.cms.util.CmsConstants.DEPLOYED_TO;
-import static com.oneops.cms.util.CmsConstants.ENTRYPOINT;
-import static com.oneops.cms.util.CmsConstants.ESCORTED_BY;
-import static com.oneops.cms.util.CmsConstants.GSLB_TYPE_TORBIT;
-import static com.oneops.cms.util.CmsConstants.MANAGED_VIA;
-import static com.oneops.cms.util.CmsConstants.SECURED_BY;
-import static com.oneops.cms.util.CmsConstants.SERVICED_BY;
-import static com.oneops.cms.util.CmsConstants.ZONE_CLASS;
-import static java.util.stream.Collectors.counting;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.toSet;
-
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.oneops.cms.cm.domain.CmsCI;
@@ -69,12 +46,15 @@ import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.cms.util.domain.CmsVar;
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
 
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
+
+import static com.oneops.cms.util.CmsConstants.*;
+import static java.util.stream.Collectors.*;
 
 
 /**
@@ -735,19 +715,15 @@ public class CmsWoProvider {
     workOrder.setConfig(varMap);
   }
 
-  private Map<String, String> getVarsForConfig(String nsPath, String className) {
-    Map<String, String> varMap = null;
-    String clazz = cmsUtil.getShortClazzName(className);
-    List<CmsVar> vars = cmProcessor.getCmVarByLongestMatchingCriteria(clazz + ".%", nsPath);
-    if (vars != null && !vars.isEmpty()) {
-      varMap =
-          vars.stream()
-              .collect(
-                  Collectors.toMap(
-                      var -> StringUtils.substringAfter(var.getName(), clazz + "."),
-                      CmsVar::getValue));
+  Map<String, String> getVarsForConfig(String nsPath, String className) {
+    final Map<String, String> varMap = new HashMap<>();
+    for (String prefix : new String[] {"bom", cmsUtil.getShortClazzName(className)}) {
+      List<CmsVar> vars = cmProcessor.getCmVarByLongestMatchingCriteria(prefix + ".%", nsPath);
+      if (vars != null && !vars.isEmpty()) {
+        vars.forEach(var -> varMap.put(StringUtils.substringAfter(var.getName(), prefix + "."), var.getValue()));
+      }
     }
-    return varMap;
+    return varMap.isEmpty() ? null : varMap;
   }
 
   private void addVarsForConfig(CmsActionOrder ao) {

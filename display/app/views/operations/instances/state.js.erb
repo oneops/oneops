@@ -1,17 +1,5 @@
 <% if @error.present? %>
-  <% if @instance
-      root, assembly, env = @instance.nsPath.split('/')
-     end %>
-  var message = '';
-  <% if @instance %>
-    message += 'Failed to process replace. There are likely some pending deployment changes for this instance and/or other instances managed via this one.';
-    message += ' Please deploy or discard pending deployment changes before proceeding with replace.';
-    message += ' You can see pending deployment <%= link_to('here', path_to_ns(@instance.nsPath.split('/')[0..3].join('/'))) %>.';
-  <% else %>
-    message += 'Failed to process bulk replace. There are likely some pending deployment changes for some of the selected instances and/or other instances managed via these ones.';
-    message += ' Please deploy or discard pending deployment changes for these instances before proceeding with bulk replace.';
-  <% end %>
-  flash(null, message);
+  flash(null, "<%= escape_javascript(@error) %>");
 <% else %>
   window.location.reload();
 <% end %>

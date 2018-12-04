@@ -18,6 +18,7 @@ package com.oneops.controller.jms;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+import com.oneops.cms.util.domain.CmsVar;
 import com.oneops.controller.workflow.ExecutionManager;
 import com.oneops.notification.NotificationSeverity;
 import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
@@ -82,7 +83,6 @@ public class CmsListener implements MessageListener {
   private ExecutionManager executionManager;
   private boolean isDeployerEnabled;
   private boolean procDeployerEnabledFlag;
-  private int deploymentStepsLimit;
 
   /**
    * Inits the.
@@ -142,7 +142,7 @@ public class CmsListener implements MessageListener {
         return;
       } else {
         if (isDeployerEnabled(dpmt.getNsPath()) &&
-                cmsClient.isDeployerStepsInLimit(deploymentStepsLimit, dpmt.getDeploymentId())) {
+                cmsClient.isDeployerStepsInLimit(dpmt.getDeploymentId())) {
           notifyIfRequired(dpmt);
           logger.info("Executing deployment using Deployer : " + dpmt.getDeploymentId());
           startDeployment(dpmt);
@@ -346,10 +346,6 @@ public class CmsListener implements MessageListener {
    */
   public void setWfController(WorkflowController wfController) {
     this.wfController = wfController;
-  }
-
-  public void setDeploymentStepsLimit(int deploymentStepsLimit) {
-    this.deploymentStepsLimit = deploymentStepsLimit;
   }
 
 }

@@ -286,8 +286,14 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 
 	@Override
 	public CapacityEstimate estimateDeploymentCapacity(BomData bomData) {
-		Collection<CmsRfcRelation> deployedToRelations = bomData.getRelations().stream().filter(r -> r.getRelationName().equals("base.DeployedTo")).collect(toList());
-		return capacityProcessor.estimateCapacity(bomData.getRelease().getNsPath(), bomData.getCis(), deployedToRelations);
+		CmsRelease release = bomData.getRelease();
+		Collection<CmsRfcCI> cis = bomData.getCis();
+		if (release == null || cis == null || cis.isEmpty()) {
+			return new CapacityEstimate(null, null, "ok");
+		} else {
+			Collection<CmsRfcRelation> deployedToRelations = bomData.getRelations().stream().filter(r -> r.getRelationName().equals("base.DeployedTo")).collect(toList());
+			return capacityProcessor.estimateCapacity(release.getNsPath(), cis, deployedToRelations);
+		}
 	}
 
 	private CmsCISimple matchOfferings(CmsRfcCI rfcCi, String service, Map<String, List<CmsCI>> offeringsByService, Map<String, Expression> expressionCache) {
