@@ -258,8 +258,6 @@ public class BadStateProcessor {
 				} else {
 					logger.info("ciId: [" + ciId + "] is being auto-replaced");
 					notifier.sendReplaceNotification(event);
-					logger.info("ciId: [" + ciId + "] is being auto-replaced");
-					notifier.sendReplaceNotification(event);
 					String userId = IConstants.ONEOPS_AUTOREPLACE_USER;
 					String description = "Auto-Replace by OneOps";
 					replace(ciId, env, userId, description);
