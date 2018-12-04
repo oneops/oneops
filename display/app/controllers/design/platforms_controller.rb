@@ -1,16 +1,14 @@
 class Design::PlatformsController < Base::PlatformsController
+  include ::Search
   before_filter :find_assembly_and_platform
 
   swagger_controller :platforms, 'Design Platform Management'
 
   swagger_api :index do
-    summary 'Fetches all platforms in the design of assembly.'
+    summary 'Fetch all platforms in the design of assembly.'
+    param_path_parent_ids :assembly
     notes 'This fetches all platforms from design including new platforms from open release.'
-    param_org_name
-    param_parent_ci_id :assembly
-    response :unauthorized
   end
-
   def index
     @platforms = Cms::DjRelation.all(:params => {:ciId              => @assembly.ciId,
                                                  :direction         => 'from',
@@ -19,6 +17,11 @@ class Design::PlatformsController < Base::PlatformsController
     render :json => @platforms
   end
 
+  swagger_api :show do
+    summary 'Fetch a platform from assembly design'
+    param_path_parent_ids :assembly
+    param_path_ci_id :platform
+  end
   def show
     respond_to do |format|
       format.html do
@@ -276,6 +279,23 @@ class Design::PlatformsController < Base::PlatformsController
     end
   end
 
+
+  swagger_api :commit do
+    summary 'Commit relase for a given platform only.'
+    param_path_parent_ids :assembly
+    param_path_ci_id :platform
+    param :form, :desc, :string, :optional, 'Optional release comments.'
+    notes <<-NOTE
+This will commit all pending changes <strong>only for specified platform</strong> in a separate release. Other current
+release changes will be rolled over to a new design release.<br>
+JSON body payload example:
+<pre>
+{
+  "desc": "Some design commit comments"
+}
+</pre>
+NOTE
+    end
   def commit
     ok, @error = Transistor.commit_design_platform_rfcs(@platform.ciId, params[:desc])
     respond_to do |format|
@@ -326,6 +346,13 @@ class Design::PlatformsController < Base::PlatformsController
 
       format.json {render_json_ci_response(ok, @platform, ok ? nil : [message])}
     end
+  end
+
+
+  protected
+
+  def search_ns_path
+    design_platform_ns_path(@assembly, @platform)
   end
 
 

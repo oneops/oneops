@@ -1,4 +1,6 @@
 class Design::LocalVariablesController < Base::VariablesController
+  swagger_controller :platform_variables, 'Design Platform Variable Management'
+
   def new
     @variable = Cms::DjCi.build({:ciClassName  => 'catalog.Localvar',
                                 :nsPath       => design_platform_ns_path(@assembly, @platform)},
@@ -9,6 +11,38 @@ class Design::LocalVariablesController < Base::VariablesController
     end
   end
 
+  swagger_api :create do
+    summary 'Add platform variable'
+    param_path_parent_ids :assembly, :platform
+    param :body, :body, :json, :required, 'Variable CI structure (include only required and non-default value attributes).'
+    notes <<-NOTE
+JSON body payload example<br>
+Unencrypted variable:
+<pre>
+{
+  "cms_dj_ci": {
+    "ciName": "DT_INSTALL",
+    "ciAttributes": {
+      "value": "whatever"
+    }
+  }
+}
+</pre>
+<br>
+Encrypted variable:
+<pre>
+{
+  "cms_dj_ci": {
+    "ciName": "DB_PASSWORD",
+    "ciAttributes": {
+      "secure": "true",
+      "encrypted_value": "secret123"
+    }
+  }
+}
+</pre>
+NOTE
+    end
   def create
     ns_path    = design_platform_ns_path(@assembly, @platform)
     attrs      = params[:cms_dj_ci].merge(:ciClassName => 'catalog.Localvar', :nsPath => ns_path)

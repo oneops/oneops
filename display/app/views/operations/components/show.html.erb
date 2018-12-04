@@ -17,5 +17,6 @@
                :doc_link      => ci_doc_link(@component, icon('book'), :anchor => 'transition', :class => 'doc-link') %>
 
 <%= render 'base/shared/page_nav_pages',
-           :items => [{:label => 'summary', :url => assembly_operations_environment_platform_component_instances_path(@assembly, @environment, @platform, @component, :instances_state => params[:instances_state] || 'all'), :selected => true},
-                      {:label => 'procedures', :template => 'operations/procedures/procedures'}] %>
+           :items => [{:id => 'instances_by_cloud', :label => 'instances by cloud', :template => 'instances_by_cloud', :selected => true},
+                      {:id => 'all_instances', :label => 'all instances', :url => assembly_operations_environment_platform_component_instances_path(@assembly, @environment, @platform, @component, :instances_state => params[:instances_state] || 'all')},
+                      {:label => 'procedures', :url => operations_procedures_path(:ciId => @component.ciId)}] %>

@@ -128,7 +128,7 @@ public class CIMapperImpl implements CIMapper {
   @Override
   public List<CmsCI> getCIby3(String ns, String clazz, String shortClazz, String name) {
     return ciMap.entrySet().stream()
-        .map(e -> e.getValue())
+        .map(Map.Entry::getValue)
         .filter(ci -> (ns == null || ns.equals(ci.getNsPath())) && (clazz == null || clazz.equals(ci.getCiClassName()))
           && (name.equals(ci.getCiName())))
         .collect(Collectors.toList());
@@ -185,11 +185,6 @@ public class CIMapperImpl implements CIMapper {
   }
 
   @Override
-  public List<CmsCIAttribute> getCIAttrsByCiIdList(List<Long> ciIds) {
-    return null;
-  }
-
-  @Override
   public List<CmsCIAttribute> getCIAttrsNaked(long ciId) {
     return null;
   }
@@ -221,22 +216,13 @@ public class CIMapperImpl implements CIMapper {
   }
 
   @Override
-  public List<CmsCIRelation> getCIRelations(String nsPath, String relationName, String shortRelName,
-      String fromClazzName, String fromShortClazzName, String toClazzName,
-      String toShortClazzName) {
+  public List<CmsCIRelation> getCIRelations(String nsPath, String nsLike, String relationName, String shortRelName, String fromClazzName, String fromShortClazzName, String toClazzName, String toShortClazzName, List<AttrQueryCondition> attrList) {
     return null;
   }
 
   @Override
   public List<CmsCIRelation> getCIRelationsByState(String nsPath, String relationName,
       String ciState, String fromClazzName, String toClazzName) {
-    return null;
-  }
-
-  @Override
-  public List<CmsCIRelation> getCIRelationsNsLike(String ns, String nsLike, String relationName,
-      String shortRelName, String fromClazzName, String fromShortClazzName, String toClazzName,
-      String toShortClazzName) {
     return null;
   }
 
@@ -265,19 +251,6 @@ public class CIMapperImpl implements CIMapper {
   }
 
   @Override
-  public List<CmsCIRelation> getFromCIRelationsByNS(long fromId, String relationName,
-      String shortRelName, String toClazzName, String toShortClazzName, String toNsPath) {
-    return null;
-  }
-
-  @Override
-  public List<CmsCIRelation> getFromCIRelationsByNSLike(long fromId, String relationName,
-      String shortRelName, String toClazzName, String toShortClazzName, String toNsPath,
-      String toNsPathLike) {
-    return null;
-  }
-
-  @Override
   public List<CmsCIRelation> getFromCIRelationsByMultiRelationNames(long fromId,
       List<String> relationNames, List<String> shortRelNames) {
     return null;
@@ -293,25 +266,6 @@ public class CIMapperImpl implements CIMapper {
   public long getCountFromCIRelationsByNSLike(long fromId, String relationName, String shortRelName,
       String toClazzName, String toNsPath, String toNsPathLike) {
     return 0;
-  }
-
-  @Override
-  public List<Map<String, Object>> getCountFromCIRelationsByNSLikeGroupByNs(long fromId,
-      String relationName, String shortRelName, String toClazzName, String toNsPath,
-      String toNsPathLike) {
-    return null;
-  }
-
-  @Override
-  public List<Map<String, Object>> getCountCIRelationsByNSLikeGroupByFromCiId(String relationName,
-      String shortRelName, String toClazzName, String ns, String nsLike) {
-    return null;
-  }
-
-  @Override
-  public List<Map<String, Object>> getCountCIRelationsByNSLikeAndRelName(String relationName,
-      String shortRelName, String nsLike) {
-    return null;
   }
 
   @Override
@@ -352,15 +306,18 @@ public class CIMapperImpl implements CIMapper {
   }
 
   @Override
-  public List<Map<String, Object>> getCountToCIRelationsByNSLikeGroupByNs(long toId,
-      String relationName, String shortRelName, String fromClazzName, String fromNsPath,
-      String fromNsPathLike) {
-    return null;
-  }
-
-  @Override
-  public List<Map<String, Object>> getCountCIRelationsByNSLikeGroupByToCiId(String relationName,
-      String shortRelName, String toClazzName, String ns, String nsLike) {
+  public List<Map<String, Object>> getRelationCounts(String relationName,
+                                                     String shortRelName,
+                                                     String ns,
+                                                     String nsLike,
+                                                     Long fromCiId,
+                                                     Long toCiId,
+                                                     String fromClazzName,
+                                                     String fromShortClazzName,
+                                                     String toClazzName,
+                                                     String toShortClazzName,
+                                                     String groupBy,
+                                                     List<AttrQueryCondition> attrList) {
     return null;
   }
 
@@ -371,11 +328,6 @@ public class CIMapperImpl implements CIMapper {
 
   @Override
   public List<CmsCIRelationAttribute> getCIRelationAttrsNaked(long ciRelId) {
-    return null;
-  }
-
-  @Override
-  public List<CmsCIRelationAttribute> getCIRelationAttrsByRelIdList(List<Long> relIds) {
     return null;
   }
 

@@ -2,8 +2,8 @@ class Operations::InstancesController < ApplicationController
   include ::RfcHistory
 
   before_filter :find_parents, :except => [:state, :update]
-  before_filter :find_instance, :except => [:index, :state, :update, :destroy]
-  before_filter :weak_ci_relation_data_consistency, :only => [:index, :show, :notifications]
+  before_filter :find_instance, :except => [:index, :by_cloud, :state, :update, :destroy]
+  before_filter :weak_ci_relation_data_consistency, :only => [:index, :by_cloud, :show, :notifications]
 
   CustomAction = Struct.new(:actionId, :actionName, :description)
 
@@ -23,7 +23,7 @@ class Operations::InstancesController < ApplicationController
     @instances      = []
     @ops_states     = {}
     @clouds         = {}
-    @state          = params[:instances_state]
+    @state          = params[:instances_state] || 'all'
     deployed_to     = []
     instance_ids    = []
 
@@ -31,12 +31,9 @@ class Operations::InstancesController < ApplicationController
       if component_scope
         deployed_to = Cms::Relation.all(:params => {:nsPath            => scope_ns_path,
                                                     :relationShortName => 'DeployedTo',
-                                                    :fromClassName     => @component.ciClassName.sub(/^manifest./, 'bom.')})
-        # Using this 'hack' below for performance reason.   The clean way is to query RealizedAs relations as:
-        # instance_ids = Cms::Relation.all(:params => {:ciId              => @component.ciId,
-        #                                              :direction         => 'from',
-        #                                              :includeToCi       => false,
-        #                                              :relationShortName => 'RealizedAs'}).map(&:toCiId)
+                                                    :fromClassName     => @component.ciClassName.sub(/^manifest./, 'bom.'),
+                                                    :attr              => "fromCiName:like:#{@component.ciName}-%"})
+        # Just in case there are components with similar ciName, e.g. "artifact" and "artifact-2"
         deployed_to = deployed_to.select {|d| d.comments.include?(%("fromCiName":"#{@component.ciName}-#{d.toCiId}-))}
       else
         deployed_to = Cms::Relation.all(:params => {:nsPath            => scope_ns_path,
@@ -45,8 +42,7 @@ class Operations::InstancesController < ApplicationController
       end
 
       instance_ids = deployed_to.map(&:fromCiId)
-      @clouds = Cms::Ci.all(:params => {:nsPath      => clouds_ns_path,
-                                        :ciClassName => 'account.Cloud'}).to_map(&:ciId)
+      @clouds = Cms::Ci.all(:params => {:nsPath => clouds_ns_path, :ciClassName => 'account.Cloud'}).to_map(&:ciId)
     end
 
     if instance_ids.present?
@@ -88,6 +84,36 @@ class Operations::InstancesController < ApplicationController
       format.json { render :json => @instances }
     end
   end
+
+  def by_cloud
+    @instances  = []
+    @ops_states = {}
+    @cloud      = locate_cloud(params[:cloud])
+    deployed_to = Cms::Relation.all(:params => {:nsPath            => scope_ns_path,
+                                                :relationShortName => 'DeployedTo',
+                                                :fromClassName     => @component.ciClassName.sub(/^manifest./, 'bom.'),
+                                                :attr              => "toCiId:eq:#{@cloud.ciId} AND fromCiName:like:#{@component.ciName}-#{@cloud.ciId}-%",
+                                                :includeFromCi     => true})
+    instance_ids = deployed_to.map(&:fromCiId)
+    if instance_ids.present?
+      @ops_states = Operations::Sensor.states(instance_ids)
+      pack_ns_path = platform_pack_ns_path(@platform)
+      @instances = deployed_to.inject([]) do |a, r|
+        r.toCi = @cloud
+        instance = r.fromCi
+        instance.opsState   = @ops_states[instance.ciId]
+        instance.cloud = r
+        instance.add_policy_locations(pack_ns_path)
+        a << instance
+      end
+    end
+
+    respond_to do |format|
+      format.js {render_index(true)}
+      format.json { render :json => @instances }
+    end
+  end
+
 
   def show
     @ops_state  = Operations::Sensor.states([@instance])[@instance.ciId]
@@ -365,9 +391,13 @@ class Operations::InstancesController < ApplicationController
         managed_via_rels = Cms::Relation.all(:params => {:nsPath       => scope_ns_path,
                                                          :recursive    => !@platform,
                                                          :relationName => 'bom.ManagedVia'})
-        @ips_map = Cms::Ci.list(managed_via_rels.map(&:toCiId)).inject({}) do |h, compute|
-          attrs = compute['ciAttributes']
-          h[compute['fromCiId']] = attrs['private_ip'].presence || attrs['public_ip'] if attrs
+        computes = Cms::Ci.list(managed_via_rels.map(&:toCiId).uniq).to_map {|c| c['ciId']}
+        @ips_map = managed_via_rels.inject({}) do |h, r|
+          compute = computes[r.toCiId]
+          if compute
+            attrs = compute['ciAttributes']
+            h[r.fromCiId] = attrs['private_ip'].presence || attrs['public_ip'] if attrs
+          end
           h
         end
       end

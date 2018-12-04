@@ -1,6 +1,6 @@
 <% if @component %>
-  $j("#page_nav_summary").html("<%= escape_javascript(render('instance_list')) %>");
-  replace_state("<%= assembly_operations_environment_platform_component_path(@assembly, @environment, @platform, @component, :instances_state => params[:instances_state], :anchor => 'summary') %>");
+  $j("#page_nav_all_instances").html("<%= escape_javascript(render('instance_list')) %>");
+  replace_state("<%= assembly_operations_environment_platform_component_path(@assembly, @environment, @platform, @component, :instances_state => params[:instances_state], :anchor => 'all_instances') %>");
 <% elsif @platform %>
   $j("#page_nav_health").html("<%= escape_javascript(render('instance_list')) %>");
   replace_state("<%= assembly_operations_environment_platform_path(@assembly, @environment, @platform, :instances_state => params[:instances_state], :anchor => 'health') %>");

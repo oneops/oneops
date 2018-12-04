@@ -144,7 +144,10 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 		String manifestNsPath = getNs(env) + "/manifest";
 
 		long t = System.currentTimeMillis();
-		Set<Long> cloudIds = cmProcessor.getCountCIRelationsGroupByToCiId(BASE_CONSUMES, null, null, manifestNsPath).keySet();
+		Set<Long> cloudIds = cmProcessor.getRelationCounts(BASE_CONSUMES, manifestNsPath, true, null, null, null, null, "toCiId", null)
+				.keySet().stream()
+				.map(Long::parseLong)
+				.collect(toSet());
 		Map<Long, CmsCI> cloudMap = cmProcessor.getCiByIdList(new ArrayList<>(cloudIds)).stream()
 				.collect(toMap(CmsCI::getCiId, Function.identity()));
 		logger.info("CloudMap: " + (System.currentTimeMillis() - t));

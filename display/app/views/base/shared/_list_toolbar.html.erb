@@ -29,7 +29,7 @@
             <li class="divider"></li>
           <% else %>
             <% busy = i[:busy] %>
-            <li class="disabled"><a onclick='<%= raw(%(invoke_list_menu_item(this, "#{i[:id]}", "#{i[:function]}", "#{i[:url]}", "#{i[:method]}", "#{i[:param_name]}", #{busy ? (busy.is_a?(String) ? "\"#{busy}\"" : 'true') : 'null'}))) %>'><%= raw i[:label] %></a></li>
+            <li class="disabled"><a onclick='<%= raw(%(invoke_list_menu_item(this, "#{i[:id]}", "#{i[:function]}", "#{i[:url]}", "#{i[:method]}", "#{i[:param_name]}", #{busy ? (busy.is_a?(String) ? "\"#{busy}\"" : 'true') : 'null'}, #{i[:data] ? i[:data].to_json : 'null'}))) %>'><%= raw i[:label] %></a></li>
           <% end %>
         <% end %>
       </ul>
@@ -125,14 +125,14 @@
   }
 
   if (!window.invoke_list_menu_item) {
-    window.invoke_list_menu_item = function(source, menu_item_id, function_name, url, method, param_name, busy) {
+    window.invoke_list_menu_item = function(source, menu_item_id, function_name, url, method, param_name, busy, data) {
       if ($j(source).hasClass('disabled')) return;
 
       var ids = selected_item_ids(source);
       if (ids.length == 0) return;
 
       if (function_name) {
-        window[function_name](menu_item_id, ids);
+        window[function_name](menu_item_id, ids, data);
       }
       else if (url) {
         var data = {};

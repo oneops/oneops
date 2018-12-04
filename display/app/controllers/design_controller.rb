@@ -1,4 +1,6 @@
 class DesignController < ApplicationController
+  swagger_controller :design, 'Design Management'
+
   include ::Search
 
   before_filter :find_assembly

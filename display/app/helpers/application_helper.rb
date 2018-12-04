@@ -501,8 +501,7 @@ module ApplicationHelper
   class ListItemBuilder < Hash
     attr_accessor :item
 
-    def initialize(item, template, options = {})
-      @item     = item
+    def initialize(template, options = {})
       @template = template
       @options  = options
     end
@@ -512,15 +511,16 @@ module ApplicationHelper
     end
 
     def self.build_list_item_content(item_collection, template, options, group = nil, &block)
-      partial = options[:item_partial]
-      locals  = {:group        => group,
-                 :collapse     => options[:collapse],
-                 :multi_select => options[:menu].present?}
+      partial           = options[:item_partial]
+      list_item_builder = ListItemBuilder.new(template, options)
+      locals            = {:group        => group,
+                           :builder      => list_item_builder,
+                           :collapse     => options[:collapse],
+                           :multi_select => options[:menu].present?}
       item_collection.inject('') do |content, item|
-        list_item_builder = ListItemBuilder.new(item, template, options)
-        locals[:builder] = list_item_builder
-        locals[:item]    = item
+        list_item_builder.item = item
         template.capture list_item_builder, item, &block if block_given?
+        locals[:item] = item
         content << template.render(:partial => partial, :locals => locals)
       end
     end

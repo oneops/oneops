@@ -117,26 +117,27 @@ class Cloud::CloudsController < ApplicationController
                                                :relationShortName => 'DeployedTo',
                                                :includeFromCi     => true}).map(&:fromCi)
 
-    @state     = params[:instances_state]
+    @state = params[:instances_state]
     @state = nil if @state == 'all'
     ops_states = @instances.blank? ? {} : Operations::Sensor.states(@instances)
     @instances = @instances.select do |i|
-      state      = ops_states[i.ciId]
+      state = ops_states[i.ciId]
       i.opsState = state
       @state.blank? || state == @state
     end
 
-    @instance_procedures = Cms::Procedure.all(:params => {:nsPath    => organization_ns_path,
-                                                          :recursive => true,
-                                                          :actions   => true,
-                                                          :state     => 'active,pending',
-                                                          :limit     => 1000}).inject({}) do |m, p|
-      p.actions.each {|a| m[a.ciId] = p}
-      m
-    end
-
     respond_to do |format|
-      format.js
+      format.js do
+        @instance_procedures = Cms::Procedure.all(:params => {:nsPath    => organization_ns_path,
+                                                              :recursive => true,
+                                                              :actions   => true,
+                                                              :state     => 'active,pending',
+                                                              :limit     => 1000}).inject({}) do |m, p|
+          p.actions.each {|a| m[a.ciId] = p}
+          m
+        end
+      end
+
       format.json { render :json => @instances }
     end
   end

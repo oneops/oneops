@@ -141,8 +141,8 @@ public class CapacityProcessorTest {
         CmsRfcProcessor rfcProcessor = Mockito.mock(CmsRfcProcessor.class);
         Mockito.when(rfcProcessor.getRfcCIBy3(Mockito.anyLong(), Mockito.anyBoolean(), Mockito.anyLong()))
                 .thenReturn(bomCIs);
-        Mockito.when(cmProcessorMock.getCountCIRelationsGroupByToCiId(Mockito.eq("base.Consumes"), Mockito.anyString(), Mockito.anyString(), Mockito.eq(ENV_NS_PATH)))
-                .thenAnswer(i -> bomRels.stream().collect(Collectors.groupingBy(CmsRfcRelation::getToCiId, Collectors.counting())));
+        Mockito.when(cmProcessorMock.getRelationCounts(Mockito.eq("base.Consumes"), Mockito.eq(ENV_NS_PATH), Mockito.eq(true), Mockito.anyLong(), Mockito.anyLong(), Mockito.anyString(), Mockito.anyString(), Mockito.eq("toCiId"), Mockito.anyObject()))
+                .thenAnswer(i -> bomRels.stream().collect(Collectors.groupingBy(r -> r.getToCiId().toString(), Collectors.counting())));
         Mockito.when(rfcProcessor.getRfcRelationByReleaseAndClassNoAttrs(Mockito.anyLong(), Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(bomRels);
         Mockito.when(rfcProcessor.getOpenRfcRelationBy2NoAttrs(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyString(), Mockito.anyString()))
