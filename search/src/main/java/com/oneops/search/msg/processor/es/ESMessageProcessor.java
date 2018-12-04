@@ -103,7 +103,7 @@ public class ESMessageProcessor implements MessageProcessor {
                 default:
                     // do not process anything else we don't use. Default clause left empty on purpose
                    // indexer.index(msgId, msgType, message);
-                    logger.info("Won't process:"+msgType);
+                    logger.inifo("Won't process:"+msgType);
                     break;
             }
         } catch (Exception e) {
