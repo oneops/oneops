@@ -1,0 +1,119 @@
+<script>
+  window.show_component_instances_in_cloud = function(cloudId, force_load) {
+    var div = $j("#component_instances_in_" + cloudId);
+    div.parents().find(".component-instance-list").hide();
+    div.show();
+    if (force_load || div.find(".list").length === 0) {
+      div.html("<%= escape_javascript(loading_indicator) %>");
+      $j.ajax({url: "<%= by_cloud_assembly_operations_environment_platform_component_instances_path(@assembly, @environment, @platform, @component) %>",
+              type: "GET",
+              data: {"cloud": cloudId}});
+    }
+  }
+</script>
+<%
+  has_operations = has_operations?(@assembly.try(:ciId))
+  actions = @actions + @custom_actions
+  list_menu = []
+  if actions.present? && has_operations
+    list_menu += actions.map {|a|
+      if a.is_a?(Operations::InstancesController::CustomAction)
+        {:id       => a.actionId,
+         :label    => a.description,
+         :function => 'prepare_cloud_instances_action',
+        :data => {:procedureName => a.description, :actionName => a.actionName, :attachmentCiId => a.actionId}}
+      else
+        {:id       => a.actionId,
+         :label    => a.actionName,
+         :function => 'prepare_cloud_instances_action',
+        :data => {:procedureName => a.actionName, :actionName => a.actionName}}
+      end
+    }
+  end
+  list_menu << nil if list_menu.size > 0
+  list_menu << {:id => 'instance_ips', :label => 'list of IPs...', :function => 'cloud_instance_ips'}
+%>
+<%= section_panel "#{icon(site_icon(:cloud))} Clouds", :width => 'single', :position => 'left' do %>
+  <%= list(@clouds,
+           :list_name => 'component_clouds',
+           :menu      => list_menu,
+           :toolbar   => {:sort_by       => [%w(Name ciName), %w(Priority priority), %w(Status status), %w(Instances instances)],
+                          :filter_by     => %w(ciName priority status instances),
+                          :quick_filters => [{:label => 'All', :value => ''},
+                                             {:label => 'Deployed', :value => 'instances=\d', :selected => true},
+                                             {:label => 'Primary', :value => 'priority=primary AND instances=\d'},
+                                             {:label => 'Secondary', :value => 'priority=secondary AND instances=\d'}]}) do |builder, cloud| %>
+    <% cloud_id       = cloud.toCiId
+       cloud_name     = cloud.toCi.ciName
+       status         = cloud.relationAttributes.adminstatus
+       priority       = cloud.relationAttributes.priority
+       primary        = priority == '1'
+       priority_label = primary ? 'primary' : 'secondary'
+       instance_count = @instance_counts && @instance_counts[cloud_id.to_s] %>
+    <% builder.itemid cloud_id %>
+    <% builder.attributes raw(%(ciName="#{cloud_name}" priority="#{priority_label}" status="#{status}" instances="#{instance_count if instance_count && instance_count > 0}")) %>
+    <% builder.target link_to_function('', "show_component_instances_in_cloud(#{cloud_id}, event.shiftKey || event.altKey || event.metaKey)")  %>
+    <% builder.status do %>
+      <%= marker(priority_label, primary ? 'label-info' : '') %>
+      <%= status_marker('status', status, cloud_admin_status_label(status)) %>
+      <%= instance_marker(instance_count) if instance_count %>
+    <% end %>
+    <% builder.top do %>
+      <span class="topdesc"><%= icon('cloud') %></span>
+      <span class="topname"><%= cloud_name %></span>
+    <% end %>
+  <% end %>
+<% end %>
+<% @clouds.each do |c| %>
+  <div id="component_instances_in_<%= c.toCi.ciId %>" class="component-instance-list hide"></div>
+<% end %>
+<% if actions.present? && has_operations %>
+  <script>
+    window.prepare_cloud_instances_action = function(actionId, cloud_ids, payload) {
+      var data = {
+        procedureCiId:     0,
+        ciId:              "<%= @component.ciId %>",
+        procedureState:    "active",
+        actionCiClassName: "<%= @component.ciClassName %>",
+        relationName:      "base.RealizedAs",
+        cloudCiIds:        cloud_ids,
+      };
+      for (var k in payload) {
+        data[k] = payload[k];
+      }
+      $j.ajax({url: "<%= prepare_operations_procedures_path %>", type: 'POST', data: data});
+    };
+
+    window.cloud_instance_ips = function (type, cloudIds) {
+      var counter = 0;
+      var ips = cloudIds.reduce(function (h, cloudId) {
+        $j.getJSON("<%= search_assembly_operations_environment_platform_path(@assembly, @environment, @platform) %>",
+                   {
+                     format:          "json",
+                     source:          "simple",
+                     relation_name:   "DeployedTo",
+                     from_class_name: "Compute",
+                     query:            "toCiId:eq:" + cloudId,
+                     include_to_ci:   "false"
+                   }).always(function (data) {
+          if (data) {
+            data.reduce(function (hh, r) {
+              var attrs = r['fromCi']['ciAttributes'];
+              var ip = attrs['private_ip'] || attrs['public_ip'];
+              if (ip) {
+                hh.push(ip);
+              }
+              return hh;
+            }, h);
+          }
+          counter++;
+          if (counter === cloudIds.length && ips.length) {
+            showCopyToClipboardModal('IP List', ips.uniq().join(' '));
+          }
+        });
+
+        return h;
+      }, []);
+    };
+  </script>
+<% end %>

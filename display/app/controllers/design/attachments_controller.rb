@@ -1,4 +1,6 @@
 class Design::AttachmentsController < Base::AttachmentsController
+  swagger_controller :attachments, 'Design Attachment Management'
+
   before_filter :find_parents_and_attachment
 
   def show
@@ -18,6 +20,26 @@ class Design::AttachmentsController < Base::AttachmentsController
     end
   end
 
+  swagger_api :create do
+    summary 'Add attachment to component'
+    param_path_parent_ids :assembly, :platform, :component
+    param :body, :body, :json, :required, 'Attachment CI structure (include only required and non-default value attributes).'
+    notes <<-NOTE
+JSON body payload example:
+<pre>
+{
+  "cms_dj_ci": {
+    "ciName": "say-hello",
+    "ciAttributes": {
+      "path": "/tmp/download_file",
+      "exec_cmd": "echo hello everybody",
+      "run_on": "after-add,after-replace,after-update,after-delete,on-demand"
+    }
+  }
+}
+</pre>
+NOTE
+    end
   def create
     attrs       = params[:cms_dj_ci].merge(:nsPath => @component.nsPath, :ciClassName => 'catalog.Attachment')
     attr_props  = attrs.delete(:ciAttrProps)

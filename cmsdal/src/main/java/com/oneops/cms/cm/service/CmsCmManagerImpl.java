@@ -226,8 +226,13 @@ public class CmsCmManagerImpl implements CmsCmManager {
     @Override
     public List<CmsCIRelation> getCIRelations(String nsPath,
                                               String relationName, String shortRelName, String fromClazzName,
-                                              String toClazzName) {
-        return cmProcessor.getCIRelationsNaked(nsPath, relationName, shortRelName, fromClazzName, toClazzName);
+                                              String toClazzName,
+                                              List<AttrQueryCondition> conditions) {
+        if (conditions == null || conditions.isEmpty()) {
+            return cmProcessor.getCIRelationsNaked(nsPath, relationName, shortRelName, fromClazzName, toClazzName);
+        } else {
+            return cmProcessor.getCIRelationsNaked(nsPath, relationName, shortRelName, fromClazzName, toClazzName, conditions);
+        }
     }
 
     /* (non-Javadoc)
@@ -236,8 +241,13 @@ public class CmsCmManagerImpl implements CmsCmManager {
     @Override
     public List<CmsCIRelation> getCIRelationsNsLike(String nsPath,
                                                     String relationName, String shortRelName, String fromClazzName,
-                                                    String toClazzName) {
-        return cmProcessor.getCIRelationsNsLikeNaked(nsPath, relationName, shortRelName, fromClazzName, toClazzName);
+                                                    String toClazzName,
+                                                    List<AttrQueryCondition> conditions) {
+        if (conditions == null || conditions.isEmpty()) {
+            return cmProcessor.getCIRelationsNsLikeNaked(nsPath, relationName, shortRelName, fromClazzName, toClazzName);
+        } else {
+            return cmProcessor.getCIRelationsNsLikeNaked(nsPath, relationName, shortRelName, fromClazzName, toClazzName, conditions);
+        }
     }
 
     /* (non-Javadoc)
@@ -304,58 +314,20 @@ public class CmsCmManagerImpl implements CmsCmManager {
     }
 
     /* (non-Javadoc)
-     * @see com.oneops.cms.cm.service.CmsCmManager#getCountFromCIRelationsByNS(long, java.lang.String, java.lang.String, java.lang.String, java.lang.String, boolean)
+     * @see com.oneops.cms.cm.service.CmsCmManager#getRelationCounts(java.util.List)
      */
     @Override
-    public long getCountFromCIRelationsByNS(long fromId, String relationName,
-                                            String shortRelName, String toClazzName, String toNsPath,
-                                            boolean recursive) {
-        return cmProcessor.getCountFromCIRelationsByNS(fromId, relationName, shortRelName, toClazzName, toNsPath, recursive);
+    public Map<String, Long> getRelationCounts(String relationName,
+                                               String nsPath,
+                                               boolean recursive,
+                                               Long fromCiId,
+                                               Long toCiId,
+                                               String fromClassName,
+                                               String toClassName,
+                                               String groupBy,
+                                               List<AttrQueryCondition> conditions) {
+        return cmProcessor.getRelationCounts(relationName, nsPath, recursive, fromCiId, toCiId, fromClassName, toClassName, groupBy, conditions);
     }
-
-    /* (non-Javadoc)
-     * @see com.oneops.cms.cm.service.CmsCmManager#getCountToCIRelationsByNS(long, java.lang.String, java.lang.String, java.lang.String, java.lang.String, boolean)
-     */
-    @Override
-    public long getCountToCIRelationsByNS(long toId, String relationName,
-                                          String shortRelName, String toClazzName, String toNsPath,
-                                          boolean recursive) {
-        return cmProcessor.getCountToCIRelationsByNS(toId, relationName, shortRelName, toClazzName, toNsPath, recursive);
-    }
-
-    /* (non-Javadoc)
-     * @see com.oneops.cms.cm.service.CmsCmManager#getCountFromCIRelationsGroupByNs(long, java.lang.String, java.lang.String, java.lang.String, java.lang.String)
-     */
-    @Override
-    public Map<String, Long> getCountFromCIRelationsGroupByNs(long fromId,
-                                                              String relationName, String shortRelName, String toClazzName,
-                                                              String toNsPath) {
-        return cmProcessor.getCountFromCIRelationsGroupByNs(fromId, relationName, shortRelName, toClazzName, toNsPath);
-    }
-
-    /* (non-Javadoc)
-     * @see com.oneops.cms.cm.service.CmsCmManager#getCountToCIRelationsGroupByNs(long, java.lang.String, java.lang.String, java.lang.String, java.lang.String)
-     */
-    @Override
-    public Map<String, Long> getCountToCIRelationsGroupByNs(long toId,
-                                                            String relationName, String shortRelName, String toClazzName,
-                                                            String toNsPath) {
-        return cmProcessor.getCountToCIRelationsGroupByNs(toId, relationName, shortRelName, toClazzName, toNsPath);
-    }
-
-    @Override
-    public Map<Long, Long> getCounCIRelationsGroupByFromCiId(
-            String relationName, String shortRelName, String toClazzName,
-            String nsPath) {
-        return cmProcessor.getCounCIRelationsGroupByFromCiId(relationName, shortRelName, toClazzName, nsPath);
-    }
-
-    @Override
-    public Map<Long, Long> getCounCIRelationsGroupByToCiId(String relationName,
-                                                           String shortRelName, String fromClazzName, String nsPath) {
-        return cmProcessor.getCountCIRelationsGroupByToCiId(relationName, shortRelName, fromClazzName, nsPath);
-    }
-
 
     /* (non-Javadoc)
      * @see com.oneops.cms.cm.service.CmsCmManager#getCiByIdList(java.util.List)
@@ -395,7 +367,6 @@ public class CmsCmManagerImpl implements CmsCmManager {
      * This method does relationship traversal and updates all related cis with new state
      *
      * @param ids, String new ciState  String relName, String direction, boolean recursive
-     * @return void
      */
 
     @Override
@@ -407,7 +378,7 @@ public class CmsCmManagerImpl implements CmsCmManager {
         List<CmsRfcCI> openRfcs = rfcProcessor.getOpenRfcCIByCiIdListNoAttrs(idList);
 
         if (openRfcs.size() > 0) {
-            List<String> badCiIds = new ArrayList<String>(openRfcs.size());
+            List<String> badCiIds = new ArrayList<>(openRfcs.size());
             for (CmsRfcCI rfc : openRfcs) {
                 badCiIds.add(String.valueOf(rfc.getCiId()));
             }
@@ -425,23 +396,12 @@ public class CmsCmManagerImpl implements CmsCmManager {
      * This method does relationship traversal and updates all related cis with new state
      *
      * @param ciId, String new ciState  String relName, String direction, boolean recursive
-     * @return void
      */
     public void updateCiState(long ciId, String ciState, String relName,
                               String direction, boolean recursive, String user) {
         updateCiState(ciId, ciState, relName, direction, recursive, true, user);
     }
 
-    /**
-     * Update the cm_ci_state of the given <code>ciId</code> to new <code>ciState</code>.
-     *
-     * @param ciId
-     * @param ciState
-     * @param relName
-     * @param direction
-     * @param recursive
-     * @param checkRfc
-     */
     private void updateCiState(long ciId, String ciState, String relName,
                                String direction, boolean recursive, boolean checkRfc, String user) {
 
@@ -467,30 +427,6 @@ public class CmsCmManagerImpl implements CmsCmManager {
                 }
             }
         }
-    }
-
-    /* (non-Javadoc)
-     * @see com.oneops.cms.cm.service.CmsCmProcessor#getFromCIRelationsByNs(long fromId,
-            String relationName, String shortRelName, String toClazzName,
-            String toNsPath)
-     */
-    @Override
-    public List<CmsCIRelation> getFromCIRelationsByNs(long fromId,
-                                                      String relationName, String shortRelName, String toClazzName,
-                                                      String toNsPath) {
-        return cmProcessor.getFromCIRelationsByNs(fromId, relationName, shortRelName, toClazzName, toNsPath);
-    }
-
-    /* (non-Javadoc)
-     * @see com.oneops.cms.cm.service.CmsCmProcessor#getToCIRelationsByNs(long toId,
-            String relationName, String shortRelName, String fromClazzName,
-            String fromNsPath)
-     */
-    @Override
-    public List<CmsCIRelation> getToCIRelationsByNs(long toId,
-                                                    String relationName, String shortRelName, String fromClazzName,
-                                                    String fromNsPath) {
-        return cmProcessor.getToCIRelationsByNs(toId, relationName, shortRelName, fromClazzName, fromNsPath);
     }
 
     @Override

@@ -1,10 +1,10 @@
 <% menu = %w(good notify unhealthy overutilized underutilized).map do |state|
-    selected_states = params[:instances_state]
+    selected_states = params[:instances_state] || %w(all)
     selected = selected_states == 'all' || selected_states.include?(state)
     link_to_function(icon(selected ? 'check-square-o' : 'square-o', state),
                      'filter_instances_by_health(this)',
                      :class => "btn btn-mini #{'active' if selected}",
-                     :instance_state => state)
+                     :instance_state => state) if @state
   end
    actions = @actions + @custom_actions
    sort_by = [%w(Name ciName), %w(Cloud cloud), %w(Health health), %w(Procedure procedureState), %w(State ciState)]
@@ -38,6 +38,7 @@
    toolbar = {:list_name => list_name,
               :sort_by   => sort_by,
               :filter_by => filter_by,
+              :compact   => false,
               :quick_filters => [{:label => 'All', :value => '', :selected => true},
                                  {:label => 'Primary', :value => 'cloudPriority=primary'},
                                  {:label => 'Secondary', :value => 'cloudPriority=secondary'}]}
@@ -62,10 +63,11 @@
        list_menu << {:id => 'bulk_undo_replace', :label => 'undo replace', :function => 'bulk_replace'}
      end
    end
+  important_attr_cache = {}
 %>
-<%= section_panel 'Instances', :width => 'triple', :position => 'right', :menu => menu do %>
+<%= section_panel "Instances #{"in <b>#{@cloud.ciName}</b>" if @cloud}", :width => @cloud ? 'double' : 'triple', :position => 'right', :menu => menu do %>
   <%= ci_list(@instances, :toolbar => toolbar, :menu => list_menu) do |builder, target| %>
-    <% ops_state           = target.opsState ? (target.opsState || 'unknown') : 'pending'
+    <% ops_state           = target.opsState || 'unknown'
        events              = ops_state != 'good' && @bad_state_events.present? && @bad_state_events[target.ciId]
        procedure           = @instance_procedures[target.ciId]
        managed_via_health  = ops_state == 'good' && @managed_via_health.present? && @managed_via_health[target.ciId]
@@ -74,10 +76,11 @@
        deployment_comments = deployment_info && deployment_info[:comments]
        deployed_to         = target.cloud
        primary             = deployed_to && deployed_to.relationAttributes.priority == '1'
-       priority_name      = primary ? 'primary' : 'secondary' %>
+       priority_name       = primary ? 'primary' : 'secondary'
+       last_applied_rfc_id = target.lastAppliedRfcId.to_i %>
     <% builder.attributes raw(%(ciName="#{target.ciName}" cloud="#{deployed_to && deployed_to.toCi.ciName}" health="#{ops_state}" procedureState="#{procedure ? 'active' : 'idle'}" managedVia="#{managed_via_health}" deployment="#{deployment_state}" ciState="#{target.ciState}" cloudPriority="#{priority_name}" componentType="#{target.ciClassName}" nsPath="#{target.nsPath}" events="#{events.map{|e| e['name']}.join(',') if events.present?}")) %>
     <% builder.target nil %>
-    <% builder.selectable target.lastAppliedRfcId.to_i > 0 %>
+    <% builder.selectable last_applied_rfc_id > 0 %>
     <% builder.icon :none if @component %>
     <% builder.top do %>
       <span class="topname"><%= link_to(target.ciName, path_to_ci(target)) %></span>
@@ -89,7 +92,14 @@
       <% end %>
     <% end %>
     <% builder.middle do %>
-      <%= render 'cms/cis/important', :ci => target %>
+      <% if last_applied_rfc_id > 0 %>
+        <% important_attr = important_attr_cache[last_applied_rfc_id] %>
+        <% unless important_attr %>
+          <% important_attr = capture {render 'cms/cis/important', :ci => target}
+             important_attr_cache[last_applied_rfc_id] = important_attr %>
+        <% end %>
+        <%= important_attr %>
+      <% end %>
     <% end %>
     <% builder.bottom @component ? :none : link_to(target.nsPath, path_to_ns(target.nsPath)) %>
     <% builder.status do %>

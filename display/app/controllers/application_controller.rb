@@ -98,11 +98,7 @@ class ApplicationController < ActionController::Base
   end
 
   def find_or_create_proxy(ci)
-    current_user.organization.ci_proxies.find_or_create_by(:organization_id => current_user.organization_id,
-                                                           :ci_id           => ci.ciId,
-                                                           :ci_name         => ci.ciName,
-                                                           :ns_path         => ci.nsPath,
-                                                           :ci_class_name   => ci.ciClassName)
+    current_user.organization.ci_proxies.find_or_create_by(:organization_id => current_user.organization_id, :ci_id => ci.ciId, :ci_name => ci.ciName, :ns_path => ci.nsPath, :ci_class_name => ci.ciClassName)
   end
 
   def search_ns_path

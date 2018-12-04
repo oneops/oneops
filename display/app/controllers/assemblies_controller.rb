@@ -10,14 +10,12 @@ class AssembliesController < ApplicationController
   swagger_controller :assemblies, 'Assembly Management'
 
   swagger_api :index do
-    summary 'Fetches all org assemblies accessible by current user.'
+    summary 'Fetch all org assemblies accessible by current user.'
     notes 'This lists all organization assemblies subject to access right.  Users with admin and organization ' \
            'scope team priviliges will see all assemblies. Other users will see only assemblies that are assoociated ' \
            'with any of the teams they belong to.'
     param_org_name
-    response :unauthorized
   end
-
   def index
     @assemblies = locate_assemblies.sort_by { |o| o.created_timestamp }
 
@@ -37,12 +35,10 @@ class AssembliesController < ApplicationController
   end
 
   swagger_api :show do
-    summary 'Fetches an assembly.'
+    summary 'Fetch assembly.'
     notes 'This fetches an assembly by CI id or name.'
     param_org_name
-    param_ci_id :assembly
-    response :unauthorized
-    response :not_found
+    param_path_ci_id :assembly
   end
 
   def show
@@ -73,11 +69,9 @@ class AssembliesController < ApplicationController
   end
 
   swagger_api :new do
-    summary 'Builds a new assembly CI with default attributes.'
+    summary 'Build a new assembly CI json with default attribute values.'
     param_org_name
-    response :unauthorized
   end
-
   def new
     @assembly = Cms::Ci.build({:nsPath => organization_ns_path, :ciClassName => 'account.Assembly'})
 
@@ -88,16 +82,13 @@ class AssembliesController < ApplicationController
   end
 
   swagger_api :create do
-    summary 'Creates a new assembly.'
+    summary 'Create a new assembly.'
     notes 'If <b>catalog_template</b> is specified it will try to find a corresponding catalog and create ' \
           'a design defined by the catalog.'
     param_org_name
-    param :form, 'cms_ci', :string, :required, 'Assembly CI object.'
+    param :form, 'cms_ci', :json, :required, 'Assembly CI structure.'
     param :form, 'catalog_template', :string, :optional, 'Name of exisiting catalog defining a design that will be automatically created in this new assembly.'
-    response :unauthorized
-    response :unprocessable_entity
   end
-
   def create
     design_id = params[:catalog_template]
     if design_id.present?
@@ -138,6 +129,12 @@ class AssembliesController < ApplicationController
     end
   end
 
+  swagger_api :update, :responses => [:not_found] do
+    summary 'Update assembly.'
+    param_org_name
+    param_path_ci_id :assembly
+    param :body, :body, :json, :required, 'Assembly CI structure.'
+  end
   def update
     ok = execute(@assembly, :update_attributes, params[:cms_ci])
 
@@ -147,16 +144,12 @@ class AssembliesController < ApplicationController
     end
   end
 
-  swagger_api :destroy do
-    summary 'Deletes an assembly.'
+  swagger_api :destroy, :responses => [:not_found] do
+    summary 'Delete assembly.'
     notes 'This deletes an assembly by CI id or name. Deteling is allowed only if assembly has no deployed instances.'
     param_org_name
-    param_ci_id :assembly
-    response :unauthorized
-    response :not_found
-    response :unprocessable_entity
+    param_path_ci_id :assembly
   end
-
   def destroy
     count          = instance_by_cloud_count
     cloud_count    = count.size

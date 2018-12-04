@@ -79,6 +79,10 @@ public class AttrQueryCondition {
     return avalue;
   }
 
+  public long getAvalueAsLong() {
+    return Long.parseLong(avalue);
+  }
+
   /**
    * Sets the avalue.
    *

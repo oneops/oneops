@@ -17,9 +17,9 @@
  *******************************************************************************/
 package com.oneops.cms.util;
 
-import java.util.List;
-
 import com.oneops.cms.util.domain.AttrQueryCondition;
+
+import java.util.List;
 
 /**
  * The Class QueryConditionMapper.
@@ -45,6 +45,7 @@ public class QueryConditionMapper {
 	 * @param aqcs the aqcs
 	 */
 	public void convertConditions(List<AttrQueryCondition> aqcs) {
+		if (aqcs == null) return;
 		for (AttrQueryCondition aqc : aqcs) {
 			convertConditions(aqc);
 		}

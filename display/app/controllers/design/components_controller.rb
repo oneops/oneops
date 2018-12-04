@@ -1,12 +1,19 @@
 class Design::ComponentsController < Base::ComponentsController
+  swagger_controller :components, 'Design Components Management'
+
+  swagger_api :new do
+    summary 'Build a sample component CI json with default attribute values'
+    param_path_parent_ids :assembly, :platform
+    param :form, 'template_name', :string, :required, 'Type (name of component in the pack) of optional component to build.'
+  end
   def new
     find_template
-    @component = Cms::DjCi.build({:nsPath      => design_platform_ns_path(@assembly, @platform),
-                                  :ciClassName => component_class_name,
-                                  :ciName      => @template_name},
-                                 {:owner => {}})
-
     if @template
+      @component = Cms::DjCi.build({:nsPath      => design_platform_ns_path(@assembly, @platform),
+                                    :ciClassName => component_class_name,
+                                    :ciName      => @template_name},
+                                   {:owner => {}})
+
       ci_attributes = @component.ciAttributes.attributes
       ci_attributes.keys.each do |attribute|
         default = @template.ciAttributes.attributes[attribute]
@@ -21,10 +28,35 @@ class Design::ComponentsController < Base::ComponentsController
         render :action => :edit
       end
 
-      format.json { render_json_ci_response(true, @component) }
+      format.json { render_json_ci_response(@component, @component, ["Unknown component tamplate: #{params[:template_name]}"]) }
     end
   end
 
+  swagger_api :create do
+    summary 'Add optional component to platform'
+    param_path_parent_ids :assembly, :platform
+    param :form, 'template_name', :string, :required, 'Type (name of component in the pack) of optional component to be added.'
+    param :body, :body, :json, :required, 'Component CI structure (include only required and non-default value attributes).'
+    notes <<-NOTE
+Only optional components can be added to platform.  For some components (e.g. file, download, artifact) many instances can
+be added, others can only be added once (e.g. java, ruby).<br>
+JSON body payload example - add download component:
+<pre style="white-space:pre-wrap">
+{
+  "template_name": "download",
+  "cms_dj_ci": {
+    "ciName": "deploy-oneagent-dynatrace",
+    "ciAttributes": {
+      "path": "/tmp/apm-deploy.jar",
+      "basic_auth_password": "...",
+      "source": "http://gec-maven-nexus.walmart.com/content/groups/public/com/walmart/platform/systel/apm/apm-deploy/0.0.4/apm-deploy-0.0.4.jar",
+      "post_download_exec_cmd": "(yum -y install ansible; cd /tmp; rm -rf apm-deploy; mkdir apm-deploy; cd apm-deploy; jar -xf ../apm-deploy.jar; ansible-playbook apm-deploy-playbook.yml -i inventory.ini -l local -u app --extra-vars \"ORG=$OO_LOCAL{DT_ORG} $OO_LOCAL{EXTRA_DT_HOST_TAGS} uninstall_agent=$OO_LOCAL{DT_UNINSTALL}\")"
+    }
+  }
+}
+</pre>
+NOTE
+  end
   def create
     find_template
     ns_path    = design_platform_ns_path(@assembly, @platform)
@@ -79,6 +111,49 @@ class Design::ComponentsController < Base::ComponentsController
     end
   end
 
+  swagger_api :update, :responses => [:not_found] do
+    summary 'Update existing component.'
+    param_path_parent_ids :assembly, :platform
+    param_path_ci_id :component
+    param :body, :body, :json, :required, 'Component CI structure (include only what is to be updated).'
+    notes <<-NOTE
+JSON body payload examples:<br>
+Update'authorized_keys' and 'sudoer' attributes for user component
+<pre>
+{
+  "cms_dj_ci": {
+    "ciAttributes": {
+      "authorized_keys": "[\"key1\",\"key2\",\"key3\"]",
+      "sudoer": "true"
+    }
+  }
+}
+</pre>
+<br>
+Same as above with locking of 'sudoer' attribute
+<pre>
+{
+  "cms_dj_ci": {
+    "ciAttributes": {
+      "authorized_keys": "[\"key1\",\"key2\",\"key3\"]",
+      "sudoer": "true"
+    },
+    "ciAttrProps": {
+      "owner": {
+        "sudoer": "design"
+      }
+    }
+  }
+}
+</pre>
+NOTE
+  end
+
+  swagger_api :destroy, :responses => [:not_found] do
+    summary 'Delete an optional componnent from platform.'
+    param_path_parent_ids :assembly, :platform
+    param_path_ci_id :component
+  end
   def destroy
     ok = false
     find_template
