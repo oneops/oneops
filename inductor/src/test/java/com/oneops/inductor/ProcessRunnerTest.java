@@ -93,6 +93,18 @@ public class ProcessRunnerTest {
 		assertTrue(procResult.getResultCode() == 0);
 	}
 
+	@Test
+	public void testPrivateKeyShouldNotBePrinted() {
+		Config c = new Config();
+		c.setChefTimeout(10);
+		ProcessRunner pr = new ProcessRunner(c);
+		String[] cmd = new String[2];
+		cmd[0] = "echo";
+		cmd[1] = "-----BEGIN RSA PRIVATE KEY-----Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum-----END RSA PRIVATE KEY-----";
+		ProcessResult procResult = pr.executeProcessRetry(cmd, "", 3);
+		assertTrue(procResult.getStdOut().equals("#PRIVATE_KEY#\n"));
+	}
+
 	public void executeProcessWithEnv() throws IOException, URISyntaxException {
 		Config c = new Config();
 		c.setEnv("PATH1=/usr/local/ruby/bin,GEM_PATH1=/usr/local/gems");
