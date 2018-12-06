@@ -75,10 +75,11 @@
        deployment_state    = deployment_info && deployment_info[:state]
        deployment_comments = deployment_info && deployment_info[:comments]
        deployed_to         = target.cloud
+       cloud               = deployed_to.toCi
        primary             = deployed_to && deployed_to.relationAttributes.priority == '1'
        priority_name       = primary ? 'primary' : 'secondary'
        last_applied_rfc_id = target.lastAppliedRfcId.to_i %>
-    <% builder.attributes raw(%(ciName="#{target.ciName}" cloud="#{deployed_to && deployed_to.toCi.ciName}" health="#{ops_state}" procedureState="#{procedure ? 'active' : 'idle'}" managedVia="#{managed_via_health}" deployment="#{deployment_state}" ciState="#{target.ciState}" cloudPriority="#{priority_name}" componentType="#{target.ciClassName}" nsPath="#{target.nsPath}" events="#{events.map{|e| e['name']}.join(',') if events.present?}")) %>
+    <% builder.attributes raw(%(ciName="#{target.ciName}" cloud="#{deployed_to && cloud.ciName}" health="#{ops_state}" procedureState="#{procedure ? 'active' : 'idle'}" managedVia="#{managed_via_health}" deployment="#{deployment_state}" ciState="#{target.ciState}" cloudPriority="#{priority_name}" componentType="#{target.ciClassName}" nsPath="#{target.nsPath}" events="#{events.map{|e| e['name']}.join(',') if events.present?}")) %>
     <% builder.target nil %>
     <% builder.selectable last_applied_rfc_id > 0 %>
     <% builder.icon :none if @component %>
@@ -88,15 +89,16 @@
         <span class="topdesc">
           <small class="<%= 'text-info' if primary %>"><%= icon('cloud', priority_name) %></small>
         </span>
-        <small><%= link_to(deployed_to.toCi.ciName, edit_cloud_path(deployed_to.toCi.ciId)) %></small>
+        <small><%= link_to(cloud.ciName, edit_cloud_path(cloud.ciId)) %></small>
       <% end %>
     <% end %>
     <% builder.middle do %>
       <% if last_applied_rfc_id > 0 %>
-        <% important_attr = important_attr_cache[last_applied_rfc_id] %>
+        <% cache_key = "#{cloud.ciId}-#{last_applied_rfc_id}"
+           important_attr = important_attr_cache[cache_key] %>
         <% unless important_attr %>
           <% important_attr = capture {render 'cms/cis/important', :ci => target}
-             important_attr_cache[last_applied_rfc_id] = important_attr %>
+             important_attr_cache[cache_key] = important_attr %>
         <% end %>
         <%= important_attr %>
       <% end %>
