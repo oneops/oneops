@@ -1,4 +1,4 @@
-<%= section_panel 'Deployment Summary', :width => 'double', :position => 'right' do %>
+<%= section_panel 'Summary', :width => 'double', :position => 'right' do %>
   <ul class="status">
     <li>
       <div class="marker">
@@ -54,9 +54,9 @@
     <li>
   </ul>
 <% end %>
-<%= section_panel 'Deployment Details', :width => 'double', :position => 'right' do %>
-  <% if @state_history.present? %>
+<% if @state_history.present? %>
+  <%= section_panel 'State History', :width => 'double', :position => 'right' do %>
     <%= render 'state_history' %><br/>
   <% end %>
-  <%= render 'cms/rfcs/rfc_list', :rfc_cis => @rfc_cis %>
 <% end %>
+<%= render 'cms/rfcs/rfc_list', :rfc_cis => @rfc_cis %>

@@ -1,6 +1,7 @@
 <% deployment_persisted = @deployment && !@deployment.new_record?
    env_comments = @environment.comments
-   error_prefix = 'ERROR:BOM:' %>
+   error_prefix = 'ERROR:BOM:'
+   attr_section_cache = {} %>
 <div class="wf">
   <div class="header">
     <div class="instance">
@@ -133,9 +134,8 @@
                                            info = @deployment_rfc_cis_info[rfc.rfcId]
                                            (info ? info[:state] : nil) || 'complete'
                                          end
-                                         status_summary = grouped_rfcs.sort.map do |status, rfcs|
-                                           "#{rfc_state_icon(status)} #{rfcs.size}"
-                                         end %>
+                                         status_summary = grouped_rfcs.sort.map {|status, rfcs| "#{rfc_state_icon(status)} #{rfcs.size}" }
+                                      %>
                                       <%= raw(status_summary.join(' | ')) %>
                                     <% end %>
                                   </td>
@@ -167,15 +167,26 @@
                                       </strong>
                                     </span>
                                     <ul class="nav inline pull-right">
-                                      <li><a onclick="toggle_rfc_tab(this, '<%= rfc_id %>', 'changes')">Changes</a></li>
+                                      <% changes_tab = deployment_persisted %>
                                       <% if deployment_persisted %>
+                                        <li><a onclick="toggle_rfc_tab(this, '<%= rfc_id %>', 'changes')">Changes</a></li>
                                         <li class="log-tab-trigger" style="display:none"><a onclick="toggle_rfc_tab(this, '<%= rfc_id %>', 'log')">Log</a></li>
-                                        <li></li>
+                                        <li>
+                                          <small class="rfc-duration"><a onclick="toggle_rfc_tab(this, '<%= rfc_id %>', 'stats')"></a></small>
+                                          <span class="rfc-state"><%= rfc_state_icon(state, 'fa-lg') %></span>
+                                        </li>
+                                      <% else %>
+                                        <% cache_key = "#{cloud_id}-#{component}-#{rfc.lastAppliedRfcId}"
+                                           unless attr_section_cache.include?(cache_key)
+                                             rfc_attributes_html           = rfc_attributes(rfc)
+                                             attr_section_cache[cache_key] = rfc_attributes_html if rfc_attributes_html.present?
+                                           end
+                                          changes_tab = attr_section_cache.include?(cache_key)
+                                        %>
+                                        <% if changes_tab %>
+                                          <li><a onclick="toggle_rfc_tab(this, '<%= cache_key %>', 'changes', true)">Changes</a></li>
+                                        <% end %>
                                       <% end %>
-                                      <li>
-                                        <small class="rfc-duration"><a onclick="toggle_rfc_tab(this, '<%= rfc_id %>', 'stats')"></a></small>
-                                        <span class="rfc-state"><%= rfc_state_icon(state, 'fa-lg') %></span>
-                                      </li>
                                     </ul>
                                   </div>
                                 </div>
@@ -189,12 +200,9 @@
                                   <% end %>
                                 <% end %>
                                 <div class="accordion-inner" data-rfc-id="<%= rfc_id %>" style="display:none">
-                                  <div class="tab-pane rfc-changes">
-                                    <% unless deployment_persisted %>
-                                      <%= rfc_properties(rfc) %>
-                                      <%= rfc_attributes(rfc) %>
-                                    <% end %>
-                                  </div>
+                                  <% if changes_tab %>
+                                    <div class="tab-pane rfc-changes"></div>
+                                  <% end %>
                                   <% if deployment_persisted %>
                                     <div class="tab-pane rfc-log" id="rfc_<%= rfc_id %>_tab_log"></div>
                                     <div class="tab-pane rfc-stats"></div>
@@ -240,6 +248,11 @@
     <% else %>
       <div class="problems alert alert-info">Nothing to do - no pending deployment changes are detected. All instances (for selected platforms) are up to date with current environment configuration.</div>
     <% end %>
+    <div class="hide">
+      <% attr_section_cache.each_pair do |key, content| %>
+        <div id="rfc_attr_cache_<%= key %>"><%= content %></div>
+      <% end %>
+    </div>
   </div>
   <% if @deployment %>
     <div class="controls">

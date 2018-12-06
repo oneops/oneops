@@ -1216,9 +1216,11 @@ module ApplicationHelper
   end
 
   def rfc_attributes(rfc)
+    attrs = (rfc.is_a?(Cms::RfcCi) ? rfc.ciAttributes : rfc.relationAttributes).attributes
+    return '' unless attrs.size > 0
     base_attrs = rfc.is_a?(Cms::RfcCi) ? rfc.ciBaseAttributes.attributes : rfc.relationBaseAttributes.attributes
-    result = '<dl class="dl-horizontal">'
-    (rfc.is_a?(Cms::RfcCi) ? rfc.ciAttributes : rfc.relationAttributes).attributes.each do |attr_name, attr_value|
+    result     = '<dl class="dl-horizontal">'
+    attrs.each do |attr_name, attr_value|
       md_attribute = rfc.meta.md_attribute(attr_name)
       if md_attribute
         description = md_attribute.description.presence || attr_name
