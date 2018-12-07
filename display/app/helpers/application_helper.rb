@@ -531,7 +531,7 @@ module ApplicationHelper
     options.reverse_merge!({:item_partial => 'base/shared/ci_list_item', :toolbar => {:filter_by => %w(ciName)}, :collapse => false})
 
     list_content = groups.inject('') do |content, group|
-      list_group_builder = ListGroupBuilder.new(group, self, options)
+      list_group_builder = ListGroupBuilder.new(self, options)
       capture list_group_builder, group, &block
       content << render(:partial => 'base/shared/list_group', :locals => {:group => group, :builder => list_group_builder})
     end
@@ -544,7 +544,7 @@ module ApplicationHelper
     options.reverse_merge!({:item_partial => 'base/shared/list_item', :toolbar => {:sort_by => [], :filter_by => %w(id)}, :collapse => false})
 
     list_content = groups.inject('') do |content, group|
-      list_group_builder = ListGroupBuilder.new(group, self, options)
+      list_group_builder = ListGroupBuilder.new(self, options)
       capture list_group_builder, group, &block
       content << render(:partial => 'base/shared/list_group', :locals => {:group => group, :builder => list_group_builder})
     end
