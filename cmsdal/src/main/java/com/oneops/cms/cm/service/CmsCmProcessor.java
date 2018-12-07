@@ -1392,15 +1392,8 @@ public class CmsCmProcessor {
 	 * @return the from to ci relations
 	 */
 	public List<CmsCIRelation> getToCIRelationsByNsNaked(long toId, String relationName, String shortRelName, String fromClazzName, String fromNsPath, boolean recursive) {
-		
 		CiClassNames fromNames = parseClassName(fromClazzName);
-		List<CmsCIRelation> relList;
-		if(recursive) {
-			String nsLike = CmsUtil.likefyNsPath(fromNsPath);
-			relList = ciMapper.getToCIRelationsByNSLike(toId, relationName, shortRelName, fromNames.className, fromNames.shortClassName, fromNsPath, nsLike);
-		} else { 
-			relList = ciMapper.getToCIRelationsByNS(toId, relationName, shortRelName, fromNames.className, fromNames.shortClassName, fromNsPath);
-		}
+		List<CmsCIRelation> relList = ciMapper.getToCIRelations(toId, relationName, shortRelName, fromNames.className, fromNames.shortClassName, fromNsPath, recursive ? CmsUtil.likefyNsPath(fromNsPath) : null);
 		populateRelAttrs(relList);
 		return relList;
 	}
@@ -1414,20 +1407,15 @@ public class CmsCmProcessor {
 	 * @return the from to ci relations
 	 */
 	public List<CmsCIRelation> getFromToCIRelations(long fromId, String relationName, long toId) {
-		
 		List<CmsCIRelation> relList = ciMapper.getFromToCIRelations(fromId, relationName, toId);
 		populateRelAttrs(relList);
 		return relList;
-	
 	}
 
 	
-	private List<CmsCIRelation> getToCIRelationsNakedLocal(long toId, 
-			String relationName, String shortRelName, String fromClazzName) {
-
+	private List<CmsCIRelation> getToCIRelationsNakedLocal(long toId, String relationName, String shortRelName, String fromClazzName) {
 		CiClassNames fromNames = parseClassName(fromClazzName);
-	
-		List<CmsCIRelation> relList = ciMapper.getToCIRelations(toId, relationName, shortRelName, fromNames.className, fromNames.shortClassName);
+		List<CmsCIRelation> relList = ciMapper.getToCIRelations(toId, relationName, shortRelName, fromNames.className, fromNames.shortClassName, null, null);
 		populateRelAttrs(relList);
 		
 		return relList;
@@ -1442,9 +1430,7 @@ public class CmsCmProcessor {
 	 * @param fromCiIds the from ci ids
 	 * @return the to ci relations by from ci ids naked
 	 */
-	public List<CmsCIRelation> getToCIRelationsByFromCiIdsNaked(long toId, String relationName,
-			String shortRelName, List<Long> fromCiIds) {
-		
+	public List<CmsCIRelation> getToCIRelationsByFromCiIdsNaked(long toId, String relationName, String shortRelName, List<Long> fromCiIds) {
 		List<CmsCIRelation> relList = ciMapper.getToCIRelationsByFromCiIDs(toId, relationName, shortRelName, fromCiIds);
 		populateRelAttrs(relList);
 		return relList;
@@ -1460,12 +1446,9 @@ public class CmsCmProcessor {
 	 * @param fromClazzName the from clazz name
 	 * @return the to ci relations naked no attrs
 	 */
-	public List<CmsCIRelation> getToCIRelationsNakedNoAttrs(long toId, 
-			String relationName, String shortRelName, String fromClazzName) {
-		
+	public List<CmsCIRelation> getToCIRelationsNakedNoAttrs(long toId, String relationName, String shortRelName, String fromClazzName) {
 		CiClassNames fromNames = parseClassName(fromClazzName);
-
-		return ciMapper.getToCIRelations(toId, relationName, shortRelName, fromNames.className, fromNames.shortClassName);
+		return ciMapper.getToCIRelations(toId, relationName, shortRelName, fromNames.className, fromNames.shortClassName, null, null);
 	}
 	
 	
@@ -1743,27 +1726,6 @@ public class CmsCmProcessor {
 		return result;
 	}
 
-	/**
-	 * Gets the count from ci relations by ns.
-	 *
-	 * @param fromId the from id
-	 * @param relationName the relation name
-	 * @param shortRelName the short rel name
-	 * @param toClazzName the to clazz name
-	 * @param toNsPath the to ns path
-	 * @param recursive the recursive
-	 * @return the count from ci relations by ns
-	 */
-	public long getCountFromCIRelationsByNS(long fromId,
-			String relationName, String shortRelName, String toClazzName, String toNsPath, boolean recursive) {
-		if (recursive) {
-			String nsLike = CmsUtil.likefyNsPath(toNsPath);
-			return ciMapper.getCountFromCIRelationsByNSLike(fromId, relationName, shortRelName, toClazzName, toNsPath, nsLike);
-		} else {	
-			return ciMapper.getCountFromCIRelationsByNS(fromId, relationName, shortRelName, toClazzName,  toNsPath);
-		}
-	}
-
     /**
      * Gets relation counts for namepsace or ci ids group by namespace or ci id.
      *
@@ -1805,26 +1767,6 @@ public class CmsCmProcessor {
 										  conditions).stream()
                 .collect(Collectors.toMap(r -> r.get("group").toString(), r -> (Long) r.get("cnt")));
     }
-
-	/**
-	 * Gets the count to ci relations by ns.
-	 *
-	 * @param toId the to id
-	 * @param relationName the relation name
-	 * @param shortRelName the short rel name
-	 * @param fromClazzName the to clazz name
-	 * @param recursive the recursive
-	 * @return the count to ci relations by ns
-	 */
-	public long getCountToCIRelationsByNS(long toId,
-			String relationName, String shortRelName, String fromClazzName, String fromNsPath, boolean recursive) {
-		if (recursive) {
-			String nsLike = CmsUtil.likefyNsPath(fromNsPath);
-			return ciMapper.getCountToCIRelationsByNSLike(toId, relationName, shortRelName, fromClazzName, fromNsPath, nsLike);
-		} else {	
-			return ciMapper.getCountToCIRelationsByNS(toId, relationName, shortRelName, fromClazzName,  fromNsPath);
-		}
-	}
 
 	/**
 	 * Reset pendingDeletions by ns recursive.

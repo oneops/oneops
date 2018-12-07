@@ -78,19 +78,12 @@ public interface CIMapper {
 	List<CmsCIRelation> getCIRelationsByStateNsLike(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("relationNames") List<String> relationNames, @Param("ciState") String ciState, @Param("fromClazzName") String fromClazzName, @Param("toClazzName") String toClazzName);
 	
 	List<CmsCIRelation> getFromCIRelations(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName, @Param("toShortClazzName") String toShortClazzName);
-	List<CmsCIRelation> getFromCIRelationsByToClassAndCiName(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName,@Param("toCiName") String toCiName);
 	List<CmsCIRelation> getFromCIRelationsByToCiIDs(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toCiIds") List<Long> toCiIds);
+	List<CmsCIRelation> getFromCIRelationsByToClassAndCiName(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName,@Param("toCiName") String toCiName);
 	List<CmsCIRelation> getFromCIRelationsByMultiRelationNames(@Param("fromId") long fromId, @Param("relationNames") List<String> relationNames, @Param("shortRelNames") List<String> shortRelNames);
-	long getCountFromCIRelationsByNS(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName, @Param("toNsPath") String toNsPath);
-	long getCountFromCIRelationsByNSLike(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName, @Param("toNsPath") String toNsPath, @Param("toNsPathLike") String toNsPathLike);
 
-	
-	List<CmsCIRelation> getToCIRelations(@Param("toId") long toId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String fromClazzName, @Param("fromShortClazzName") String fromShortClazzName);
+	List<CmsCIRelation> getToCIRelations(@Param("toId") long toId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String fromClazzName, @Param("fromShortClazzName") String fromShortClazzName, @Param("fromNsPath") String fromNsPath, @Param("fromNsPathLike") String fromNsPathLike);
 	List<CmsCIRelation> getToCIRelationsByFromCiIDs(@Param("toId") long toId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromCiIds") List<Long> fromCiIds);
-	List<CmsCIRelation> getToCIRelationsByNS(@Param("toId") long toId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String fromClazzName, @Param("fromShortClazzName") String fromShortClazzName, @Param("fromNsPath") String fromNsPath);
-	List<CmsCIRelation> getToCIRelationsByNSLike(@Param("toId") long toId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String fromClazzName, @Param("fromShortClazzName") String fromShortClazzName, @Param("fromNsPath") String fromNsPath, @Param("fromNsPathLike") String fromNsPathLike);
-	long getCountToCIRelationsByNS(@Param("toId") long toId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String fromClazzName, @Param("fromNsPath") String fromNsPath);
-	long getCountToCIRelationsByNSLike(@Param("toId") long toId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String fromClazzName, @Param("fromNsPath") String fromNsPath, @Param("fromNsPathLike") String fromNsPathLike);
 
 	List<Map<String, Object>> getRelationCounts(@Param("relationName") String relationName,
 												@Param("shortRelName") String shortRelName,

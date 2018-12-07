@@ -701,7 +701,6 @@ public class BomRfcBulkProcessor {
 	}
 
 	private boolean upsertRfcs(BomRfc bom, CmsCI existingCi, CmsRfcCI existingRfc, long nsId, String nsPath, CmsCIRelation bindingRel, Long releaseId, String userId, ExistingRelations existingRels) {
-
 		boolean rfcCreated = false;
 		if (bom.mfstCi.getCiState().equalsIgnoreCase("pending_deletion")) {
 			List<CmsRfcCI> cis2delete = cmRfcMrgProcessor.getDfDjCi(nsPath, "bom." + trUtil.getLongShortClazzName(bom.mfstCi.getCiClassName()), bom.ciName, "dj");
@@ -712,7 +711,7 @@ public class BomRfcBulkProcessor {
 				}
 			} else {
 				//if no boms lets see if we have some in other cloud
-				if (cmProcessor.getCountFromCIRelationsByNS(bom.mfstCi.getCiId(), BASE_REALIZED_AS, null, null, nsPath, false) == 0) {
+				if (cmProcessor.getRelationCounts(BASE_REALIZED_AS, nsPath, false, bom.mfstCi.getCiId(), null, null, null, null, null).get("count") == 0) {
 					cmProcessor.deleteCI(bom.mfstCi.getCiId(), true, userId);
 				}
 			}
