@@ -190,6 +190,7 @@ end
 
 ruby_block 'setup nagios' do
   block do
+    Chef::Resource::RubyBlock.send(:include, Chef::Mixin::ShellOut)
     $conf_d = "#{node.nagios_conf_dir}/conf.d"
 
     def delete_monitor_ciid(ci_id)

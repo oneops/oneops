@@ -1,5 +1,5 @@
-#\<% load "<circuit_root>/monkey_patch.rb" %>
-#\<% ruby_path = '$([[ $OSTYPE == "cygwin" ]] && echo "c:/opscode/chef/embedded/bin" || dirname $(which ruby) )' %>
+#\<% load "<circuit_root>/components/kitchen-integration/monkey_patch.rb" %>
+#\<% ruby_path = '$(cat /opt/oneops/ruby_bindir || dirname $(which ruby) )' %>
 ---
 <if(local)>
 driver:
@@ -36,18 +36,21 @@ driver:
   username: <user>
   ssh_key: <ssh_key>
 provisioner:
-  name: dummy
+  name: shell
+  script: <circuit_root>/components/kitchen-integration/bootstrap.sh
+  root_path: <verifier_root_path>
+  data_path: ./test/integration
 transport:
   name: rsync
   ssh_key: <ssh_key>
   username: <user>
 verifier:
-  name: busser
-  ruby_bindir: \<%= ruby_path %>
-  root_path: <verifier_root_path>
+  name: serverspec
+  custom_install_command: <custom_install>
+  custom_serverspec_command: <custom_serverspec>
+
 platforms:
   - name: <platform_name>
 suites:
   - name: <recipe_name>
 <endif>
-

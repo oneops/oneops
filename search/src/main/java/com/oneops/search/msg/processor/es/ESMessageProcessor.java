@@ -97,8 +97,13 @@ public class ESMessageProcessor implements MessageProcessor {
                 case "workorder":
                     workorderMessageProcessor.processMessage(message, msgType, msgId);
                     break;
-                default:
+                case "actionorder":
                     indexer.index(msgId, msgType, message);
+                    break;
+                default:
+                    // do not process anything else we don't use. Default clause left empty on purpose
+                   // indexer.index(msgId, msgType, message);
+                    logger.info("Won't process:"+msgType);
                     break;
             }
         } catch (Exception e) {

@@ -34,5 +34,34 @@
       "attr2": "keywhiz.lookup(secret_name)",
       "attr1": "service match"
     }
+  },
+  "dns": {
+    "infoblox":[
+      {
+        "password": "test1",
+        "host": "tes-api2.test.com",
+        "username": "tuser"
+      },
+      {
+        "password": "test4",
+        "host": "tes-api2.test.com.com",
+        "username": "tuser"
+
+      },
+      {
+        "password": "test2",
+        "host": "tes-api1.test.com",
+        "username": "tuser"
+
+      },
+      {
+        "password": "test3",
+        "host": "tes-api.test.com",
+        "username": "tuser"
+
+      }
+    ]
   }
+
+
 }

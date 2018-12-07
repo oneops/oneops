@@ -16,6 +16,7 @@
 			<th>Deployment_Id</th>
 			<th>Stuck Mins Back</th>
 			<th>Stuck At</th>
+			<th>Environment</th>
 		</tr>
 		<c:forEach var="stkdpmt" items="${stuckDpmtColl.cmsStuckDpmts}">
 		<tr align="left">
@@ -24,6 +25,9 @@
 			</td>
 			<td>${stkdpmt.stuckMinsBack}</td>
 			<td>${stkdpmt.stuckAt}</td>
+			<td>
+			    <a href="<%=System.getProperty("oneops.url")%>/r/ns?path=${stkdpmt.path}">${stkdpmt.path}</a>
+			</td>
 		</tr>
 		</c:forEach>
 	</table>
@@ -35,6 +39,7 @@
 			<th>Deployment_Id</th>
 			<th>Stuck Mins Back</th>
 			<th>Stuck At</th>
+			<th>Environment</th>
 		</tr>
 		<c:forEach var="stkdpmt" items="${stuckDpmtColl.inProgressStuckDpmts}">
 		<tr align="left">
@@ -43,6 +48,9 @@
 			</td>
 			<td>${stkdpmt.stuckMinsBack}</td>
 			<td>${stkdpmt.stuckAt}</td>
+			<td>
+			    <a href="<%=System.getProperty("oneops.url")%>/r/ns?path=${stkdpmt.path}">${stkdpmt.path}</a>
+			</td>
 		</tr>
 		</c:forEach>
 	</table>	
@@ -54,6 +62,7 @@
 			<th>Deployment_Id</th>
 			<th>Stuck Mins Back</th>
 			<th>Stuck At</th>
+			<th>Environment</th>
 		</tr>
 		<c:forEach var="stkdpmt" items="${stuckDpmtColl.pausedStuckDpmts}">
 		<tr align="left">
@@ -62,6 +71,9 @@
 			</td>
 			<td>${stkdpmt.stuckMinsBack}</td>
 			<td>${stkdpmt.stuckAt}</td>
+			<td>
+			    <a href="<%=System.getProperty("oneops.url")%>/r/ns?path=${stkdpmt.path}">${stkdpmt.path}</a>
+			</td>
 		</tr>
 		</c:forEach>
 	</table>	

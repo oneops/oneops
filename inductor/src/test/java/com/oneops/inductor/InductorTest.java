@@ -1,57 +1,51 @@
-/*******************************************************************************
+/**
+ * *****************************************************************************
  *
- *   Copyright 2015 Walmart, Inc.
+ * <p>Copyright 2015 Walmart, Inc.
  *
- *   Licensed under the Apache License, Version 2.0 (the "License");
- *   you may not use this file except in compliance with the License.
- *   You may obtain a copy of the License at
+ * <p>Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
  *
- *   Unless required by applicable law or agreed to in writing, software
- *   distributed under the License is distributed on an "AS IS" BASIS,
- *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   See the License for the specific language governing permissions and
- *   limitations under the License.
+ * <p>Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- *******************************************************************************/
+ * <p>*****************************************************************************
+ */
 package com.oneops.inductor;
-
-import static com.oneops.cms.util.CmsConstants.MANAGED_VIA;
-import static com.oneops.cms.util.CmsConstants.SECURED_BY;
-import static com.oneops.inductor.InductorConstants.PRIVATE;
-import static com.oneops.inductor.InductorConstants.ADD_FAIL_CLEAN;
-import static com.oneops.inductor.util.ResourceUtils.readResourceAsBytes;
-import static com.oneops.inductor.util.ResourceUtils.readResourceAsString;
-import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
-import static java.util.Collections.emptyMap;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 import com.google.gson.Gson;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
-import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
+import com.oneops.inductor.util.JSONUtils;
+import com.oneops.inductor.util.ResourceUtils;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.yaml.snakeyaml.Yaml;
+
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
-import org.apache.commons.lang3.StringUtils;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.yaml.snakeyaml.Yaml;
 
-/**
- * Inductor AO/WO Unit tests.
- */
+import static com.oneops.cms.util.CmsConstants.MANAGED_VIA;
+import static com.oneops.cms.util.CmsConstants.SECURED_BY;
+import static com.oneops.inductor.InductorConstants.*;
+import static com.oneops.inductor.util.ResourceUtils.readResourceAsBytes;
+import static com.oneops.inductor.util.ResourceUtils.readResourceAsString;
+import static java.util.Collections.emptyMap;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
+
+/** Inductor AO/WO Unit tests. */
 public class InductorTest {
 
   private final Gson gson = new Gson();
@@ -59,6 +53,8 @@ public class InductorTest {
   private static String remoteAo;
   private static String localWo;
   private static Yaml yaml;
+  private static CommonCloudConfigurationsHelper commonCloudConfigurationsHelper;
+  private static Map<String, Object> cloudConfig;
 
   @BeforeClass
   public static void init() {
@@ -66,6 +62,11 @@ public class InductorTest {
     localWo = readResourceAsString("/localWorkOrder.json");
     remoteAo = readResourceAsString("/remoteActionOrder.json");
     yaml = new Yaml();
+    commonCloudConfigurationsHelper =
+        new CommonCloudConfigurationsHelper(
+            Logger.getLogger(CommonCloudConfigurationsTest.class.getName()), "");
+    String jsonContent = ResourceUtils.readResourceAsString(CLOUD_CONFIG_FILE_PATH);
+    cloudConfig = JSONUtils.convertJsonToMap(jsonContent);
   }
 
   @Test
@@ -86,14 +87,16 @@ public class InductorTest {
 
     WorkOrderExecutor woExec = new WorkOrderExecutor(cfg, mock(Semaphore.class));
     assertEquals("/opt/oneops/inductor/circuit-oneops-1", woExec.getCircuitDir(wo).toString());
-    assertEquals("/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/user",
+    assertEquals(
+        "/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/user",
         woExec.getCookbookDir(wo).toString());
     assertEquals(
         "/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/user/test/integration/add/serverspec/add_spec.rb",
         woExec.getActionSpecPath(wo).toString());
 
     final String[] cmdLine = woExec.getRemoteWoRsyncCmd(wo, "sshkey", "");
-    String rsync = "[/usr/bin/rsync, -az, --force, --exclude=*.png, --rsh=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 -qi sshkey, --timeout=0, /tmp/wos/190494.json, oneops@inductor-test-host:/opt/oneops/workorder/user.test_wo-25392-1.json]";
+    String rsync =
+        "[/usr/bin/rsync, -az, --force, --exclude=*.png, --rsh=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 -qi sshkey, --timeout=0, /tmp/wos/190494.json, oneops@inductor-test-host:/opt/oneops/workorder/user.test_wo-25392-1.json]";
     assertEquals(rsync, Arrays.toString(cmdLine));
 
     // Assertions for windows computes.
@@ -101,7 +104,6 @@ public class InductorTest {
     wo.getPayLoadEntryAt(MANAGED_VIA, 0).getCiAttributes().put("size", "M-WIN");
     assertTrue("WO should be managed via a windows compute.", woExec.isWinCompute(wo));
   }
-
 
   @Test
   public void testAOVerifyConfig() {
@@ -113,14 +115,16 @@ public class InductorTest {
 
     ActionOrderExecutor aoExec = new ActionOrderExecutor(cfg, mock(Semaphore.class));
     assertEquals("/opt/oneops/inductor/circuit-oneops-1", aoExec.getCircuitDir(ao).toString());
-    assertEquals("/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/tomcat",
+    assertEquals(
+        "/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/tomcat",
         aoExec.getCookbookDir(ao).toString());
     assertEquals(
         "/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/tomcat/test/integration/status/serverspec/status_spec.rb",
         aoExec.getActionSpecPath(ao).toString());
 
     final String[] cmdLine = aoExec.getRemoteWoRsyncCmd(ao, "sshkey", "");
-    String rsync = "[/usr/bin/rsync, -az, --force, --exclude=*.png, --rsh=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 -qi sshkey, --timeout=0, /tmp/wos/211465.json, oneops@inductor-test-host:/opt/oneops/workorder/tomcat.tomcat-9687230-1.json]";
+    String rsync =
+        "[/usr/bin/rsync, -az, --force, --exclude=*.png, --rsh=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 -qi sshkey, --timeout=0, /tmp/wos/211465.json, oneops@inductor-test-host:/opt/oneops/workorder/tomcat.tomcat-9687230-1.json]";
     assertEquals(rsync, Arrays.toString(cmdLine));
 
     // Assertions for windows computes.
@@ -188,7 +192,7 @@ public class InductorTest {
     String remoteCmd[] = {"ssh", "-i"};
     assertNull(p.getEnvVars(remoteCmd, emptyMap()));
 
-    String localCmd[] = new String[]{"chef-solo", "-i"};
+    String localCmd[] = new String[] {"chef-solo", "-i"};
     String envName = "WORKORDER";
     String envValue = "/tmp/wo.json";
 
@@ -197,12 +201,13 @@ public class InductorTest {
     Map<String, String> envVars = p.getEnvVars(localCmd, extraVars);
     assertEquals(envValue, envVars.get(envName));
 
-    localCmd = new String[]{"KITCHEN", "verify"};
+    localCmd = new String[] {"KITCHEN", "verify"};
     envVars = p.getEnvVars(localCmd, extraVars);
     assertEquals(envValue, envVars.get(envName));
   }
+
   @Test
-  public void testWoExecutorConfigWithEmptyCloudServiceEnvVar(){
+  public void testWoExecutorConfigWithEmptyCloudServiceEnvVar() {
     CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
     Config cfg = new Config();
     cfg.setCircuitDir("/opt/oneops/inductor/packer");
@@ -213,8 +218,9 @@ public class InductorTest {
     final String vars = executor.getProxyEnvVars(wo);
     assertTrue(vars.equals("class=user pack=circuit-oneops-1"));
   }
+
   @Test
-  public void testWoExecutorConfigWithNoCloudServiceEnvVar(){
+  public void testWoExecutorConfigWithNoCloudServiceEnvVar() {
     CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
     wo.setServices(Collections.EMPTY_MAP);
     Config cfg = new Config();
@@ -224,16 +230,18 @@ public class InductorTest {
     cfg.init();
     WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
     final String vars = executor.getProxyEnvVars(wo);
-    assertTrue(vars.equals("rubygems_proxy=http://repos.org/gemrepo/ rubygemsbkp_proxy=http://dal-repos.org/gemrepo/ ruby_proxy= DATACENTER_proxy=dal misc_proxy=http://repos.org/mirrored-assets/apache.mirrors.pair.com/ class=user pack=circuit-oneops-1"));
+    assertTrue(
+        vars.equals(
+            "rubygems_proxy=http://repos.org/gemrepo/ rubygemsbkp_proxy=http://dal-repos.org/gemrepo/ ruby_proxy= DATACENTER_proxy=dal misc_proxy=http://repos.org/mirrored-assets/apache.mirrors.pair.com/ class=user pack=circuit-oneops-1"));
   }
 
   @Test
-  public void testWoExecutorConfigWithCloudCloudServiceEnvVarOverriding(){
+  public void testWoExecutorConfigWithCloudCloudServiceEnvVarOverriding() {
     CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
-    HashMap<String,String> m = new HashMap<>();
-    m.put("rubygems","compute_proxy");
-    m.put("rubygemsbkp","compute_proxy_backup");
-    wo.getPayLoad().get(MANAGED_VIA).get(0).addCiAttribute("proxy_map",gson.toJson(m));
+    HashMap<String, String> m = new HashMap<>();
+    m.put("rubygems", "compute_proxy");
+    m.put("rubygemsbkp", "compute_proxy_backup");
+    wo.getPayLoad().get(MANAGED_VIA).get(0).addCiAttribute("proxy_map", gson.toJson(m));
     wo.setServices(Collections.EMPTY_MAP);
     Config cfg = new Config();
     cfg.setCircuitDir("/opt/oneops/inductor/packer");
@@ -243,7 +251,9 @@ public class InductorTest {
     WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
     final String vars = executor.getProxyEnvVars(wo);
 
-    assertTrue(vars.equals("rubygems_proxy=compute_proxy rubygemsbkp_proxy=compute_proxy_backup ruby_proxy= DATACENTER_proxy=dal misc_proxy=http://repos.org/mirrored-assets/apache.mirrors.pair.com/ class=user pack=circuit-oneops-1"));
+    assertTrue(
+        vars.equals(
+            "rubygems_proxy=compute_proxy rubygemsbkp_proxy=compute_proxy_backup ruby_proxy= DATACENTER_proxy=dal misc_proxy=http://repos.org/mirrored-assets/apache.mirrors.pair.com/ class=user pack=circuit-oneops-1"));
   }
 
   /**
@@ -261,7 +271,9 @@ public class InductorTest {
 
     String privKey = readResourceAsString("/verification/key");
     wo.getPayLoadEntryAt(SECURED_BY, 0).getCiAttributes().put(PRIVATE, privKey);
-    wo.getPayLoad().get(MANAGED_VIA).get(0)
+    wo.getPayLoad()
+        .get(MANAGED_VIA)
+        .get(0)
         .setCiAttributes(Collections.singletonMap("public_ip", ""));
     wo.getRfcCi().setCiName("app-7401500-1");
     WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
@@ -277,9 +289,7 @@ public class InductorTest {
     assertTrue(mp.get("kci_status").toString().equals("verify is disabled"));
   }
 
-  /**
-   * This is used to check if the compute kci has failed
-   */
+  /** This is used to check if the compute kci has failed */
   @Test
   public void computeKciFailedVerification() {
     Listener listener = new Listener();
@@ -289,9 +299,7 @@ public class InductorTest {
     assertTrue(listener.computeKciFailed(responseMap));
   }
 
-  /**
-   * This is used to check if the workorder is updated to include the add_fail_clean recipe
-   */
+  /** This is used to check if the workorder is updated to include the add_fail_clean recipe */
   @Test
   public void updateWorkOrderWithActionVerification() {
     Listener listener = new Listener();
@@ -321,8 +329,8 @@ public class InductorTest {
 
     assertNotNull("Invalid kitchen config.", yamlConfig);
     if (remote) {
-      assertTrue(config.contains("ruby_bindir: <%= ruby_path %>"));
       assertTrue(config.contains("root_path: /tmp/verifier-190494"));
+      assertTrue(config.contains("custom_serverspec_command: sudo -E env WORKORDER="));
     }
   }
 
@@ -341,9 +349,41 @@ public class InductorTest {
     Object winYaml = yaml.load(config);
 
     assertNotNull("Invalid kitchen config.", winYaml);
-    assertTrue(config.contains("ruby_bindir: <%= ruby_path %>"));
     assertTrue(config.contains("root_path: c:/tmp/verifier-190494"));
+    assertTrue(config.contains("custom_serverspec_command: WORKORDER="));
   }
 
+  @Test
+  public void testWorkorderCiAttributesReplace() {
 
+    Listener listener = new Listener();
+    CmsWorkOrderSimple wo = gson.fromJson(localWo, CmsWorkOrderSimple.class);
+
+    String cloudName = listener.getCloudName(wo);
+    String orgName = listener.getOrganizationName(wo);
+    final Map<String, Object> servicesMap =
+        listener.getServicesMap(commonCloudConfigurationsHelper, cloudConfig, cloudName, orgName);
+    final Map<String, Object> enhancedServicesMap =
+        listener.getEnhancedServiceMap(wo.getServices(), cloudName, servicesMap);
+    listener.updateCiAttributes(wo, commonCloudConfigurationsHelper, enhancedServicesMap);
+    Assert.assertEquals(
+        "test3", wo.getServices().get("dns").get("stub-dfw2b").getCiAttributes().get("password"));
+  }
+
+  @Test
+  // make sure updateCiAttributes not updating attributes that are not provided in cloud config.
+  public void testWorkorderCiAttributes() {
+    Listener listener = new Listener();
+    CmsWorkOrderSimple wo = gson.fromJson(localWo, CmsWorkOrderSimple.class);
+
+    String cloudName = listener.getCloudName(wo);
+    String orgName = listener.getOrganizationName(wo);
+    final Map<String, Object> servicesMap =
+        listener.getServicesMap(commonCloudConfigurationsHelper, cloudConfig, cloudName, orgName);
+    final Map<String, Object> enhancedServicesMap =
+        listener.getEnhancedServiceMap(wo.getServices(), cloudName, servicesMap);
+    listener.updateCiAttributes(wo, commonCloudConfigurationsHelper, enhancedServicesMap);
+    Assert.assertEquals(
+        "testdnsid", wo.getServices().get("dns").get("stub-dfw2b").getCiAttributes().get("cloud_dns_id"));
+  }
 }

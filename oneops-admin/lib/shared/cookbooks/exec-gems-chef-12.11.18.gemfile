@@ -3,8 +3,10 @@ Dir.glob('../exec-order/*.rb').each do |lib|
 end
 source "#{get_gem_sources[0]}"
 
-gem 'fog', '1.29.0'
-gem 'fog-core', '1.43.0'
+gem 'fog', '1.38.0'
+gem 'fog-core', '1.45.0'
+gem 'fog-openstack', '0.1.24'
+gem 'fog-xenserver', '0.3.0'
 gem 'aws-s3', '0.6.3'
 gem 'ghost', '0.3.0'
 gem 'rake', '10.0.3'
