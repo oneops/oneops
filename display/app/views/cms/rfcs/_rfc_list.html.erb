@@ -7,18 +7,26 @@
            data-log-url="<%= log_data_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) %>"
          <% end %>
     >
-      <div class="list-toolbar" list-name="rfc_list_details" filters="ciClass,ciName,cloud,platform" style="margin-bottom: 10px">
+      <div class="list-toolbar" list-name="rfc_list_details" filters="ciClass,ciName,cloud,platform,status" style="margin-bottom: 10px">
         <%= link_to_function(icon('angle-double-up', content_tag(:span, 'Collapse Steps')),
                              'rfc_list_toggle_compact(this, "step")',
                              :class => 'btn btn-mini compact-toggle') %>
-        <%= link_to_function(icon('angle-double-up', content_tag(:span, 'Collapse Sections')),
-                             'rfc_list_toggle_compact(this, "section")',
+        <%= link_to_function(icon('angle-double-up', content_tag(:span, 'Collapse Components')),
+                             'rfc_list_toggle_compact(this, "component")',
                              :class => 'btn btn-mini compact-toggle') %>
         <div class="filter">
           <small><span class="badge badge-info list-count-marker">8</span></small>
-          <%= text_field_tag(:filter_list_field, '', :class => 'list-toolbar-filter input-medium search-query', :placeholder => 'type to filter...', :onkeyup => "rfc_list_filter_changed(this, false)") %>
+          <%= text_field_tag(:filter_list_field, '', :class => 'list-toolbar-filter input-large search-query', :placeholder => 'type to filter...', :onkeyup => "rfc_list_filter_changed(this, false)") %>
           <i class="fa fa-times-circle" onclick="rfc_list_filter_changed(this, true)"></i>
         </div>
+        <% if @deployment && @deployment.deploymentState != 'complete' %>
+          <div class="quick-filters">
+            <ul>
+              <li class="active" data-filter-value=""><%= link_to_function(raw('All'), %(apply_rfc_list_quick_filter(this, ""))) %></li>
+              <li data-filter-value="status=failed"><%= link_to_function(raw('Failed'), %(apply_rfc_list_quick_filter(this, "status=failed"))) %></li>
+            </ul>
+          </div>
+        <% end %>
       </div>
       <% rfc_cis.group_by(&:execOrder).sort.each do |exec_order, step_rfcs| %>
         <div class="step">
@@ -37,8 +45,10 @@
                 <% component_type = component_class.split('.').last %>
                 <% class_rfcs.group_by {|rfc| rfc.ciName.split('-')[0..-3].join('-')}.sort.each do |component, component_rfcs| %>
                   <% component_rfcs.group_by { |rfc| rfc.ciName.split('-')[-2].to_i }.sort.each do |cloud_id, cloud_rfcs| %>
-                    <% cloud = @clouds[cloud_id] %>
-                    <div class="cloud-component" ciName="<%= component %>" ciClass="<%= component_class %>" cloud="<%= cloud.ciName %>" platform="<%= platform_name %>">
+                    <% cloud = @clouds[cloud_id]
+                       cloud_deployment_state_summary = cloud_rfcs.group_by {|rfc_ci| rfc_ci.deployment.dpmtRecordState}
+                       cloud_component_deployment_state = %w(failed canceled pending complete).find {|s| cloud_deployment_state_summary[s]} || '' %>
+                    <div class="cloud-component" ciName="<%= component %>" ciClass="<%= component_class %>" cloud="<%= cloud.ciName %>" platform="<%= platform_name %>" status="<%= cloud_component_deployment_state %>">
                       <ul class="inline component rounded shadow white" onclick="if (event.target.tagName.toUpperCase() != 'A') $j(this).next().toggle(300)">
                         <li>
                           <% platform = @platforms[platform_name] %>
@@ -56,16 +66,8 @@
                         </li>
                         <li class="pull-right">
                           <%= icon('cloud', link_to(cloud ? link_to(cloud.ciName, edit_cloud_path(cloud)) : cloud_id)) %>
-                          <% cloud_deployment_state_summary = cloud_rfcs.group_by{|rfc_ci| rfc_ci.deployment.dpmtRecordState}
-                             cloud_deployment_state = ''
-                             %w(failed canceled pending complete).each do |s|
-                               if cloud_deployment_state_summary[s]
-                                 cloud_deployment_state = s
-                                 break
-                               end
-                             end %>
                           &nbsp;
-                          <%= rfc_state_icon(cloud_deployment_state) %></li>
+                          <%= rfc_state_icon(cloud_component_deployment_state) %></li>
                       </ul>
                       <ul class="rfc">
                         <% cloud_rfcs.each do |rfc_ci| %>
@@ -133,26 +135,37 @@
           }
 
           var value = filterField.val();
-          rfc_list_apply_list_filter(listDiv, value)
-          window.rfc_list_filter = value;
+          apply_rfc_list_filter(listDiv, value);
         };
 
-        window.rfc_list_set_list_filter = function (list, value) {
+        window.set_rfc_list_filter = function (list, value) {
           if (list) {
             list = $j(list);
             list.find(".list-toolbar-filter").val(value);
-            rfc_list_apply_list_filter(list, value);
+            apply_rfc_list_filter(list, value);
           }
         };
 
-        window.rfc_list_apply_list_filter = function (list, value) {
+        window.apply_rfc_list_filter = function (list, value) {
           filter_list(list.find("div.cloud-component"), list.find(".list-toolbar").attr("filters").split(","), value);
-          rfc_list_update_filter_marker(list);
+          window.rfc_list_filter = value;
+          list.find(".quick-filters li").toArray().forEach(function(e) {
+            var li = $j(e);
+            li.toggleClass('active', value == li.attr('data-filter-value'));
+          });
+          update_rfc_list_filter_marker(list);
         };
 
-        window.rfc_list_update_filter_marker = function(list) {
+        window.update_rfc_list_filter_marker = function(list) {
           list = $j(list);
           list.find(".list-count-marker").html(list.find("div.cloud-component:visible ul.rfc>li").length);
+        };
+
+        window.apply_rfc_list_quick_filter = function(source, value) {
+          source = $j(source);
+          var li = source.parents("li");
+          set_rfc_list_filter(source.parents(".rfc-list")[0], value);
+          li.addClass('active').siblings("li").removeClass('active');
         };
 
         window.rfc_list_toggle_compact = function (source, target) {
@@ -162,7 +175,7 @@
           var span = i.siblings("span");
           span.html(expanding ? span.html().replace("Expand", "Collapse") : span.html().replace("Collapse", "Expand"));
           i.toggleClass("fa-angle-double-down fa-angle-double-up");
-          var items = btn.parents(".rfc-list").find(".step-content" + (target === "section" ? " ul.rfc" : ""));
+          var items = btn.parents(".rfc-list").find(".step-content" + (target === "component" ? " ul.rfc" : ""));
           if (expanding) {
             items.show();
           }
@@ -174,8 +187,8 @@
 
       (function () {
         var list = $j("#<%= list_id %>");
-        rfc_list_update_filter_marker(list);
-        if (window.rfc_list_filter) rfc_list_set_list_filter(list, window.rfc_list_filter);
+        update_rfc_list_filter_marker(list);
+        if (window.rfc_list_filter) set_rfc_list_filter(list, window.rfc_list_filter);
         var filter_field = list.find(".list-toolbar-filter");
         var taItems = list.find(".list-toolbar").attr("filters").split(",");
         filter_field.typeahead({items: 15,
