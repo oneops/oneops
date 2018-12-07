@@ -38,40 +38,40 @@
 	 </update> 
 	 
 	 <select id="getCmsStuckDpmts" resultType="com.oneops.cms.util.domain.CmsStuckDpmt">
-	 	select * from (
-			select d.deployment_id as deploymentId, 
-			round((extract(epoch from (now() - max(dr.updated))) / 60)) as stuckMinsBack, 
-			max(dr.updated) as stuckAt
-			from dj_deployment d, dj_deployment_rfc dr
-			where d.state_id = 100 
-			and d.deployment_id = dr.deployment_id
-			and dr.state_id in (200,300) 
-			and not exists (select 1 from dj_deployment_rfc where deployment_id = d.deployment_id and state_id = 100)
-			group by d.deployment_id
-			) as aggr where stuckMinsBack > 10
+		 select * from (
+			 select d.deployment_id as deploymentId,
+			 round((extract(epoch from (now() - max(dr.updated))) / 60)) as stuckMinsBack,
+			 max(dr.updated) as stuckAt, n.ns_path as path
+			 from dj_deployment d, dj_deployment_rfc dr, ns_namespaces n
+			 where d.state_id = 100
+			 and d.deployment_id = dr.deployment_id
+			 and dr.state_id in (200,300) and d.ns_id=n.ns_id
+			 and not exists (select 1 from dj_deployment_rfc where deployment_id = d.deployment_id and state_id = 100)
+			 group by d.deployment_id, n.ns_path
+			 ) as aggr where stuckMinsBack > 10
 	 </select>
 	 
 	 <select id="getInProgressStuckDpmts" resultType="com.oneops.cms.util.domain.CmsStuckDpmt">
-	 	select * from (
-	 	    select d.deployment_id as deploymentId, 
-	 	    round((extract(epoch from (now() - max(dr.updated))) / 60)) as stuckMinsBack, 
-        	max(dr.updated) as stuckAt 
-        	from dj_deployment d, dj_deployment_rfc dr
-        	where d.state_id = 100
-        	and d.deployment_id = dr.deployment_id
-        	group by d.deployment_id) as aggr where stuckMinsBack > 7
+		 select * from (
+			 select d.deployment_id as deploymentId,
+			 round((extract(epoch from (now() - max(dr.updated))) / 60)) as stuckMinsBack,
+			 max(dr.updated) as stuckAt, n.ns_path as path
+			 from dj_deployment d, dj_deployment_rfc dr, ns_namespaces n
+			 where d.state_id = 100 and d.ns_id=n.ns_id
+			 and d.deployment_id = dr.deployment_id
+			 group by d.deployment_id, n.ns_path) as aggr where stuckMinsBack > 7
 	 </select>
 	 
 	 <select id="getPausedStuckDpmts" resultType="com.oneops.cms.util.domain.CmsStuckDpmt">
-	 	select * from (
-	 	select d.deployment_id as deploymentId, 
-	 	round((extract(epoch from (now() - max(dr.updated))) / 60)) as stuckMinsBack, 
-        max(dr.updated) as stuckAt 
-        from dj_deployment d, dj_deployment_rfc dr
-        where d.state_id = 500
-        and d.deployment_id = dr.deployment_id
-        and dr.state_id = 100
-        group by d.deployment_id) as aggr where stuckMinsBack > 7
+		 select * from (
+			 select d.deployment_id as deploymentId,
+			 round((extract(epoch from (now() - max(dr.updated))) / 60)) as stuckMinsBack,
+			 max(dr.updated) as stuckAt, n.ns_path as path
+			 from dj_deployment d, dj_deployment_rfc dr, ns_namespaces n
+			 where d.state_id = 500 and d.ns_id=n.ns_id
+			 and d.deployment_id = dr.deployment_id
+			 and dr.state_id = 100
+			 group by d.deployment_id, n.ns_path) as aggr where stuckMinsBack > 7
 	 </select>
 	
 </mapper>

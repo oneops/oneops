@@ -27,6 +27,8 @@ public class CmsStuckDpmt {
 
   private Date stuckAt;
 
+  private String path;
+
   public Long getDeploymentId() {
     return deploymentId;
   }
@@ -49,6 +51,14 @@ public class CmsStuckDpmt {
 
   public void setStuckAt(Date stuckAt) {
     this.stuckAt = stuckAt;
+  }
+
+  public String getPath() {
+    return path;
+  }
+
+  public void setPath(String path) {
+    this.path = path;
   }
 
 
