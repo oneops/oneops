@@ -257,20 +257,8 @@ public class CIMapperImpl implements CIMapper {
   }
 
   @Override
-  public long getCountFromCIRelationsByNS(long fromId, String relationName, String shortRelName,
-      String toClazzName, String toNsPath) {
-    return 0;
-  }
-
-  @Override
-  public long getCountFromCIRelationsByNSLike(long fromId, String relationName, String shortRelName,
-      String toClazzName, String toNsPath, String toNsPathLike) {
-    return 0;
-  }
-
-  @Override
   public List<CmsCIRelation> getToCIRelations(long toId, String relationName, String shortRelName,
-      String fromClazzName, String fromShortClazzName) {
+                                              String fromClazzName, String fromShortClazzName, String fromNsPath, String fromNsPathLike) {
     return null;
   }
 
@@ -278,31 +266,6 @@ public class CIMapperImpl implements CIMapper {
   public List<CmsCIRelation> getToCIRelationsByFromCiIDs(long toId, String relationName,
       String shortRelName, List<Long> fromCiIds) {
     return null;
-  }
-
-  @Override
-  public List<CmsCIRelation> getToCIRelationsByNS(long toId, String relationName,
-      String shortRelName, String fromClazzName, String fromShortClazzName, String fromNsPath) {
-    return null;
-  }
-
-  @Override
-  public List<CmsCIRelation> getToCIRelationsByNSLike(long toId, String relationName,
-      String shortRelName, String fromClazzName, String fromShortClazzName, String fromNsPath,
-      String fromNsPathLike) {
-    return null;
-  }
-
-  @Override
-  public long getCountToCIRelationsByNS(long toId, String relationName, String shortRelName,
-      String fromClazzName, String fromNsPath) {
-    return 0;
-  }
-
-  @Override
-  public long getCountToCIRelationsByNSLike(long toId, String relationName, String shortRelName,
-      String fromClazzName, String fromNsPath, String fromNsPathLike) {
-    return 0;
   }
 
   @Override

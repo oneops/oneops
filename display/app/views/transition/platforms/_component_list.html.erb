@@ -4,7 +4,7 @@
                          :sort_by   => [%w(Class ciClass), %w(Name ciName), %w(Created created), %w(Updated updated)],
                          :filter_by => %w(ciClass ciName),
                          :compact   => false}) do |builder, target| %>
-  <% builder.attributes raw(%(ciName="#{target.ciName}" created="#{target.created}" updated="#{target.updated}" ciClass="#{target.ciClassName.split('.').last}")) %>
+  <% builder.attributes raw(%(¬ciName="#{target.ciName}" created="#{target.created}" updated="#{target.updated}" ciClass="#{target.ciClassName.split('.').last}")) %>
   <% builder.target nil %>
   <% builder.icon ci_image_url(target) %>
   <% builder.top do %>

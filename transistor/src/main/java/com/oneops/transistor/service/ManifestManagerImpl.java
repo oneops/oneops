@@ -18,7 +18,6 @@
 package com.oneops.transistor.service;
 
 import com.oneops.cms.cm.domain.CmsCI;
-import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.CmsRelease;
@@ -109,8 +108,7 @@ public class ManifestManagerImpl implements ManifestManager {
         //check for openRelease
         check4OpenRelease(env, nsPath);
 
-        Long nsId = trUtil.verifyAndCreateNS(nsPath);
-        logger.info("Created nsId " + nsId);
+        logger.info("Created nsId " + trUtil.verifyAndCreateNS(nsPath));
 
         List<CmsCIRelation> designPlatRels = cmProcessor.getFromCIRelations(assembly.getCiId(), null, "ComposedOf", CATALOG_PLATFORM);
 
@@ -238,22 +236,15 @@ public class ManifestManagerImpl implements ManifestManager {
     }
 
 
-    /**
-	 * 
-	 * @param manifestPlatformRfcs
-	 * @param userId
-	 */
 	private void processPlatformRfcs(ManifestRfcContainer manifestPlatformRfcs, String userId) {
-
-		
 		long  t1= System.currentTimeMillis();
 		/***** Handle root RFC and relations ******/
-		CmsRfcCI rootRfc = null;
-		if(manifestPlatformRfcs.getRootRfcRelTouple().getRfcCI() != null){
+		CmsRfcCI rootRfc;
+		if (manifestPlatformRfcs.getRootRfcRelTouple().getRfcCI() != null) {
 			rootRfc = rfcProcessor.createAndfetchRfcCINoCheck(manifestPlatformRfcs.getRootRfcRelTouple().getRfcCI(), userId);
-		} else if (manifestPlatformRfcs.getManifestPlatformRfc().getRfcAction() != null){
+		} else if (manifestPlatformRfcs.getManifestPlatformRfc().getRfcAction() != null) {
 			rootRfc = rfcProcessor.createAndfetchRfcCINoCheck(manifestPlatformRfcs.getManifestPlatformRfc(), userId);
-		}else{
+		} else {
 			rootRfc = manifestPlatformRfcs.getManifestPlatformRfc();
 		}
 
@@ -299,7 +290,7 @@ public class ManifestManagerImpl implements ManifestManager {
 				if(toRfcCI.getRfcId() == 0 && toRfcCI.getCiId() == 0){
                     manifestRfcProcessor.setCiId(toRfcCI);
 					toRfcCI.setReleaseId(context.ensureReleaseId());
-					toRfcCI.setNsId(context.nsId);;
+					toRfcCI.setNsId(context.nsId);
 					toRfcCI = rfcProcessor.createAndfetchRfcCINoCheck(toRfcCI, userId);
 				}
 				rfcRelation.setToCiId(toRfcCI.getCiId());
@@ -343,7 +334,7 @@ public class ManifestManagerImpl implements ManifestManager {
 			CmsRfcCI newRfc;
 			if(rfcRelTouple.getRfcCI().getRfcId() == 0){
 				rfcRelTouple.getRfcCI().setReleaseId(context.ensureReleaseId());
-				rfcRelTouple.getRfcCI().setNsId(context.nsId);;
+				rfcRelTouple.getRfcCI().setNsId(context.nsId);
 			  newRfc = rfcProcessor.createAndfetchRfcCINoCheck(rfcRelTouple.getRfcCI(), userId);
 			}else{
 			  newRfc = rfcRelTouple.getRfcCI();
@@ -436,7 +427,7 @@ public class ManifestManagerImpl implements ManifestManager {
 		
 		List<CmsCIRelation> manifestPlatRels = cmProcessor.getFromCIRelations(env.getCiId(), MANIFEST_COMPOSED_OF,null, MANIFEST_PLATFORM);
 		
-		Map<String,String> manifestPlatPacks = new HashMap<String,String>(manifestPlatRels.size());
+		Map<String,String> manifestPlatPacks = new HashMap<>(manifestPlatRels.size());
 		for (CmsCIRelation manifestRel : manifestPlatRels) {
 			CmsCI plat = manifestRel.getToCi();
 			String key = getPlatNameAndVersion(plat);
@@ -478,12 +469,7 @@ public class ManifestManagerImpl implements ManifestManager {
 
     private boolean hasOpenManifestRelease(String nsPath) {
 		List<CmsRelease> manReleases = rfcProcessor.getLatestRelease(nsPath, null);
-		if (manReleases.size() >0 ) {
-			if ("open".equals(manReleases.get(0).getReleaseState())) {
-				return true;	
-			}
-		}
-		return false;
+		return manReleases.size() > 0 && "open".equals(manReleases.get(0).getReleaseState());
 	}
 
 	private long populateParentRelease(CmsCI env, String nsPath) {
@@ -554,7 +540,7 @@ public class ManifestManagerImpl implements ManifestManager {
 	public long updateEnvClouds(long envId, List<CmsCIRelation> cloudRels, String userId) {
 		//for now we will handle just new clouds
 		List<CmsCIRelation> existingCloudRels = cmProcessor.getFromCIRelationsNaked(envId, BASE_CONSUMES, ACCOUNT_CLOUD);
-		Set<Long> existingCloudIds = new HashSet<Long>();
+		Set<Long> existingCloudIds = new HashSet<>();
 		for (CmsCIRelation rel : existingCloudRels) {
 			existingCloudIds.add(rel.getToCiId());
 		}
@@ -616,7 +602,7 @@ public class ManifestManagerImpl implements ManifestManager {
 		}
 		//if we still here lets check if there are any boms deployed to the clouds that user tries to remove
 		for (long cloidId : cloudsToRemove) {
-			long deployedToRelsCount = cmProcessor.getCountToCIRelationsByNS(cloidId, BASE_DEPLOYED_TO, null, null, bomNsPath, true);
+			long deployedToRelsCount = cmProcessor.getRelationCounts(BASE_DEPLOYED_TO, bomNsPath, true, null, cloidId, null, null, null, null).get("count");
 			if (deployedToRelsCount > 0) {
 				//throw exception that there are active boms
 				throw new TransistorException(CmsError.TRANSISTOR_BOM_INSTANCES_EXIST, "There are deployed instances in the cloud, please put the cloud in offline mode for every platform and deploy!");
@@ -679,8 +665,7 @@ public class ManifestManagerImpl implements ManifestManager {
             try {
 				Thread.currentThread().setName(getProcessingThreadName(oldThreadName,env.getCiId()));
 				ManifestRfcContainer manifestPlatformRfcs =  manifestRfcProcessor.processPlatform(platRelation.getToCi(), env, nsPath, userId, availMode);
-            	DesignCIManifestRfcTouple touple = new DesignCIManifestRfcTouple(platRelation.getToCi().getCiId(),manifestPlatformRfcs);
-            	return touple;
+            	return new DesignCIManifestRfcTouple(platRelation.getToCi().getCiId(),manifestPlatformRfcs);
             } catch (Exception e){
             	e.printStackTrace();
             	logger.error(e, e);

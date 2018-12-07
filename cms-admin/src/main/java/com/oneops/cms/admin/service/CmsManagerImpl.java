@@ -17,16 +17,6 @@
  *******************************************************************************/
 package com.oneops.cms.admin.service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import com.oneops.cms.cm.dal.CIMapper;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
@@ -42,6 +32,10 @@ import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.dal.UtilMapper;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.cms.util.domain.CmsStuckDpmtCollection;
+
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class CmsManagerImpl implements CmsManager {
 	
@@ -183,7 +177,7 @@ public class CmsManagerImpl implements CmsManager {
 
 	@Override
 	public List<CmsCIRelation> getToRelation( long ciId ) {
-	    List<CmsCIRelation> l = ciMapper.getToCIRelations( ciId, null, null, null, null );
+	    List<CmsCIRelation> l = ciMapper.getToCIRelations(ciId, null, null, null, null, null,null);
 		for(CmsCIRelation rel: l) {
 			rel.setFromCi(ciMapper.getCIById(rel.getFromCiId()));
 			rel.setToCi(ciMapper.getCIById(rel.getToCiId()));
