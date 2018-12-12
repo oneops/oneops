@@ -296,6 +296,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
       if (result.getResultCode() != 0
           && appName.equalsIgnoreCase(COMPUTE)
           && wo.getRfcCi().getRfcAction().equalsIgnoreCase(ADD)) {
+        copySearchTagsFromResult(wo, result);
         if (result.getFaultMap().containsKey(KNOWN)) {
           logger.info(
               "deleting and retrying compute because known issue: "
@@ -341,10 +342,9 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         wo.setDpmtRecordState(COMPLETE);
         wo.setComments("done");
         removeFile(chefConfig);
-
+        copySearchTagsFromResult(wo, result);
         setResultCi(result, wo);
       }
-
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       logger.info(
@@ -562,6 +562,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
       ProcessResult result =
           processRunner.executeProcessRetry(new ExecutionContext(wo, cmdLine, logKey, retryCount));
+      copySearchTagsFromResult(wo, result);
       if (result.getResultCode() > 0) {
         if (DELETE.equals(wo.getRfcCi().getRfcAction())) {
           List<CmsRfcCISimple> managedViaRfcs = wo.getPayLoad().get(MANAGED_VIA);
@@ -603,6 +604,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
       result =
           processRunner.executeProcessRetry(new ExecutionContext(wo, cmdLine, logKey, retryCount));
+      copySearchTagsFromResult(wo, result);
       if (result.getResultCode() > 0) {
         inductorStat.addRsyncFailed();
         wo.setComments(
@@ -625,6 +627,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
       result =
           processRunner.executeProcessRetry(new ExecutionContext(wo, cmdLine, logKey, retryCount));
+      copySearchTagsFromResult(wo, result);
       if (result.getResultCode() > 0) {
         wo.setComments(
             "FATAL: " + generateRsyncErrorMessage(result.getResultCode(), host + ":" + port));
@@ -677,7 +680,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
       ProcessResult result =
           executeWorkOrderRemote(
               new ExecutionContext(wo, cmd, logKey, woRetryCount), fileName, cookbookPath);
-
+      copySearchTagsFromResult(wo, result);
       // set the result status
       if (result.getResultCode() != 0) {
         inductorStat.addWoFailed();
@@ -702,9 +705,9 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
         removeRemoteWorkOrder(wo, keyFile, processRunner);
         removeFile(wo, keyFile);
-        copySearchTagsFromResult(wo, result);
         return;
       }
+
       // remove remote workorder for success and failure.
       removeRemoteWorkOrder(wo, keyFile, processRunner);
       setResultCi(result, wo);
@@ -823,6 +826,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
               ProcessResult result =
                   processRunner.executeProcessRetry(
                       new ExecutionContext(wo, cmd, getLogKey(wo), getRetryCountForWorkOrder(wo)));
+              copySearchTagsFromResult(wo, result);
               if (result.getResultCode() != 0) {
                 logger.error(logKey + " Error while creating service cookbook directory on remote");
               }
@@ -840,6 +844,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
               result =
                   processRunner.executeProcessRetry(
                       new ExecutionContext(wo, cmdLine, logKey, retryCount));
+              copySearchTagsFromResult(wo, result);
               if (result.getResultCode() > 0) {
                 wo.setComments(
                     "FATAL: "
@@ -935,6 +940,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
     // retry initial ssh 10x slow hypervisors hosts
     ProcessResult result = processRunner.executeProcessRetry(cmd, logKey, 10);
+    copySearchTagsFromResult(wo, result);
     if (result.getResultCode() > 0) {
       wo.setComments("failed : can't:" + prepCmdline);
       return;
@@ -981,6 +987,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
       cmd = (String[]) ArrayUtils.addAll(cmdTmp, repoCmdList.toArray());
 
       result = processRunner.executeProcessRetry(cmd, logKey, retryCount);
+      copySearchTagsFromResult(wo, result);
       if (result.getResultCode() > 0) {
         wo.setComments("failed : Replace the compute and retry the deployment");
         wo.putSearchTag(BASE_INSTALL_TIME, Long.toString(System.currentTimeMillis() - t1));
@@ -1000,6 +1007,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                 new String[] {cookbook, user + "@" + host + ":/home/" + user + "/" + cookbookPath});
 
     result = processRunner.executeProcessRetry(deploy, logKey, retryCount);
+    copySearchTagsFromResult(wo, result);
     if (result.getResultCode() > 0) {
       wo.setComments(
           "FATAL: " + generateRsyncErrorMessage(result.getResultCode(), host + ":" + port));
@@ -1018,6 +1026,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                 new String[] {cookbook, user + "@" + host + ":/home/" + user + "/shared"});
 
     result = processRunner.executeProcessRetry(deploy, logKey, retryCount);
+    copySearchTagsFromResult(wo, result);
     if (result.getResultCode() > 0) {
       wo.setComments(
           "FATAL: " + generateRsyncErrorMessage(result.getResultCode(), host + ":" + port));
@@ -1051,6 +1060,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     cmd = (String[]) ArrayUtils.addAll(cmdTmp, proxyList);
 
     result = processRunner.executeProcessRetry(cmd, logKey, retryCount);
+    copySearchTagsFromResult(wo, result);
     wo.putSearchTag(BASE_INSTALL_TIME, Long.toString(System.currentTimeMillis() - t1));
     if (result.getResultCode() > 0) {
       wo.setComments("failed : can't run install_base.sh");
@@ -1136,6 +1146,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
       ProcessResult result =
           pr.executeProcessRetry(
               new ExecutionContext(wo, cmd, getLogKey(wo), getRetryCountForWorkOrder(wo)));
+      copySearchTagsFromResult(wo, result);
       if (result.getResultCode() != 0) {
         // Not throwing exceptions, Should be ok if we are not able to
         // remove remote wo.
@@ -1216,6 +1227,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
           }
 
           ProcessResult result = processRunner.executeProcessRetry(digCmd, logKey, retryCount);
+          copySearchTagsFromResult(wo, result);
           if (result.getResultCode() > 0) {
             return null;
           }

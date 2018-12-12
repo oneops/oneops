@@ -1,9 +1,9 @@
 if (!window.toggle_rfc_tab) {
-  window.toggle_rfc_tab = function (source, rfcId, tabName) {
+  window.toggle_rfc_tab = function (source, key, tabName, fromCache) {
     source = $j(source);
     var ul = source.parents(".accordion-toggle").find('.nav'),
-        contentDiv = source.parents(".accordion-group").find(".accordion-inner"),
-        tab = contentDiv.find(".tab-pane.rfc-" + tabName);
+      contentDiv = source.parents(".accordion-group").find(".accordion-inner"),
+      tab = contentDiv.find(".tab-pane.rfc-" + tabName);
     ul.find("li").removeClass('active');
     if (tab.is(":visible")) {
       contentDiv.hide(300);
@@ -13,16 +13,21 @@ if (!window.toggle_rfc_tab) {
       contentDiv.find("> .tab-pane").hide();
       tab.show();
       contentDiv.show(300);
-      if (tab.html().trim()) {
-        tab.find(".diff-container").prettyTextDiff({cleanup: true, diffContainer: ".changed"});
-      }
-      else {
-        tab.html('<%= escape_javascript(loading_indicator) %>');
+      var html = tab.html();
+      if (!html || !html.trim()) {
         if (tabName == 'changes') {
-          $j.get(source.parents("[data-changes-url]").data('changes-url'), {rfcId: rfcId});
+          if (fromCache) {
+            tab.html($j("#rfc_attr_cache_" + key).html());
+            tab.find(".diff-container").prettyTextDiff({cleanup: true, diffContainer: ".changed"});
+          }
+          else {
+            tab.html('<%= escape_javascript(loading_indicator) %>');
+            $j.get(source.parents("[data-changes-url]").data('changes-url'), {rfcId: key});
+          }
         }
         else if (tabName == 'log') {
-          $j.get(source.parents("[data-log-url]").data('log-url'), {rfcId: rfcId});
+          tab.html('<%= escape_javascript(loading_indicator) %>');
+          $j.get(source.parents("[data-log-url]").data('log-url'), {rfcId: key});
         }
       }
     }

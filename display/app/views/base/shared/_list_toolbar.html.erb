@@ -203,7 +203,7 @@
         fields: list.find(".list-toolbar").attr("filters").split(","),
         value:  list.find(".list-toolbar-filter").val()
       }
-    }
+    };
 
     window.apply_list_quick_filter = function(source, value) {
       source = $j(source);
@@ -236,53 +236,59 @@
         var filtersFields = list.find(".list-toolbar").attr("filters");
         if (filtersFields) {
           var taItems = filtersFields.split(",");
-          filter_field.typeahead({items: 15,
-                                  source:  function(query, process) {
-//                                    var split = query.split(/:|=/);
-//                                    var val = split.length > 1 ? split[1] : split[0];
-                                    var val = query.split(/\s/).last();
-                                    if (!val || val.indexOf('=') > 0) {
-                                      return [];
-                                    }
-                                    var items = taItems.filter(function (i) {return i.startsWith(val);});
-                                    if (items.length) {
-                                      items = items.map(function(i) {return i + "=";})
-                                    }
-                                    else {
-                                      items = taItems.map(function(i) {return i + "=" + val;});
-                                      items.unshift(val);
-                                    }
-                                    return items;
-                                  },
-                                  matcher: function (item) {
-                                    return true;
-                                  },
-                                  sorter: function(items) {
-                                    var query = this.query;
-                                    return items.sort(function(a, b) {
-                                      if (a == query){
-                                        return -1;
-                                      }
-                                      else if (b == query) {
-                                        return 1;
-                                      }
-                                      else {
-                                        return a.localeCompare(b);
-                                      }
-                                    });
-                                  },
-                                  highlighter: function (item) {
-                                    var split = item.split('=');
-                                    return split.length > 1 ? "<small><em>" + split[0] + "=</em></small>" + split[1] : item;
-                                  },
-                                  updater: function (item) {
-                                    var val = this.$element.val();
-                                    var term = val.split(/\s/).last();
-                                    setTimeout(function () {
-                                      filter_changed(filter_field[0]);
-                                    }, 10);
-                                    return val.substring(0, val.length - term.length) + item;
-                                  }});
+          filter_field.on('keydown', function(event) {
+            if (event.keyCode == 40) {
+              filter_field.unbind('keydown');
+              filter_field.typeahead({items: 15,
+                                      source:  function(query, process) {
+    //                                    var split = query.split(/:|=/);
+    //                                    var val = split.length > 1 ? split[1] : split[0];
+                                        var val = query.split(/\s/).last();
+                                        if (!val || val.indexOf('=') > 0) {
+                                          return [];
+                                        }
+                                        var items = taItems.filter(function (i) {return i.startsWith(val);});
+                                        if (items.length) {
+                                          items = items.map(function(i) {return i + "=";})
+                                        }
+                                        else {
+                                          items = taItems.map(function(i) {return i + "=" + val;});
+                                          items.unshift(val);
+                                        }
+                                        return items;
+                                      },
+                                      matcher: function (item) {
+                                        return true;
+                                      },
+                                      sorter: function(items) {
+                                        var query = this.query;
+                                        return items.sort(function(a, b) {
+                                          if (a == query){
+                                            return -1;
+                                          }
+                                          else if (b == query) {
+                                            return 1;
+                                          }
+                                          else {
+                                            return a.localeCompare(b);
+                                          }
+                                        });
+                                      },
+                                      highlighter: function (item) {
+                                        var split = item.split('=');
+                                        return split.length > 1 ? "<small><em>" + split[0] + "=</em></small>" + split[1] : item;
+                                      },
+                                      updater: function (item) {
+                                        var val = this.$element.val();
+                                        var term = val.split(/\s/).last();
+                                        setTimeout(function () {
+                                          filter_changed(filter_field[0]);
+                                        }, 10);
+                                        return val.substring(0, val.length - term.length) + item;
+                                      }});
+              filter_field.typeahead('lookup').focus();
+            }
+          });
         }
         else {
           filter_field.on('keydown', function(event) {

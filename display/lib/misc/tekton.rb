@@ -176,8 +176,16 @@ def set_tekton_auth(username, password = nil)
                         elsif username.empty?
                           Base64.strict_encode64(password)
                         else
+                          @params.tekton_username = username
                           "#{'Basic ' unless password.empty?}#{Base64.strict_encode64("#{username}:#{password}")}"
                         end
+end
+
+def confirm_global_admin
+  info = @params.tekton_username && tt_request("user/#{@params.tekton_username}", 'Getting user info')
+  admin = info && info.admin
+  say 'Must be global admin!'.red unless admin
+  admin
 end
 
 def required_arg(name, value)
@@ -341,7 +349,7 @@ end
 def execute(action, *args)
   result = nil
   if action == 'version'
-    say 'CLI version:    1.2.4'
+    say 'CLI version:    1.2.5'
     info = tt_request('server/version', 'Getting tekton version')
     say "Tekton version: #{info.version} (#{info.timestamp})"
     say "Tekton host:    #{@params.tekton_host}"
@@ -370,8 +378,10 @@ def execute(action, *args)
     say JSON.pretty_unparse(fetch_provider_mappings)
 
   elsif action == 'oo:resources:transfer'
-    resources = execute!('oo:resources')
-    resources.each_pair {|name, desc| execute('resources:add', name, desc)}
+    if confirm_global_admin
+      resources = execute!('oo:resources')
+      resources.each_pair {|name, desc| execute('resources:add', name, desc)}
+    end
 
   elsif action == 'oo:subs'
     org, cloud_name, _ = args
@@ -927,7 +937,7 @@ def execute(action, *args)
     end
 
     if result
-      cfg = %w(tekton_host oneops_host tekton_auth).inject({}) {|h, key| h[key] = @params[key]; h}
+      cfg = %w(tekton_host oneops_host tekton_auth tekton_username).inject({}) {|h, key| h[key] = @params[key]; h}
       File.write(SESSION_FILE_NAME, JSON.pretty_unparse(cfg)) ##unless @repl
       say 'Signed in - do not forget to logout when done!'.green
     end
@@ -1071,7 +1081,7 @@ end
   'quota:delete'          => ['quota:delete SUB,...|?[SUB_REGEX]|*[SUB_REGEX] ORG,...|?[ORG_REGEX]|*[ORG_REGEX]', "delete existing quota (with confirmation)\n"],
 
   'oo:resources'          => ['oo:resources', 'list resource types in OneOps'],
-  'oo:resources:transfer' => ['oo:resources:transfer [-f]', 'transfer resource definitions in OneOps to Tekton (idempotent!)'],
+  'oo:resources:transfer' => ['oo:resources:transfer [-f]', 'transfer resource definitions in OneOps to Tekton (global admins only, idempotent!)'],
   'oo:subs'               => ['oo:subs ORG [CLOUD_REGEX]', 'list subsctiptions in OneOps'],
   'oo:subs:transfer'      => ['oo:subs:transfer  [-f] ORG [CLOUD_REGEX]', 'transfer subsctiptions in OneOps to Tekton  (idempotent!)'],
   'oo:sub:usage'          => ['oo:sub:usage [--mismatch [--fix]] SUB,...|?[SUB_REGEX]|*[SUB_REGEX] [ORG,...]', 'For a given subscription list usage in OneOps and compare with usage in Tekton'],

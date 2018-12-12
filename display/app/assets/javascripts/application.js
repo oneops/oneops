@@ -309,7 +309,8 @@ window.filter_list = function (items, attribute_names, filter) {
         filter_attr = t.attr;
       return attribute_names.some(function (attr) {
         var value = item.getAttribute(attr);
-        return ((!filter_attr || attr == filter_attr) && (value == null || filter_regexp.test(value)));
+        // return ((!filter_attr || attr == filter_attr) && (value == null || filter_regexp.test(value)));
+        return ((!filter_attr || attr == filter_attr) && filter_regexp.test(value));
       });
     });
     match ? item.show() : item.hide();

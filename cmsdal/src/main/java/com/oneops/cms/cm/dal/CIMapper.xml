@@ -841,39 +841,6 @@
 	 </select>
 
 
-
-	 <select id="getCountFromCIRelationsByNS" parameterType="map" resultType="long">
-		select count(1)
-		from cm_ci_relations cir, md_relations mdr, cm_ci_state cis, cm_ci cc, md_classes mdc, ns_namespaces ns, ns_namespaces target_ns
-		where cir.from_ci_id = #{fromId}  
-			and (#{relationName}::varchar is null or mdr.relation_name = #{relationName})
-		    and (#{shortRelName}::varchar is null or mdr.short_relation_name = #{shortRelName})
-		    and (#{toClazzName}::varchar is null or mdc.class_name = #{toClazzName})
-		    and cir.to_ci_id = cc.ci_id
-		    and cc.class_id = mdc.class_id
-			and cir.relation_id = mdr.relation_id
-			and cir.ci_state_id = cis.ci_state_id
-			and cir.ns_id = ns.ns_id
-		    and cc.ns_id = target_ns.ns_id
-		    and target_ns.ns_path = #{toNsPath}
-	 </select>
-
-	 <select id="getCountFromCIRelationsByNSLike" parameterType="map" resultType="long">
-		select count(1)
-		from cm_ci_relations cir, md_relations mdr, cm_ci_state cis, cm_ci cc, md_classes mdc, ns_namespaces ns, ns_namespaces target_ns
-		where cir.from_ci_id = #{fromId}  
-			and (#{relationName}::varchar is null or mdr.relation_name = #{relationName})
-		    and (#{shortRelName}::varchar is null or mdr.short_relation_name = #{shortRelName})
-		    and (#{toClazzName}::varchar is null or mdc.class_name = #{toClazzName})
-		    and cir.to_ci_id = cc.ci_id
-		    and cc.class_id = mdc.class_id
-			and cir.relation_id = mdr.relation_id
-			and cir.ci_state_id = cis.ci_state_id
-			and cir.ns_id = ns.ns_id
-		    and cc.ns_id = target_ns.ns_id
-		    and (target_ns.ns_path like #{toNsPathLike} or target_ns.ns_path = #{toNsPath})
-	 </select>
-
 	 <select id="getRelationCounts" parameterType="map" resultType="hashmap">
 		select
 		 	   <choose>
@@ -968,34 +935,61 @@
 		 </if>
 	 </select>
 
-	 <select id="getToCIRelations" parameterType="map" resultType="com.oneops.cms.cm.domain.CmsCIRelation">
-		select
-			cir.ci_relation_id as ciRelationId,
-			cir.ns_id as nsId,
-			ns.ns_path as nsPath,
-			cir.from_ci_id as fromCiId,
-			cir.relation_goid as relationGoid,
-			cir.relation_id as relationId,
-			mdr.relation_name as relationName,
-			cir.to_ci_id toCiId,
-			cir.ci_state_id as relationStateId,
-			cis.state_name as relationState,
-			cir.last_applied_rfc_id as lastAppliedRfcId,
-			cir.comments,
-			cir.created,
-			cir.updated
-		from cm_ci_relations cir, md_relations mdr, cm_ci_state cis, cm_ci cc, md_classes mdc, ns_namespaces ns
-		where cir.to_ci_id = #{toId}  
-			and (#{relationName}::varchar is null or mdr.relation_name = #{relationName})
-		    and (#{shortRelName}::varchar is null or mdr.short_relation_name = #{shortRelName})
-		    and (#{fromClazzName}::varchar is null or mdc.class_name = #{fromClazzName})
-		    and (#{fromShortClazzName}::varchar is null or mdc.short_class_name = #{fromShortClazzName})
-		    and cir.from_ci_id = cc.ci_id
-		    and cc.class_id = mdc.class_id
-			and cir.relation_id = mdr.relation_id
-			and cir.ci_state_id = cis.ci_state_id
-			and cir.ns_id = ns.ns_id
-	 </select>
+    <select id="getToCIRelations" parameterType="map" resultType="com.oneops.cms.cm.domain.CmsCIRelation">
+        select
+            cir.ci_relation_id as ciRelationId,
+            cir.ns_id as nsId,
+            ns.ns_path as nsPath,
+            cir.from_ci_id as fromCiId,
+            cir.relation_goid as relationGoid,
+            cir.relation_id as relationId,
+            mdr.relation_name as relationName,
+            cir.to_ci_id toCiId,
+            cir.ci_state_id as relationStateId,
+            cis.state_name as relationState,
+            cir.last_applied_rfc_id as lastAppliedRfcId,
+            cir.comments,
+            cir.created,
+            cir.updated
+            from cm_ci_relations cir
+            join md_relations mdr on cir.relation_id = mdr.relation_id
+            join cm_ci_state cis on cir.ci_state_id = cis.ci_state_id
+            join ns_namespaces ns on cir.ns_id = ns.ns_id
+            <if test="fromNsPath != null || fromClazzName != null || fromShortClazzName != null">
+                join cm_ci from_ci on cir.from_ci_id = from_ci.ci_id
+            </if>
+            <if test="fromNsPath != null">
+                join ns_namespaces target_ns on from_ci.ns_id = target_ns.ns_id
+            </if>
+            <if test="fromClazzName != null || fromShortClazzName != null">
+                join md_classes from_mdc on from_ci.class_id = from_mdc.class_id
+            </if>
+        where cir.to_ci_id = #{toId}
+            <choose>
+                <when test="relationName != null">
+                    and mdr.relation_name = #{relationName}
+                </when>
+                <when test="shortRelName != null">
+                    and mdr.short_relation_name = #{shortRelName}
+                </when>
+            </choose>
+            <choose>
+                <when test="fromClazzName != null">
+                    and from_mdc.class_name = #{fromClazzName}
+                </when>
+                <when test="fromShortClazzName != null">
+                    and from_mdc.short_class_name = #{fromShortClazzName}
+                </when>
+            </choose>
+            <choose>
+                <when test="fromNsPathLike != null">
+                    and (target_ns.ns_path like #{fromNsPathLike} or target_ns.ns_path = #{fromNsPath})
+                </when>
+                <when test="fromNsPath != null">
+                    and target_ns.ns_path = #{fromNsPath}
+                </when>
+            </choose>
+    </select>
 
 	 <select id="getToCIRelationsByFromCiIDs" parameterType="map" resultType="com.oneops.cms.cm.domain.CmsCIRelation">
 		select
@@ -1026,38 +1020,6 @@
 			and cir.relation_id = mdr.relation_id
 			and cir.ci_state_id = cis.ci_state_id
 			and cir.ns_id = ns.ns_id
-	 </select>
-
-	 <select id="getCountToCIRelationsByNS" parameterType="map" resultType="long">
-		select count(1)
-		from cm_ci_relations cir, md_relations mdr, cm_ci_state cis, cm_ci cc, md_classes mdc, ns_namespaces ns, ns_namespaces target_ns
-		where cir.to_ci_id = #{toId}  
-			and (#{relationName}::varchar is null or mdr.relation_name = #{relationName})
-		    and (#{shortRelName}::varchar is null or mdr.short_relation_name = #{shortRelName})
-		    and (#{fromClazzName}::varchar is null or mdc.class_name = #{fromClazzName})
-		    and cir.from_ci_id = cc.ci_id
-		    and cc.class_id = mdc.class_id
-			and cir.relation_id = mdr.relation_id
-			and cir.ci_state_id = cis.ci_state_id
-			and cir.ns_id = ns.ns_id
-		    and cc.ns_id = target_ns.ns_id
-		    and target_ns.ns_path = #{fromNsPath}
-	 </select>
-
-	 <select id="getCountToCIRelationsByNSLike" parameterType="map" resultType="long">
-		select count(1)
-		from cm_ci_relations cir, md_relations mdr, cm_ci_state cis, cm_ci cc, md_classes mdc, ns_namespaces ns, ns_namespaces target_ns
-		where cir.to_ci_id = #{toId}  
-			and (#{relationName}::varchar is null or mdr.relation_name = #{relationName})
-		    and (#{shortRelName}::varchar is null or mdr.short_relation_name = #{shortRelName})
-		    and (#{fromClazzName}::varchar is null or mdc.class_name = #{fromClazzName})
-		    and cir.from_ci_id = cc.ci_id
-		    and cc.class_id = mdc.class_id
-			and cir.relation_id = mdr.relation_id
-			and cir.ci_state_id = cis.ci_state_id
-			and cir.ns_id = ns.ns_id
-		    and cc.ns_id = target_ns.ns_id
-		    and (target_ns.ns_path like #{fromNsPathLike} or target_ns.ns_path = #{fromNsPath})
 	 </select>
 
 	 <select id="getFromToCIRelations" parameterType="map" resultType="com.oneops.cms.cm.domain.CmsCIRelation">

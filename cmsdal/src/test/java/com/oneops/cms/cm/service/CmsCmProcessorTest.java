@@ -17,9 +17,13 @@
  *******************************************************************************/
 package com.oneops.cms.cm.service;
 
-import java.io.Reader;
-import java.util.List;
-
+import com.oneops.cms.cm.dal.CIMapper;
+import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.md.dal.ClazzMapper;
+import com.oneops.cms.md.dal.RelationMapper;
+import com.oneops.cms.md.service.CmsMdProcessor;
+import com.oneops.cms.util.CmsCmValidator;
+import com.oneops.cms.util.CmsMdValidator;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -29,14 +33,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.oneops.cms.cm.dal.CIMapper;
-import com.oneops.cms.cm.domain.CmsCI;
-import com.oneops.cms.cm.domain.CmsCIRelation;
-import com.oneops.cms.md.dal.ClazzMapper;
-import com.oneops.cms.md.dal.RelationMapper;
-import com.oneops.cms.md.service.CmsMdProcessor;
-import com.oneops.cms.util.CmsCmValidator;
-import com.oneops.cms.util.CmsMdValidator;
+import java.io.Reader;
 
 public class CmsCmProcessorTest {
 	private static SqlSession session;
@@ -109,14 +106,4 @@ public class CmsCmProcessorTest {
 */
 
     }
-
-    //@Test 
-    /*Note: This is a test which needs to be uncommented for running, till we have true embedded db to run unit test so can have consistent ids*/
-    public void getRelationTest() throws Exception {
-    	  List<CmsCIRelation> fromCIRelations = cmProcessor
-                  .getFromCIRelationsByClassAndCiName(3385377, "manifest.WatchedBy",null,
-                          "manifest.Monitor","p1-compute-cpu");
-    	  Assert.assertTrue(fromCIRelations.size()==1);
-    }
-
 }

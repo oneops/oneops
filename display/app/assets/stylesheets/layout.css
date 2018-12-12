@@ -1568,6 +1568,11 @@ img.authicon {
   clear:         both;
 }
 
+.rfc-list .list-toolbar {
+  border-bottom: none;
+  margin-bottom: 10px;
+}
+
 .double .list-toolbar {
   width: 590px;
 }
@@ -2726,7 +2731,7 @@ div.rfc-list div.step {
 div.rfc-list .step-content .component {
   padding:       5px;
   margin-bottom: 5px;
-  margin-top:    15px;
+  margin-top:    1px;
 }
 
 div.rfc-list .step-content .component:first-child {
@@ -4459,7 +4464,8 @@ hr {
 }
 
 .accordion-group {
-  margin-bottom: 4px;
+  margin-top: 2px;
+  margin-bottom: 2px;
 }
 
 .accordion-heading {
