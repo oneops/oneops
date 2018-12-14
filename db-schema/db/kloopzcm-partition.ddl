@@ -160,7 +160,7 @@ BEGIN
 	INSERT INTO kloopzcm.cm_ci_relation_attr_log_2018 VALUES (NEW.*);
 	    ELSIF ( NEW.log_time >= DATE '2019-01-01' AND
             NEW.log_time < DATE '2020-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_relation_attr_log_2018 VALUES (NEW.*);
+	INSERT INTO kloopzcm.cm_ci_relation_attr_log_2019 VALUES (NEW.*);
     ELSE
         RAISE EXCEPTION 'Date out of range.  Fix the cm_ci_relation_attr_log_insert() function!';
     END IF;
@@ -198,7 +198,7 @@ BEGIN
 	INSERT INTO kloopzcm.cm_ci_relation_log_2018 VALUES (NEW.*);
 	  ELSIF ( NEW.log_time >= DATE '2019-01-01' AND
             NEW.log_time < DATE '2020-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_relation_log_2018 VALUES (NEW.*);
+	INSERT INTO kloopzcm.cm_ci_relation_log_2019 VALUES (NEW.*);
 
     ELSE
         RAISE EXCEPTION 'Date out of range.  Fix the cm_ci_relation_log_insert() function!';
@@ -236,7 +236,7 @@ BEGIN
 	INSERT INTO kloopzcm.cm_ci_attribute_log_2018 VALUES (NEW.*);
  	    ELSIF ( NEW.log_time >= DATE '2019-01-01' AND
             NEW.log_time < DATE '2020-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_attribute_log_2018 VALUES (NEW.*);   ELSE
+	INSERT INTO kloopzcm.cm_ci_attribute_log_2019 VALUES (NEW.*);   ELSE
         RAISE EXCEPTION 'Date out of range.  Fix the cm_ci_attribute_log_insert() function!';
     END IF;
     RETURN NULL;
@@ -272,7 +272,7 @@ BEGIN
 	INSERT INTO kloopzcm.cm_ci_log_2018 VALUES (NEW.*);
   	ELSIF ( NEW.log_time >= DATE '2019-01-01' AND
             NEW.log_time < DATE '2020-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_log_2018 VALUES (NEW.*);
+	INSERT INTO kloopzcm.cm_ci_log_2019 VALUES (NEW.*);
     ELSE
         RAISE EXCEPTION 'Date out of range.  Fix the cm_ci_log_insert() function!';
     END IF;
