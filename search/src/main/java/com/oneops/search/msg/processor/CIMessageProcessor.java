@@ -99,7 +99,11 @@ public class CIMessageProcessor implements MessageProcessor {
 
         //add wo to all bom cis
         if (simpleCI.getCiClassName().startsWith("bom")) {
-            message = this.processBomCI(simpleCI);
+            try {
+                message = this.processBomCI(simpleCI);
+            } catch (Exception e){
+                message = GSON_ES.toJson(simpleCI);
+            }
         } else {
             message = GSON_ES.toJson(simpleCI);
         }
