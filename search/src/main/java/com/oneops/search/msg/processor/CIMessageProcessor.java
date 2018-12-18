@@ -106,7 +106,8 @@ public class CIMessageProcessor implements MessageProcessor {
 
         try {
             indexer.index(String.valueOf(simpleCI.getCiId()), "ci", message);
-        } catch (Exception e){
+        } catch (Exception e) {
+            logger.error("There was an error indexing message first time", e);
             // try one more time
             indexer.index(String.valueOf(simpleCI.getCiId()), "ci", message);
         }
@@ -163,7 +164,7 @@ public class CIMessageProcessor implements MessageProcessor {
                 }
             }
         } catch (Exception e){
-            logger.error("Error fetching WO", e);
+            logger.error("Error fetching WO from CI", e);
         }
         return GSON_ES.toJson(ciSearch);
     }
