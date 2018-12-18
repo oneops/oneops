@@ -83,8 +83,7 @@ public class CIMessageProcessor implements MessageProcessor {
         CmsCISimple simpleCI = null;
         if ("cm_ci_new".equals(msgType)) {
             simpleCI = GSON.fromJson(message, CmsCISimpleWithTags.class);
-        }
-        else {
+        } else {
             CmsCI ci = GSON.fromJson(message, CmsCI.class);
             simpleCI = cmsUtil.custCI2CISimple(ci, "df");
         }
@@ -104,8 +103,15 @@ public class CIMessageProcessor implements MessageProcessor {
         } else {
             message = GSON_ES.toJson(simpleCI);
         }
-		    indexer.index(String.valueOf(simpleCI.getCiId()), "ci", message);
+
+        try {
+            indexer.index(String.valueOf(simpleCI.getCiId()), "ci", message);
+        } catch (Exception e){
+            // try one more time
+            indexer.index(String.valueOf(simpleCI.getCiId()), "ci", message);
+        }
     }
+
 
 
 
@@ -144,13 +150,20 @@ public class CIMessageProcessor implements MessageProcessor {
                 e.printStackTrace();
             }
         }
-        if (wos == null) {
-            logger.info("WO not found for ci " + ci.getCiId() + " of type " + ci.getCiClassName());
-            GetResponse response = client.prepareGet(indexer.getIndexName(), "ci", ""+ci.getCiId()).get();
-            if (response.isExists()){
-                wos = GSON_ES.fromJson(GSON.toJson(response.getSource().get("workorder")), CmsWorkOrderSimple.class);
-                ciSearch.setWorkorder(wos);
+        try {
+            if (wos == null) {
+                logger.info("WO not found for ci " + ci.getCiId() + " of type " + ci.getCiClassName());
+                GetResponse response = client.prepareGet(indexer.getIndexName(), "ci", "" + ci.getCiId()).get();
+                if (response.isExists()) {
+                    Object workorder = response.getSource().get("workorder");
+                    if (workorder!=null) {
+                        wos = GSON_ES.fromJson(GSON.toJson(workorder), CmsWorkOrderSimple.class);
+                        ciSearch.setWorkorder(wos);
+                    }
+                }
             }
+        } catch (Exception e){
+            logger.error("Error fetching WO", e);
         }
         return GSON_ES.toJson(ciSearch);
     }
