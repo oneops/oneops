@@ -27,12 +27,21 @@ Vagrant.configure(2) do |config|
   end
 
   #if you want to sync circuits on your host with vagrant then create an env variable ONEOPS_HOME on your host that points to a directory that houses all the circuits and oneops core
+  # Replace the circuits path with ONEOPS_HOME if you want to use your own pre-existing circuits.
   if !ENV['ONEOPS_HOME'].nil?
-    config.vm.synced_folder ENV['ONEOPS_HOME']+"/circuit-oneops-1", "#{sync_folder_root}/circuit-oneops-1",owner: "root",group: "root"
+    oneops_circuits_path = "~/oneops_circuits"
+
+    config.vm.synced_folder oneops_circuits_path + "/circuit-oneops-1", "#{sync_folder_root}/circuit-oneops-1",owner: "root",group: "root"
+    config.vm.synced_folder oneops_circuits_path + "/circuit-main-1", "#{sync_folder_root}/circuit-main-1",owner: "root",group: "root"
+    config.vm.synced_folder oneops_circuits_path + "/circuit-walmartlabs-1", "#{sync_folder_root}/circuit-walmartlabs",owner: "root",group: "root"
+    config.vm.synced_folder oneops_circuits_path + "/circuit-main-2", "#{sync_folder_root}/circuit-main-2",owner: "root",group: "root"
+    config.vm.synced_folder oneops_circuits_path + "/circuit-walmartlabs-2", "#{sync_folder_root}/circuit-walmartlabs-2",owner: "root",group: "root"
+    
     config.vm.synced_folder ENV['ONEOPS_HOME']+"/oneops/oneops-admin", "#{sync_folder_root}/oneops-admin",owner: "root",group: "root"
 
     config.vm.provision "configure_circuits", type: "shell", inline: $script_configure_circuits, env: {"sync_folder_root" => sync_folder_root}
-    config.vm.provision "use_latest_inductor", type: "shell", inline: $script_use_latest_inductor, env: {"sync_folder_root" => sync_folder_root}
+	  config.vm.provision "use_latest_inductor", type: "shell", inline: $script_use_latest_inductor, env: {"sync_folder_root" => sync_folder_root}
+    config.vm.provision "run_circuit_install", type: "shell", inline: $script_run_circuit_install, env: {"sync_folder_root" => sync_folder_root}
   end
 end
 
@@ -41,7 +50,7 @@ $script_configure_circuits = <<SCRIPT
   cd /opt/oneops/inductor
 
   echo "deleting/unlinking existing circuits"
-  circuits=( circuit-oneops-1 shared )
+  circuits=( circuit-oneops-1 circuit-main-1 circuit-walmartlabs circuit-main-2 circuit-walmartlabs-2 shared )
 
   for circuit in "${circuits[@]}"
   do
@@ -81,4 +90,17 @@ $script_use_latest_inductor = <<SCRIPT
 
   echo "copying latest inductor jar from $sync_folder_root/oneops-admin/target to $oneops_admin_path/target"
   cp "$sync_folder_root/oneops-admin/target"/inductor-*.jar target/
+SCRIPT
+
+# This inline script will call the sync_circuits.sh script inside the vagrant where all the circuits will get synced (model, cloud & pack)
+$script_run_circuit_install = <<SCRIPT
+#!/bin/bash
+
+bash /home/oneops/sync_circuits.sh
+
+if [ $? -ne 0 ]
+then
+  echo "Circuit Install Script Failed!"
+  exit 1
+fi
 SCRIPT
