@@ -22,30 +22,37 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertNotEquals;
 import static org.testng.Assert.assertTrue;
 
+import com.oneops.cms.cm.dal.CIMapper;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
+import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.crypto.CmsCrypto;
 import com.oneops.cms.crypto.CmsCryptoDES;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import java.io.IOException;
+import java.io.Reader;
 import java.security.GeneralSecurityException;
-import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.stream.Stream;
+
+import com.oneops.cms.util.dal.UtilMapper;
+import org.apache.ibatis.io.Resources;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 
@@ -62,6 +69,10 @@ public class CmsUtilTest {
   private static final Logger logger = Logger.getLogger(CmsUtilTest.class);
   CmsCISimple ciSimple = new CmsCISimple();
   private CmsUtil util = new CmsUtil();
+  private CmsCmProcessor cmsCmProcessor = new CmsCmProcessor();
+  private SqlSession session;
+  private CIMapper ciMapper;
+  private UtilMapper utilMapper;
   private Map<String, String> ciAttributes;
 
   public CmsUtilTest() {
@@ -77,8 +88,23 @@ public class CmsUtilTest {
     this.ciSimple.setImpl(CI_IMPL);
     this.ciSimple.setNsPath(NS_PATH);
     this.ciSimple.setCiAttributes(ciAttributes);
-  }
 
+    try {
+        String resource = "mybatis-config.xml";
+        Reader reader = Resources.getResourceAsReader(resource);
+        SqlSessionFactory sf = new SqlSessionFactoryBuilder().build(reader);
+        session = sf.openSession();
+
+        ciMapper = session.getMapper(CIMapper.class);
+
+        utilMapper = session.getMapper(UtilMapper.class);
+
+        cmsCmProcessor.setCiMapper(ciMapper);
+        cmsCmProcessor.setUtilMapper(utilMapper);
+    }catch (Exception e){
+        System.out.println(e);
+    }
+  }
 
   //TODO	@Test
   public void custCiSimpleToCi() {
@@ -194,6 +220,7 @@ public class CmsUtilTest {
       //for mocking
     }
     util.setCmsCrypto(crypto);
+    util.setCmProcessor(cmsCmProcessor);
     return util;
   }
 
@@ -1981,7 +2008,180 @@ public class CmsUtilTest {
    assertEquals(aRfc.getCiBaseAttributes().get("baseAtrribute1"),"baseAtrribute1");
   }
 
+  @Test
+  /** substitute cloud variables which is type of $OO_CLOUD{"FlavorType":"DefaultType"}
+   * Test happy path i.e. flavor type exist in cloud vars/flavor map defined in CmsVars table */
+  public void processVarsForExistingFlavorTest() throws Exception {
+    Map<String, String> cloudVars = new HashMap<>(3);
+
+    CmsCI ci = new CmsCI();
+    ci.setCiId(4444);
+    ci.setCiName("dev-az-eastus2-2");
+
+    CmsUtil util = getCmsUtil();
+
+    cloudVars = util.getCloudVars(ci);
+    //If there is now flavor i.e. CLOUD_SYSTEM_VARS not defined in CmsVars table, skip the test
+    if(cloudVars.get("Standard_D1_v2") == null ){
+        return;
+    }
+    cloudVars.put("Flavor", "Standard_D1_v2:S");
+
+    Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
+    CmsCIAttribute attrC = new CmsCIAttribute();
+    attrC.setAttributeName("required_availability_zone");
+    attrC.setDjValue("$OO_CLOUD{Flavor}");
+    attributes.put("cloud_1", attrC);
+
+    ci.setAttributes(attributes);
+    logger.info("CI Attributes have been set into the ci, attrs: " + attributes);
+    Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+    for (Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+      System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+    }
 
 
+    ci.setCiName("compute");
+    ci.setNsPath("/suresh/NewAssembly/NewAssemblyEnvDev/manifest/AMQ/1");
+    util.processAllVars(ci, cloudVars, null, null);
 
+    for (Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+      String djKey = a.getKey();
+      String djAfter = a.getValue().getDjValue();
+      System.out.println("after>" + djKey + "->" + djAfter);
+      if (djKey.startsWith("cloud_")) {
+        assertEquals(djAfter, "Standard_D1_v2", "did not measure up for key " + djKey);
+      }
+    }
+  }
+
+    @Test
+    /** substitute cloud variables which is type of $OO_CLOUD{"FlavorType":"DefaultType"}
+     * Test happy path i.e. for default flavor type*/
+    public void processVarsForDefaultFlavorTest() throws Exception {
+        Map<String, String> cloudVars = new HashMap<>(3);
+
+        CmsCI ci = new CmsCI();
+        ci.setCiId(4444);
+        ci.setCiName("dev-az-eastus2-2");
+
+        CmsUtil util = getCmsUtil();
+
+        cloudVars = util.getCloudVars(ci);
+        cloudVars.put("Flavor", "Not_In_Flavor_Map:S");
+
+        Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
+        CmsCIAttribute attrC = new CmsCIAttribute();
+        attrC.setAttributeName("required_availability_zone");
+        attrC.setDjValue("$OO_CLOUD{Flavor}");
+        attributes.put("cloud_1", attrC);
+
+        ci.setAttributes(attributes);
+        logger.info("CI Attributes have been set into the ci, attrs: " + attributes);
+        Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+        for (Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+            System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+        }
+
+
+        ci.setCiName("compute");
+        ci.setNsPath("/suresh/NewAssembly/NewAssemblyEnvDev/manifest/AMQ/1");
+        util.processAllVars(ci, cloudVars, null, null);
+
+        for (Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+            String djKey = a.getKey();
+            String djAfter = a.getValue().getDjValue();
+            System.out.println("after>" + djKey + "->" + djAfter);
+            if (djKey.startsWith("cloud_")) {
+                assertEquals(djAfter, "S", "did not measure up for key " + djKey);
+            }
+        }
+    }
+
+    @Test
+    /** substitute cloud variables which is type of $OO_CLOUD{"FlavorType":"DefaultType"}
+     * Test happy path i.e. for default flavor type when flavor map not exist */
+    public void processVarsFlavorMapNotExistTest() throws Exception {
+        Map<String, String> cloudVars = new HashMap<>(3);
+
+        CmsCI ci = new CmsCI();
+        ci.setCiId(4444);
+        ci.setCiName("dev-az-eastus2-2");
+
+        CmsUtil util = getCmsUtil();
+
+//        cloudVars = util.getCloudVars(ci);
+        cloudVars.put("Flavor", "Standard_D1_v2:S");
+
+        Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
+        CmsCIAttribute attrC = new CmsCIAttribute();
+        attrC.setAttributeName("required_availability_zone");
+        attrC.setDjValue("$OO_CLOUD{Flavor}");
+        attributes.put("cloud_1", attrC);
+
+        ci.setAttributes(attributes);
+        logger.info("CI Attributes have been set into the ci, attrs: " + attributes);
+        Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+        for (Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+            System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+        }
+
+
+        ci.setCiName("compute");
+        ci.setNsPath("/suresh/NewAssembly/NewAssemblyEnvDev/manifest/AMQ/1");
+        util.processAllVars(ci, cloudVars, null, null);
+
+        for (Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+            String djKey = a.getKey();
+            String djAfter = a.getValue().getDjValue();
+            System.out.println("after>" + djKey + "->" + djAfter);
+            if (djKey.startsWith("cloud_")) {
+                assertEquals(djAfter, "S", "did not measure up for key " + djKey);
+            }
+        }
+    }
+
+    @Test(expectedExceptions = {
+            CIValidationException.class}, expectedExceptionsMessageRegExp = ".* references unknown.*")
+    /** substitute cloud variables which is type of $OO_CLOUD{"FlavorType":"DefaultType"}
+     * Test exception path where flavor type or default type does not exist */
+    public void processVarsForNonExistingFlavorTest() throws Exception {
+        Map<String, String> cloudVars = new HashMap<>(3);
+
+        CmsCI ci = new CmsCI();
+        ci.setCiId(4444);
+        ci.setCiName("dev-az-eastus2-2");
+
+        CmsUtil util = getCmsUtil();
+
+        cloudVars = util.getCloudVars(ci);
+        cloudVars.put("Flavor", ":");
+
+        Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
+        CmsCIAttribute attrC = new CmsCIAttribute();
+        attrC.setAttributeName("required_availability_zone");
+        attrC.setDjValue("$OO_CLOUD{Flavor}");
+        attributes.put("cloud_1", attrC);
+
+        ci.setAttributes(attributes);
+        logger.info("CI Attributes have been set into the ci, attrs: " + attributes);
+        Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+        for (Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+            System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+        }
+
+
+        ci.setCiName("compute");
+        ci.setNsPath("/suresh/NewAssembly/NewAssemblyEnvDev/manifest/AMQ/1");
+        util.processAllVars(ci, cloudVars, null, null);
+
+        for (Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+            String djKey = a.getKey();
+            String djAfter = a.getValue().getDjValue();
+            System.out.println("after>" + djKey + "->" + djAfter);
+            if (djKey.startsWith("cloud_")) {
+                assertEquals(djAfter, "Standard_D1_v2", "did not measure up for key " + djKey);
+            }
+        }
+    }
 }

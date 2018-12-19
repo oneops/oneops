@@ -33,6 +33,7 @@ import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.ExceptionConsolidator;
 import com.oneops.cms.simple.domain.*;
 import com.oneops.cms.util.domain.AttrQueryCondition;
+import com.oneops.cms.util.domain.CmsVar;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
@@ -42,6 +43,7 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static com.oneops.cms.util.CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF;
 import static com.oneops.cms.util.CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_CYCLIC_REF;
@@ -1145,9 +1147,10 @@ public class CmsUtil {
             {
                 vContext.setAttrName(manifestAttr.getAttributeName());
                 vContext.setUnresolvedAttrValue(manifestAttr.getDjValue());
-                manifestAttr.setDjValue(processAllVarsForString(vContext));
+                String djDfValue = processAllVarsForString(vContext);
+                manifestAttr.setDjValue(djDfValue);
                 vContext.setUnresolvedAttrValue(manifestAttr.getDfValue());
-                manifestAttr.setDfValue(processAllVarsForString(vContext));
+                manifestAttr.setDfValue(djDfValue);
             });
         }
         ec.rethrowExceptionIfNeeded();
@@ -1352,9 +1355,10 @@ public class CmsUtil {
         for (CmsRfcAttribute rfcAttr : ci.getAttributes().values()) {
             vContext.setAttrName(rfcAttr.getAttributeName());
             vContext.setUnresolvedAttrValue(rfcAttr.getNewValue());
-            rfcAttr.setNewValue(processAllVarsForString(vContext));
+            String djDfValue = processAllVarsForString(vContext);
+            rfcAttr.setNewValue(djDfValue);
             vContext.setUnresolvedAttrValue(rfcAttr.getOldValue());
-            rfcAttr.setOldValue(processAllVarsForString(vContext));
+            rfcAttr.setOldValue(djDfValue);
         }
         if (logger.isDebugEnabled()) {
             StringBuilder sb = new StringBuilder("Processing vars complete for RfcCi [")
@@ -1401,6 +1405,17 @@ public class CmsUtil {
 
         String ciName = variableContext.getCiName();
 
+        if(isCloudVar(attrValue) && resolvedValue.indexOf(':') != -1){
+            String[] values = resolvedValue.split(":");
+            if(values.length > 0 && variableContext.getCloudVar(values[0]) != null ) {
+                resolvedValue = variableContext.getCloudVar(values[0]);
+            } else if(values.length > 1 && values[1] != ""){
+                resolvedValue = values[1];
+            } else {
+                resolvedValue = null;
+            }
+        }
+
         check4ValidVariable(variableContext, resolvedValue, varName, replPrefix);
 
         //prefix.$OO_LOCAL{x}.suffix in Dj to-> prefix.RR.suffix
@@ -1417,7 +1432,7 @@ public class CmsUtil {
         String nsPath = variableContext.getNsPath();
         String attrName = variableContext.getAttrName();
         if (resolvedValue == null ||        //fix, it is actually okay if resolvedValue equals("")
-                isLocalVar(resolvedValue) ||
+                isCloudVar(resolvedValue) ||
                 isGlobalVar(resolvedValue) ||
                 isLocalVar(resolvedValue)) {//substituion did not happen: bad.
             String errorMessage = getErrorMessage(ciName, nsPath, attrName, resolvedValue, varName, replPrefix).toString();
@@ -1582,8 +1597,39 @@ public class CmsUtil {
                     varsMap.put(var.getCiName(), var.getAttribute(VAR_UNSEC_ATTR_VALUE).getNewValue());
                 }
             }
+
+            if(varsMap.get("cloud_name") != null) {
+                Map<String, Object> mappings = getCloudSystemVars();
+                if (mappings != null) {
+                    Set<String> mappingCloudsKey = (mappings.keySet()
+                            .stream()
+                            .filter(s -> Pattern.compile(s).matcher(varsMap.get("cloud_name")).matches())
+                            .collect(Collectors.toSet()));
+                    if (mappingCloudsKey != null && mappingCloudsKey.size() > 0) {
+                        varsMap.putAll((Map<String, String>) mappings.get(mappingCloudsKey.toArray()[0]));
+                    }
+                }
+            }
         }
         return varsMap;
+    }
+
+    private Map<String, Object> getCloudSystemVars() {
+        Map<String, Object> mappings = null;
+        CmsVar cmsVar = cmProcessor.getCmSimpleVar("CLOUD_SYSTEM_VARS");
+        if (cmsVar != null) {
+            String json = cmsVar.getValue();
+            if (json != null && !json.isEmpty()) {
+                mappings = gson.fromJson(cmsVar.getValue(), Map.class);
+            }
+        }
+
+        if (mappings == null || mappings.size() == 0) {
+            logger.warn("Cloud provider mappings is not set.");
+            mappings = null;
+        }
+
+        return mappings;
     }
 
     private Map<String, String> getVarCiValuesMap(List<CmsCI> vars) {
