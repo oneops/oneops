@@ -21,11 +21,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class FqdnVerifier {
 
-  @Autowired
-  WoHelper woHelper;
+  @Autowired WoHelper woHelper;
 
-  @Autowired
-  JsonParser jsonParser;
+  @Autowired JsonParser jsonParser;
 
   private GslbVerifier verifier;
 
@@ -38,11 +36,19 @@ public class FqdnVerifier {
   public Response verifyCreate(Gslb gslb, CmsWorkOrderSimple wo, Response response) {
     try {
       GslbProvisionResponse provisionResponse = getGslbProvisionRespone(wo);
-      logger.info(gslb.logContextId() + "verifying gslb setup, response from execution : " + provisionResponse);
+      logger.info(
+          gslb.logContextId()
+              + "verifying gslb setup, response from execution : "
+              + provisionResponse);
       GslbProvisionResponse verifyResponse = verifier.verifyCreate(gslb, provisionResponse);
       if (verifyResponse == null || verifyResponse.getStatus() == Status.FAILED) {
-        woHelper.failWo(wo, gslb.logContextId(),
-            "Failed while verifying : " + verifyResponse != null ? verifyResponse.getFailureMessage() : "", null);
+        woHelper.failWo(
+            wo,
+            gslb.logContextId(),
+            "Failed while verifying : " + verifyResponse != null
+                ? verifyResponse.getFailureMessage()
+                : "",
+            null);
         return woHelper.formResponse(wo, gslb.logContextId());
       }
     } catch (Exception e) {
@@ -54,11 +60,17 @@ public class FqdnVerifier {
 
   public Response verifyDelete(ProvisionedGslb gslb, CmsWorkOrderSimple wo, Response response) {
     GslbResponse gslbResponse = getGslbRespone(wo);
-    logger.info(gslb.logContextId() + "verifying gslb delete, response from execution : " + gslbResponse);
+    logger.info(
+        gslb.logContextId() + "verifying gslb delete, response from execution : " + gslbResponse);
     GslbResponse verifyResponse = verifier.verifyDelete(gslb, gslbResponse);
     if (verifyResponse == null || verifyResponse.getStatus() == Status.FAILED) {
-      woHelper.failWo(wo, gslb.logContextId(),
-          "Failed while verifying : " + verifyResponse != null ? verifyResponse.getFailureMessage() : "", null);
+      woHelper.failWo(
+          wo,
+          gslb.logContextId(),
+          "Failed while verifying : " + verifyResponse != null
+              ? verifyResponse.getFailureMessage()
+              : "",
+          null);
       return woHelper.formResponse(wo, gslb.logContextId());
     }
     return response;
@@ -77,14 +89,16 @@ public class FqdnVerifier {
           gslbResponse.setMtdVersion(getElementAsString(root, "mtd_version"));
           gslbResponse.setMtdDeploymentId(getElementAsString(root, "deploy_id"));
           gslbResponse.setGlb(getElementAsString(root, "glb"));
-
         }
       }
       if (attrs.containsKey("entries")) {
         JsonElement element = jsonParser.parse(attrs.get("entries"));
         if (element instanceof JsonObject) {
           JsonObject root = (JsonObject) element;
-          gslbResponse.setDnsEntries(root.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().getAsString())));
+          gslbResponse.setDnsEntries(
+              root.entrySet()
+                  .stream()
+                  .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().getAsString())));
         }
       }
     }
@@ -101,5 +115,4 @@ public class FqdnVerifier {
     JsonElement element = root.get(key);
     return element != null ? element.getAsString() : null;
   }
-
 }

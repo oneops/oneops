@@ -28,6 +28,9 @@ CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_attr_log_2018 (
 		CHECK ( log_time >= DATE '2018-01-01' AND log_time < DATE '2019-01-01' )
 ) INHERITS (kloopzcm.cm_ci_relation_attr_log);
 
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_attr_log_2019 (
+		CHECK ( log_time >= DATE '2019-01-01' AND log_time < DATE '2020-01-01' )
+) INHERITS (kloopzcm.cm_ci_relation_attr_log);
 
 CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_log_2012 (
 		CHECK ( log_time >= DATE '2012-01-01' AND log_time < DATE '2013-01-01' )
@@ -55,6 +58,11 @@ CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_log_2017 (
 
 CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_log_2018 (
 		CHECK ( log_time >= DATE '2018-01-01' AND log_time < DATE '2019-01-01' )
+) INHERITS (kloopzcm.cm_ci_relation_log);
+
+
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_log_2019 (
+		CHECK ( log_time >= DATE '2019-01-01' AND log_time < DATE '2020-01-01' )
 ) INHERITS (kloopzcm.cm_ci_relation_log);
 
 
@@ -87,6 +95,10 @@ CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_attribute_log_2018 (
 		CHECK ( log_time >= DATE '2018-01-01' AND log_time < DATE '2019-01-01' )
 ) INHERITS (kloopzcm.cm_ci_attribute_log);
 
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_attribute_log_2019 (
+		CHECK ( log_time >= DATE '2019-01-01' AND log_time < DATE '2020-01-01' )
+) INHERITS (kloopzcm.cm_ci_attribute_log);
+
 
 CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_log_2012 (
 		CHECK ( log_time >= DATE '2012-01-01' AND log_time < DATE '2013-01-01' )
@@ -116,6 +128,10 @@ CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_log_2018 (
 		CHECK ( log_time >= DATE '2018-01-01' AND log_time < DATE '2019-01-01' )
 ) INHERITS (kloopzcm.cm_ci_log);
 
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_log_2019 (
+		CHECK ( log_time >= DATE '2019-01-01' AND log_time < DATE '2020-01-01' )
+) INHERITS (kloopzcm.cm_ci_log);
+
 
 CREATE OR REPLACE FUNCTION cm_ci_relation_attr_log_insert()
 RETURNS TRIGGER AS
@@ -142,7 +158,9 @@ BEGIN
 	    ELSIF ( NEW.log_time >= DATE '2018-01-01' AND
             NEW.log_time < DATE '2019-01-01' ) THEN
 	INSERT INTO kloopzcm.cm_ci_relation_attr_log_2018 VALUES (NEW.*);
-
+	    ELSIF ( NEW.log_time >= DATE '2019-01-01' AND
+            NEW.log_time < DATE '2020-01-01' ) THEN
+	INSERT INTO kloopzcm.cm_ci_relation_attr_log_2019 VALUES (NEW.*);
     ELSE
         RAISE EXCEPTION 'Date out of range.  Fix the cm_ci_relation_attr_log_insert() function!';
     END IF;
@@ -178,7 +196,10 @@ BEGIN
 	  ELSIF ( NEW.log_time >= DATE '2018-01-01' AND
             NEW.log_time < DATE '2019-01-01' ) THEN
 	INSERT INTO kloopzcm.cm_ci_relation_log_2018 VALUES (NEW.*);
-  
+	  ELSIF ( NEW.log_time >= DATE '2019-01-01' AND
+            NEW.log_time < DATE '2020-01-01' ) THEN
+	INSERT INTO kloopzcm.cm_ci_relation_log_2019 VALUES (NEW.*);
+
     ELSE
         RAISE EXCEPTION 'Date out of range.  Fix the cm_ci_relation_log_insert() function!';
     END IF;
@@ -213,7 +234,9 @@ BEGIN
 	    ELSIF ( NEW.log_time >= DATE '2018-01-01' AND
             NEW.log_time < DATE '2019-01-01' ) THEN
 	INSERT INTO kloopzcm.cm_ci_attribute_log_2018 VALUES (NEW.*);
-    ELSE
+ 	    ELSIF ( NEW.log_time >= DATE '2019-01-01' AND
+            NEW.log_time < DATE '2020-01-01' ) THEN
+	INSERT INTO kloopzcm.cm_ci_attribute_log_2019 VALUES (NEW.*);   ELSE
         RAISE EXCEPTION 'Date out of range.  Fix the cm_ci_attribute_log_insert() function!';
     END IF;
     RETURN NULL;
@@ -247,7 +270,9 @@ BEGIN
 	ELSIF ( NEW.log_time >= DATE '2018-01-01' AND
             NEW.log_time < DATE '2019-01-01' ) THEN
 	INSERT INTO kloopzcm.cm_ci_log_2018 VALUES (NEW.*);
-    
+  	ELSIF ( NEW.log_time >= DATE '2019-01-01' AND
+            NEW.log_time < DATE '2020-01-01' ) THEN
+	INSERT INTO kloopzcm.cm_ci_log_2019 VALUES (NEW.*);
     ELSE
         RAISE EXCEPTION 'Date out of range.  Fix the cm_ci_log_insert() function!';
     END IF;
