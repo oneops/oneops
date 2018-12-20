@@ -145,6 +145,8 @@ public class CIMessageProcessor implements MessageProcessor {
                     wos = GSON.fromJson(cmsWo, CmsWorkOrderSimple.class);
                     logger.info("WO found for ci id " + ciId + " on retry " + i);
                     wos.payLoad.remove("RequiresComputes");
+                    wos.payLoad.remove("SecuredBy");
+                    wos.payLoad.remove("DependsOn");
                     ciSearch.setWorkorder(wos);
                     break;
                 } else {
