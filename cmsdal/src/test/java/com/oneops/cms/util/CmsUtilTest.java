@@ -17,14 +17,7 @@
  *******************************************************************************/
 package com.oneops.cms.util;
 
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertTrue;
-
-import com.oneops.cms.cm.dal.CIMapper;
+import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.service.CmsCmProcessor;
@@ -33,27 +26,23 @@ import com.oneops.cms.crypto.CmsCryptoDES;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
-import java.io.IOException;
-import java.io.Reader;
-import java.security.GeneralSecurityException;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import com.oneops.cms.util.dal.UtilMapper;
+import com.oneops.cms.util.domain.CmsVar;
 import org.apache.ibatis.io.Resources;
-import org.apache.ibatis.session.SqlSession;
-import org.apache.ibatis.session.SqlSessionFactory;
-import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.testng.annotations.Test;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.util.*;
+import java.util.Map.Entry;
+
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.testng.Assert.*;
 
 
 public class CmsUtilTest {
@@ -69,10 +58,8 @@ public class CmsUtilTest {
   private static final Logger logger = Logger.getLogger(CmsUtilTest.class);
   CmsCISimple ciSimple = new CmsCISimple();
   private CmsUtil util = new CmsUtil();
-  private CmsCmProcessor cmsCmProcessor = new CmsCmProcessor();
-  private SqlSession session;
-  private CIMapper ciMapper;
-  private UtilMapper utilMapper;
+  private CmsCmProcessor cmsCmProcessor;
+  private CmsVar cmsVarProviderMapping;
   private Map<String, String> ciAttributes;
 
   public CmsUtilTest() {
@@ -90,17 +77,16 @@ public class CmsUtilTest {
     this.ciSimple.setCiAttributes(ciAttributes);
 
     try {
-        String resource = "mybatis-config.xml";
-        Reader reader = Resources.getResourceAsReader(resource);
-        SqlSessionFactory sf = new SqlSessionFactoryBuilder().build(reader);
-        session = sf.openSession();
+        String resource = "cloud_system_vars.json";
+        String flavorVars = new Scanner(Resources.getResourceAsFile(resource)).useDelimiter("\\Z").next();
 
-        ciMapper = session.getMapper(CIMapper.class);
+        cmsCmProcessor = Mockito.mock(CmsCmProcessor.class);
 
-        utilMapper = session.getMapper(UtilMapper.class);
+        cmsVarProviderMapping = new CmsVar();
+        Gson gson = new Gson();
 
-        cmsCmProcessor.setCiMapper(ciMapper);
-        cmsCmProcessor.setUtilMapper(utilMapper);
+        cmsVarProviderMapping.setValue(flavorVars);
+
     }catch (Exception e){
         System.out.println(e);
     }
@@ -221,6 +207,7 @@ public class CmsUtilTest {
     }
     util.setCmsCrypto(crypto);
     util.setCmProcessor(cmsCmProcessor);
+    Mockito.when(cmsCmProcessor.getCmSimpleVar(Mockito.eq(util.CLOUD_SYSTEM_VARS))).thenReturn(cmsVarProviderMapping);
     return util;
   }
 
@@ -2021,10 +2008,6 @@ public class CmsUtilTest {
     CmsUtil util = getCmsUtil();
 
     cloudVars = util.getCloudVars(ci);
-    //If there is now flavor i.e. CLOUD_SYSTEM_VARS not defined in CmsVars table, skip the test
-    if(cloudVars.get("Standard_D1_v2") == null ){
-        return;
-    }
     cloudVars.put("Flavor", "Standard_D1_v2:S");
 
     Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);

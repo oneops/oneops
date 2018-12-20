@@ -58,6 +58,7 @@ public class CmsUtil {
     public static final String LOCAL_VARS_PAYLOAD_NAME = "OO_LOCAL_VARS";
     public static final String WORK_ORDER_TYPE = "deploybom";
     public static final String ACTION_ORDER_TYPE = "opsprocedure";
+    public static final String CLOUD_SYSTEM_VARS = "CLOUD_SYSTEM_VARS";
 
     protected static final String GLOBALVARPFX = "$OO_GLOBAL{";
     protected static final String LOCALVARPFX = "$OO_LOCAL{";
@@ -1405,14 +1406,20 @@ public class CmsUtil {
 
         String ciName = variableContext.getCiName();
 
-        if(isCloudVar(attrValue) && resolvedValue.indexOf(':') != -1){
-            String[] values = resolvedValue.split(":");
-            if(values.length > 0 && variableContext.getCloudVar(values[0]) != null ) {
-                resolvedValue = variableContext.getCloudVar(values[0]);
-            } else if(values.length > 1 && values[1] != ""){
-                resolvedValue = values[1];
-            } else {
-                resolvedValue = null;
+        if(isCloudVar(attrValue)){
+            if(resolvedValue.indexOf(':') != -1) {
+                String[] values = resolvedValue.split(":");
+                if (values.length > 0 && variableContext.getCloudVar(values[0]) != null) {
+                    resolvedValue = variableContext.getCloudVar(values[0]);
+                } else if (values.length > 1 && values[1] != "") {
+                    resolvedValue = values[1];
+                } else {
+                    resolvedValue = null;
+                }
+            }else{
+                if (variableContext.getCloudVar(resolvedValue) != null) {
+                    resolvedValue = variableContext.getCloudVar(resolvedValue);
+                }
             }
         }
 
@@ -1616,7 +1623,7 @@ public class CmsUtil {
 
     private Map<String, Object> getCloudSystemVars() {
         Map<String, Object> mappings = null;
-        CmsVar cmsVar = cmProcessor.getCmSimpleVar("CLOUD_SYSTEM_VARS");
+        CmsVar cmsVar = cmProcessor.getCmSimpleVar(CLOUD_SYSTEM_VARS);
         if (cmsVar != null) {
             String json = cmsVar.getValue();
             if (json != null && !json.isEmpty()) {
