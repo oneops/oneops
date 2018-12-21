@@ -17,14 +17,6 @@
  *******************************************************************************/
 package com.oneops.cms.util;
 
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertNotEquals;
-import static org.testng.Assert.assertTrue;
-
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.crypto.CmsCrypto;
@@ -32,21 +24,20 @@ import com.oneops.cms.crypto.CmsCryptoDES;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-import java.util.AbstractMap;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.stream.Stream;
 import org.apache.log4j.Logger;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.util.*;
+import java.util.Map.Entry;
+
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.testng.Assert.*;
 
 
 public class CmsUtilTest {
@@ -57,8 +48,6 @@ public class CmsUtilTest {
   private static final String CI_NAME = "Source";
   private static final String NS_PATH = "/public/main";
   private static final String CI_IMPL = "java.lang";
-  private static final String DE_FACTO = "df";
-  private static final String DE_JURE = "dj";
   private static final Logger logger = Logger.getLogger(CmsUtilTest.class);
   CmsCISimple ciSimple = new CmsCISimple();
   private CmsUtil util = new CmsUtil();
@@ -77,13 +66,6 @@ public class CmsUtilTest {
     this.ciSimple.setImpl(CI_IMPL);
     this.ciSimple.setNsPath(NS_PATH);
     this.ciSimple.setCiAttributes(ciAttributes);
-  }
-
-
-  //TODO	@Test
-  public void custCiSimpleToCi() {
-
-    CmsCI ci = util.custCISimple2CI(this.ciSimple, DE_FACTO);
   }
 
 
@@ -432,7 +414,6 @@ public class CmsUtilTest {
     ci.setCiId(90);
     ci.setCiName("processLocalVarChoiceGlobalVsCloud");
     Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
-    int i = 0;
     CmsCIAttribute attrL = new CmsCIAttribute();
     attrL.setDjValue("$OO_CLOUD{common}");
     String nameOfAttribute = "my-one-attr";
@@ -470,7 +451,6 @@ public class CmsUtilTest {
     ci.setCiId(95);
     ci.setCiName("processLocalVarMid");
     Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
-    int i = 0;
     CmsCIAttribute attrL = new CmsCIAttribute();
     attrL.setDjValue("/preamble/$OO_LOCAL{mylocal}");
     String nameOfAttribute = "my-only-attr";
@@ -507,7 +487,6 @@ public class CmsUtilTest {
     ci.setCiId(98);
     ci.setCiName("processLocalVarDuo");
     Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
-    int i = 0;
     CmsCIAttribute attrL = new CmsCIAttribute();
     attrL.setDjValue("/preamble/$OO_LOCAL{mylocal}/middle/$OO_LOCAL{mylocal}");
     String nameOfAttribute = "my-only-attr";
@@ -955,14 +934,6 @@ public class CmsUtilTest {
         assertEquals(djAfter, "", "this is not a empty string as expected");
       }
     }
-  }
-
-  @Test
-  public void testErrorMessage() {
-    String errorMessage = "tomcat@p1/1 attribute '' [pre_shutdown_command] references unknown local variable 'DEPLOYCONTEXT'";
-    assertEquals(
-        util.getErrorMessage("tomcat", "/LOCAL2/A1/testEnv2/manifest/p1/1", "pre_shutdown_command",
-            null, "DEPLOYCONTEXT", "\\$OO_LOCAL\\{"), errorMessage);
   }
 
   @Test(priority = 105)
@@ -1791,6 +1762,7 @@ public class CmsUtilTest {
     Map<String, String> cloudVars = new HashMap<>(3);
     cloudVars.put("cv1", "$OO_CLOUD{cv1}");
     CmsCI ci = new CmsCI();
+
     ci.setCiId(90);
     ci.setCiName("localVarRefersAnotherLVar");
     Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
