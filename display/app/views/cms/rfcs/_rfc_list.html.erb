@@ -46,9 +46,10 @@
                 <% class_rfcs.group_by {|rfc| rfc.ciName.split('-')[0..-3].join('-')}.sort.each do |component, component_rfcs| %>
                   <% component_rfcs.group_by { |rfc| rfc.ciName.split('-')[-2].to_i }.sort.each do |cloud_id, cloud_rfcs| %>
                     <% cloud = @clouds[cloud_id]
+                       cloud_name = cloud ? cloud.ciName : cloud_id
                        cloud_deployment_state_summary = cloud_rfcs.group_by {|rfc_ci| rfc_ci.deployment.dpmtRecordState}
                        cloud_component_deployment_state = %w(failed canceled pending complete).find {|s| cloud_deployment_state_summary[s]} || '' %>
-                    <div class="cloud-component" ciName="<%= component %>" ciClass="<%= component_class %>" cloud="<%= cloud.ciName %>" platform="<%= platform_name %>" status="<%= cloud_component_deployment_state %>">
+                    <div class="cloud-component" ciName="<%= component %>" ciClass="<%= component_class %>" cloud="<%= cloud_name %>" platform="<%= platform_name %>" status="<%= cloud_component_deployment_state %>">
                       <ul class="inline component rounded shadow white" onclick="if (event.target.tagName.toUpperCase() != 'A') $j(this).next().toggle(300)">
                         <li>
                           <% platform = @platforms[platform_name] %>
@@ -65,7 +66,7 @@
                           <b><%= link_to(component, edit_assembly_transition_environment_platform_component_path(@assembly, @environment, platform, component)) if platform %></b>
                         </li>
                         <li class="pull-right">
-                          <%= icon('cloud', link_to(cloud ? link_to(cloud.ciName, edit_cloud_path(cloud)) : cloud_id)) %>
+                          <%= icon('cloud', link_to(cloud_name, edit_cloud_path(cloud_name))) %>
                           &nbsp;
                           <%= rfc_state_icon(cloud_component_deployment_state) %></li>
                       </ul>
