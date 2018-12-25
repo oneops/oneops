@@ -53,8 +53,6 @@ public class CmsUtilTest {
   private static final String CI_NAME = "Source";
   private static final String NS_PATH = "/public/main";
   private static final String CI_IMPL = "java.lang";
-  private static final String DE_FACTO = "df";
-  private static final String DE_JURE = "dj";
   private static final Logger logger = Logger.getLogger(CmsUtilTest.class);
   CmsCISimple ciSimple = new CmsCISimple();
   private CmsUtil util = new CmsUtil();
@@ -91,13 +89,6 @@ public class CmsUtilTest {
         System.out.println(e);
     }
   }
-
-  //TODO	@Test
-  public void custCiSimpleToCi() {
-
-    CmsCI ci = util.custCISimple2CI(this.ciSimple, DE_FACTO);
-  }
-
 
   protected void dumpCmsCIAttributes(CmsCI ci) {
     for (CmsCIAttribute manifestAttr : ci.getAttributes().values()) {
@@ -446,7 +437,6 @@ public class CmsUtilTest {
     ci.setCiId(90);
     ci.setCiName("processLocalVarChoiceGlobalVsCloud");
     Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
-    int i = 0;
     CmsCIAttribute attrL = new CmsCIAttribute();
     attrL.setDjValue("$OO_CLOUD{common}");
     String nameOfAttribute = "my-one-attr";
@@ -484,7 +474,6 @@ public class CmsUtilTest {
     ci.setCiId(95);
     ci.setCiName("processLocalVarMid");
     Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
-    int i = 0;
     CmsCIAttribute attrL = new CmsCIAttribute();
     attrL.setDjValue("/preamble/$OO_LOCAL{mylocal}");
     String nameOfAttribute = "my-only-attr";
@@ -521,7 +510,6 @@ public class CmsUtilTest {
     ci.setCiId(98);
     ci.setCiName("processLocalVarDuo");
     Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
-    int i = 0;
     CmsCIAttribute attrL = new CmsCIAttribute();
     attrL.setDjValue("/preamble/$OO_LOCAL{mylocal}/middle/$OO_LOCAL{mylocal}");
     String nameOfAttribute = "my-only-attr";
@@ -969,14 +957,6 @@ public class CmsUtilTest {
         assertEquals(djAfter, "", "this is not a empty string as expected");
       }
     }
-  }
-
-  @Test
-  public void testErrorMessage() {
-    String errorMessage = "tomcat@p1/1 attribute '' [pre_shutdown_command] references unknown local variable 'DEPLOYCONTEXT'";
-    assertEquals(
-        util.getErrorMessage("tomcat", "/LOCAL2/A1/testEnv2/manifest/p1/1", "pre_shutdown_command",
-            null, "DEPLOYCONTEXT", "\\$OO_LOCAL\\{"), errorMessage);
   }
 
   @Test(priority = 105)
@@ -1805,6 +1785,7 @@ public class CmsUtilTest {
     Map<String, String> cloudVars = new HashMap<>(3);
     cloudVars.put("cv1", "$OO_CLOUD{cv1}");
     CmsCI ci = new CmsCI();
+
     ci.setCiId(90);
     ci.setCiName("localVarRefersAnotherLVar");
     Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
@@ -2008,12 +1989,11 @@ public class CmsUtilTest {
     CmsUtil util = getCmsUtil();
 
     cloudVars = util.getCloudVars(ci);
-    cloudVars.put("Flavor", "Standard_D1_v2:S");
 
     Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
     CmsCIAttribute attrC = new CmsCIAttribute();
     attrC.setAttributeName("required_availability_zone");
-    attrC.setDjValue("$OO_CLOUD{Flavor}");
+    attrC.setDjValue("$OO_CLOUD{Standard_D1_v2:S}");
     attributes.put("cloud_1", attrC);
 
     ci.setAttributes(attributes);
@@ -2051,12 +2031,11 @@ public class CmsUtilTest {
         CmsUtil util = getCmsUtil();
 
         cloudVars = util.getCloudVars(ci);
-        cloudVars.put("Flavor", "Not_In_Flavor_Map:S");
 
         Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
         CmsCIAttribute attrC = new CmsCIAttribute();
         attrC.setAttributeName("required_availability_zone");
-        attrC.setDjValue("$OO_CLOUD{Flavor}");
+        attrC.setDjValue("$OO_CLOUD{Not_In_Flavor_Map:S}");
         attributes.put("cloud_1", attrC);
 
         ci.setAttributes(attributes);
@@ -2093,13 +2072,10 @@ public class CmsUtilTest {
 
         CmsUtil util = getCmsUtil();
 
-//        cloudVars = util.getCloudVars(ci);
-        cloudVars.put("Flavor", "Standard_D1_v2:S");
-
         Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
         CmsCIAttribute attrC = new CmsCIAttribute();
         attrC.setAttributeName("required_availability_zone");
-        attrC.setDjValue("$OO_CLOUD{Flavor}");
+        attrC.setDjValue("$OO_CLOUD{Standard_D1_v2:S}");
         attributes.put("cloud_1", attrC);
 
         ci.setAttributes(attributes);
@@ -2138,12 +2114,11 @@ public class CmsUtilTest {
         CmsUtil util = getCmsUtil();
 
         cloudVars = util.getCloudVars(ci);
-        cloudVars.put("Flavor", ":");
 
         Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
         CmsCIAttribute attrC = new CmsCIAttribute();
         attrC.setAttributeName("required_availability_zone");
-        attrC.setDjValue("$OO_CLOUD{Flavor}");
+        attrC.setDjValue("$OO_CLOUD{:}");
         attributes.put("cloud_1", attrC);
 
         ci.setAttributes(attributes);

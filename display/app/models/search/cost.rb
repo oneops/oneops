@@ -195,12 +195,12 @@ class Search::Cost < Search::Base
         unit = data['unit']['buckets'][0]
         result = {:start_date => start_date,
                   :end_date   => end_date,
-                  :total      => total.round(2),
+                  :total      => total,
                   :unit       => unit.presence && unit['key'].upcase}
         [:by_ns, :by_cloud, :by_service].each do |group_name|
           group = result[group_name] = {}
           data[group_name.to_s]['buckets'].each do |b|
-            group[b['key']] = b['cost']['value'].round(2)
+            group[b['key']] = b['cost']['value']
           end
         end
       else
@@ -216,9 +216,9 @@ class Search::Cost < Search::Base
     result     = nil
     start_date = start_date.to_date
     end_date   = end_date.to_date
-    end_date += 1.day if interval == 'day'
+    # end_date += 1.day if interval == 'day'
     ranges     = [[start_date, start_date.send("next_#{interval}").send("beginning_of_#{interval}").to_date]]
-    while ranges.last.last < end_date
+    while ranges.last.last <= end_date
       ranges << [ranges.last.last, ranges.last.last + 1.send(interval)]
     end
     search_params = {
@@ -313,7 +313,7 @@ class Search::Cost < Search::Base
                 :end_date   => end_date,
                 :interval   => interval,
                 :unit       => unit.presence && unit['key'].upcase,
-                :total      => data['total']['value'].round(2)}
+                :total      => data['total']['value']}
     rescue Exception => e
       handle_exception e, "Failed to fetch 'cost_time_histogram' for nsPath=#{ns_path}, date range=[#{start_date}, #{end_date}], interval=#{interval}"
     end

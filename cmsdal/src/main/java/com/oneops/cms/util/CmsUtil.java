@@ -46,7 +46,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.oneops.cms.util.CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF;
-import static com.oneops.cms.util.CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_CYCLIC_REF;
 
 /**
  * The Class CmsUtil.
@@ -63,15 +62,12 @@ public class CmsUtil {
     protected static final String GLOBALVARPFX = "$OO_GLOBAL{";
     protected static final String LOCALVARPFX = "$OO_LOCAL{";
     protected static final String CLOUDVARPFX = "$OO_CLOUD{";
+    protected static final String[] VAR_PREFIXES = new String[] {LOCALVARPFX, GLOBALVARPFX, CLOUDVARPFX};
     protected static final String MASK = "##############";
 
     private static final String VAR_SEC_ATTR_FLAG = "secure";
     private static final String VAR_SEC_ATTR_VALUE = "encrypted_value";
     private static final String VAR_UNSEC_ATTR_VALUE = "value";
-    private static final String GLOBALVARRPL = "\\$OO_GLOBAL\\{";
-    private static final String LOCALVARRPL = "\\$OO_LOCAL\\{";
-    private static final String CLOUDVARRPL = "\\$OO_CLOUD\\{";
-    private static final String VARSUFFIX ="}";
     private static final String ATTR_PROP_OWNER = "owner";
     private static final String DJ_ATTR = "dj";
 
@@ -83,7 +79,7 @@ public class CmsUtil {
     private static final Logger logger = Logger.getLogger(CmsUtil.class);
     private static Gson gson = new Gson();
 
-    private CmsCmProcessor cmProcessor;
+    private static CmsCmProcessor cmProcessor;
     private CmsRfcUtil rfcUtil;
     private CmsCrypto cmsCrypto;
 
@@ -95,22 +91,6 @@ public class CmsUtil {
 			return queryParam.replace("_","\\_") + "%";
 		} else {
 			return queryParam.replace("_","\\_") + "/%";
-		}
-	}
-
-    public static String likefyNsPathWithBom(String queryParam) {
-		if (queryParam.endsWith("/")) {
-			return queryParam.replace("_","\\_") + "%bom/%";
-		} else {
-			return queryParam.replace("_","\\_") + "%/bom/%";
-		}
-	}
-
-	public static String likefyNsPathWithoutEndingSlash(String queryParam) {
-		if (queryParam.endsWith("/") && queryParam.length() > 1) {
-			return queryParam.substring(0, queryParam.length()-1).replace("_","\\_") + "%";
-		} else {
-			return queryParam.replace("_","\\_") + "%";
 		}
 	}
 
@@ -131,14 +111,6 @@ public class CmsUtil {
 		return resultNs;
 	}
 
-	public static String likefyNsPathWithTypeNoEndingSlash(String envNs, String type) {
-		String resultNs = envNs;
-		if (StringUtils.isNotBlank(type)) {
-			resultNs = appendToNs(resultNs, type);
-		}
-		return likefyNsPathWithoutEndingSlash(resultNs);
-	}
-
 	public static String appendToNs(String nsPath, String suffix) {
 		if (nsPath.endsWith("/")) {
 			return nsPath + suffix;
@@ -148,21 +120,19 @@ public class CmsUtil {
 		}
 	}
 
-	public static boolean isOrgLevel(String nsPath) {
-		String trimmedPath = null;
-		if (nsPath.length() > 1) {
-			if (nsPath.endsWith("/")) {
-				trimmedPath = nsPath.substring(1, nsPath.length() - 1);
-          } else if (nsPath.startsWith("/")) {
-				trimmedPath = nsPath.substring(1);
-			}
-          if (trimmedPath != null && trimmedPath.split("/").length == 1) {
-              return true;
-          }
+    public static boolean isOrgLevel(String nsPath) {
+        String trimmedPath = null;
+        if (nsPath.length() > 1) {
+            if (nsPath.endsWith("/")) {
+                trimmedPath = nsPath.substring(1, nsPath.length() - 1);
+            } else if (nsPath.startsWith("/")) {
+                trimmedPath = nsPath.substring(1);
+            }
+            return trimmedPath != null && trimmedPath.split("/").length == 1;
 
-		}
-		return false;
-	}
+        }
+        return false;
+    }
 
     /**
      * Masks the secured attributes in work-orders and action-orders
@@ -1074,7 +1044,7 @@ public class CmsUtil {
     /**
      * Parses the conditions.
      *
-     * @param conditions
+     * @param conditions array of simple conditions
      * @return the list
      */
     public List<AttrQueryCondition> parseConditions(String[] conditions) {
@@ -1151,7 +1121,7 @@ public class CmsUtil {
                 String djDfValue = processAllVarsForString(vContext);
                 manifestAttr.setDjValue(djDfValue);
                 vContext.setUnresolvedAttrValue(manifestAttr.getDfValue());
-                manifestAttr.setDfValue(djDfValue);
+                manifestAttr.setDfValue(processAllVarsForString(vContext));
             });
         }
         ec.rethrowExceptionIfNeeded();
@@ -1177,24 +1147,13 @@ public class CmsUtil {
             try {
                 attrValue = cmsCrypto.decrypt(attrValue);
             } catch (GeneralSecurityException e) {
-                logger.error("Error in decrypting attr: " + variableContext.getAttrName());
-                throw new CIValidationException(
-                        TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
-                        getErrorMessage(variableContext.getCiName(), variableContext.getNsPath(), variableContext.getAttrName(), "", "", ""));
+                throwValidationException(TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF, getErrorMessage("failed to decrypt value to interpolate variables", variableContext.getCiName(), variableContext.getNsPath(), variableContext.getAttrName(), ""));
             }
             isEncrypted = true;
         }
 
         if (attrValue != null) {
-            if (isCloudVar(attrValue)) {
-                attrValue = resolve(variableContext, attrValue, CLOUDVARPFX, CLOUDVARRPL);
-            }
-            if (isGlobalVar(attrValue)) {
-                attrValue = resolve(variableContext, attrValue, GLOBALVARPFX, GLOBALVARRPL);
-            }
-            if (isLocalVar(attrValue)) {
-                attrValue = resolve(variableContext, attrValue, LOCALVARPFX, LOCALVARRPL);
-            }
+            attrValue = resolve(variableContext, attrValue);
             if (isEncrypted) {
                 //is resolved value encrypted , dont encrypt again  .
                 if (!cmsCrypto.isVarEncrypted(attrValue)) {
@@ -1217,126 +1176,70 @@ public class CmsUtil {
         return attrValue;
     }
 
-    private String resolve(VariableContext variableContext, String attrValue, String localvarpfx, String localvarrpl) {
-        String resolvedValue;
-        String variableToResolve;
-        List<String> varStructures = splitAttrValue(attrValue, localvarpfx);
-        for (String varStructure : varStructures) {
-            if (isVarSuffixMissing(varStructure)) {
-                throw new CIValidationException(
-                        TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
-                        "Please check the variable syntax  :" + getErrorMessage(variableContext,
-                                attrValue,
-                                StringUtils.isEmpty(varStructure) ? attrValue : varStructure,
-                                localvarpfx));
-            }
-            variableToResolve = stripSymbolics(varStructure);
-
-            resolvedValue = variableContext.get(variableToResolve, localvarpfx);
-            if (resolvedValue == null) {
-                check4ValidVariable(variableContext, null, variableToResolve, localvarrpl);
-            }
-            if (resolvedValue != null) {
-                while (isCloudVar(resolvedValue)) {// ez lookup in Cloud Map
-                    resolvedValue = performCloudResolution(variableContext, resolvedValue);
+    private String resolve(VariableContext variableContext, String value) {
+        if (value == null) return null;
+        String resolvedValue = value;
+        for (String prefix : VAR_PREFIXES) {
+            int safetyValve = 0;
+            while(true) {
+                if (safetyValve > 20) {
+                    throwValidationException(TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF, getErrorMessage("too much nesting in resolving variable interpolation (probably cyclic reference) for ", variableContext.getCiName(), variableContext.getNsPath(), variableContext.getAttrName(), resolvedValue));
                 }
-                while (isGlobalVar(resolvedValue)) {
-                    resolvedValue = performGlobalResolution(variableContext, resolvedValue);
+                safetyValve++;
+                int start = resolvedValue.indexOf(prefix);
+                if (start == -1) break;
+                int end = resolvedValue.indexOf("}", start);
+                if (end == -1 || end == start + prefix.length()) {
+                    throwValidationException(TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF, getErrorMessage("invalid variable syntax", variableContext.getCiName(), variableContext.getNsPath(), variableContext.getAttrName(), resolvedValue.substring(start)));
                 }
-                while (isLocalVar(resolvedValue)) {
-                    resolvedValue = performLocalResolution(variableContext, resolvedValue);
+                String varRef = resolvedValue.substring(start, end + 1);
+                String varNameAndDefault = varRef.substring(prefix.length(), varRef.length() - 1);
+                String[] split = varNameAndDefault.split(":");
+                String varName = split.length > 0 ? split[0] : null;
+                String varValue = varName != null ? variableContext.get(varName, prefix) : null;
+                if (varValue == null) {
+                    if (split.length <= 1) {
+                        throwValidationException(TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF, getErrorMessage("references unknown " + guessVariableType(prefix) + " variable", variableContext.getCiName(), variableContext.getNsPath(), variableContext.getAttrName(), varName));
+                    } else {
+                        varValue = split[1];   // default is specified, use it.
+                    }
                 }
-                attrValue = subVarValue(variableContext, attrValue, resolvedValue, variableToResolve, localvarrpl);
-            } else {
-                check4ValidVariable(variableContext, null, variableToResolve, localvarrpl);
+                resolvedValue = resolvedValue.replace(varRef, varValue);
             }
         }
-        return attrValue;
+
+        return resolvedValue;
     }
 
-    private boolean isLocalVar(String attrValue) {
-        return attrValue.contains(LOCALVARPFX);
-    }
-
-    private boolean isGlobalVar(String attrValue) {
-        return attrValue.contains(GLOBALVARPFX);
-    }
-
-    private boolean isCloudVar(String attrValue) {
-        return attrValue.contains(CLOUDVARPFX);
-    }
-
-    private String performLocalResolution(VariableContext variableContext, String resolvedValue) {
-        List<String> list = new ArrayList<>();
-        while (isLocalVar(resolvedValue))
-            resolvedValue = getVar(variableContext, resolvedValue, list, LOCALVARPFX, LOCALVARRPL);
-        list.clear();
-        while (isGlobalVar(resolvedValue))
-            resolvedValue = getVar(variableContext, resolvedValue, list, GLOBALVARPFX, GLOBALVARRPL);
-        list.clear();
-        while (isCloudVar(resolvedValue)) {
-            resolvedValue = getVar(variableContext, resolvedValue, list, CLOUDVARPFX, CLOUDVARRPL);
+    protected static  String getCloudSystemVarValue(String cloudName, String cloudSystemVar){
+        Map<String, Object> mappings = getCloudSystemVars();
+        if (mappings != null) {
+            Set<String> mappingCloudsKey = (mappings.keySet()
+                    .stream()
+                    .filter(s -> Pattern.compile(s).matcher(cloudName).matches())
+                    .collect(Collectors.toSet()));
+            if (mappingCloudsKey != null && mappingCloudsKey.size() > 0) {
+                return ((Map<String, String>) mappings.get(mappingCloudsKey.toArray()[0])).get(cloudSystemVar);
+            }
         }
-        return resolvedValue;
+        return null;
     }
-
-    private String performGlobalResolution(VariableContext variableContext, String resolvedValue) {
-        List<String> list = new ArrayList<>();
-        while (isGlobalVar(resolvedValue))
-            resolvedValue = getVar(variableContext, resolvedValue, list, GLOBALVARPFX, GLOBALVARRPL);
-        list.clear();
-        while (isCloudVar(resolvedValue))
-            resolvedValue = getVar(variableContext, resolvedValue, list, CLOUDVARPFX, CLOUDVARRPL);
-        return resolvedValue;
-    }
-
-    private String performCloudResolution(VariableContext variableContext, String resolvedValue) {
-        List<String> list = new ArrayList<>();
-        while (isCloudVar(resolvedValue))
-            resolvedValue = getVar(variableContext, resolvedValue, list, CLOUDVARPFX, CLOUDVARRPL);
-        return resolvedValue;
-    }
-
-    private String getVar(VariableContext variableContext, String resolvedValue, List<String> list, String varPfx, String varRPl) {
-
-        if (isVarSuffixMissing(resolvedValue)) {
-            throw new CIValidationException(
-                    TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
-                    "Please check the variable syntax  :" + getErrorMessage(variableContext,
-                            resolvedValue,
-                            resolvedValue,
-                            varPfx));
+    private static Map<String, Object> getCloudSystemVars() {
+        Map<String, Object> mappings = null;
+        CmsVar cmsVar = cmProcessor.getCmSimpleVar(CLOUD_SYSTEM_VARS);
+        if (cmsVar != null) {
+            String json = cmsVar.getValue();
+            if (json != null && !json.isEmpty()) {
+                mappings = gson.fromJson(cmsVar.getValue(), Map.class);
+            }
         }
 
-        String varName = stripSymbolicsWithPrefix(resolvedValue, varPfx);
-        if (list.contains(varName)) {
-            throw new CIValidationException(TRANSISTOR_CM_ATTRIBUTE_HAS_CYCLIC_REF,
-                    "Please check Variable declaration, there is a cyclic reference :" + getErrorMessage(variableContext,
-                            resolvedValue,
-                            varName,
-                            varPfx));
+        if (mappings == null || mappings.size() == 0) {
+            logger.warn("Cloud provider mappings is not set.");
+            mappings = null;
         }
-        resolvedValue = getResolved(variableContext, resolvedValue, varPfx, varRPl);
-        list.add(varName);
-        return resolvedValue;
-    }
 
-    private boolean isVarSuffixMissing(String resolvedValue) {
-        return indexOfVarSuffix(resolvedValue, 0) == -1;
-    }
-
-    private String getErrorMessage(VariableContext variableContext, String resolvedValue, String varName, String varPfx) {
-        return getErrorMessage(variableContext.getCiName(), variableContext.getNsPath(), variableContext.getAttrName(),  resolvedValue, varName, varPfx) ;
-    }
-
-    private String getResolved(VariableContext variableContext, String resolvedValue, String prefix, String regex) {
-        String varName = stripSymbolicsWithPrefix(resolvedValue, prefix);
-        String varValue = variableContext.get(varName, prefix);
-        if (varValue == null) {
-            check4ValidVariable(variableContext, varValue, varName, regex);
-        }
-        resolvedValue = resolvedValue.replaceAll(regex + varName + "}", Matcher.quoteReplacement(varValue));
-        return resolvedValue;
+        return mappings;
     }
 
     public void processAllVars(CmsRfcCI ci, Map<String, String> cloudVars, Map<String, String> globalVars, Map<String, String> localVars) {
@@ -1371,87 +1274,7 @@ public class CmsUtil {
         }
     }
 
-    /**
-     * Take a string wich has $OO.. type variable(s) and splits them into a list
-     * ex input: "$OO_LOCAL{groupId}:$OO_LOCAL{artifactId}:$OO_LOCAL{extension}" input comes back out as
-     * a list with the three....[$OO_LOCAL{groupId}, $OO_LOCAL{artifactId}, $OO_LOCAL{extension}]
-     *
-     * @param inputString the attribute which contains variable
-     * @param prefix      prefix to the attribute
-     * @return essentially inputString tokenized by prefix as a List
-     */
-    private List<String> splitAttrValue(String inputString, String prefix) {
-        int i = 0;
-        int loc = 0;
-        List<String> elements = new ArrayList<>();
-        while (i < inputString.length()) {
-            loc = inputString.indexOf(prefix, i);
-            logger.debug("i=" + i + "~~j is where " + prefix + " starts ~~j=" + loc);
-            if (loc > -1) {
-                elements.add(inputString.substring(loc, inputString.indexOf('}', loc) + 1));
-                i = loc + prefix.length();
-            } else {
-                break;
-            }
-        }
-        return elements;
-
-    }
-
-    /**
-     * sets the Attributes Dj and Df value, but ensures it is not an unresolved variable reference
-     * runtime exceptions stem from here if that is the case
-     */
-    private String subVarValue(VariableContext variableContext, String attrValue, String resolvedValue, String varName, String replPrefix) {
-
-        String ciName = variableContext.getCiName();
-
-        if(isCloudVar(attrValue)){
-            if(resolvedValue.indexOf(':') != -1) {
-                String[] values = resolvedValue.split(":");
-                if (values.length > 0 && variableContext.getCloudVar(values[0]) != null) {
-                    resolvedValue = variableContext.getCloudVar(values[0]);
-                } else if (values.length > 1 && values[1] != "") {
-                    resolvedValue = values[1];
-                } else {
-                    resolvedValue = null;
-                }
-            }else{
-                if (variableContext.getCloudVar(resolvedValue) != null) {
-                    resolvedValue = variableContext.getCloudVar(resolvedValue);
-                }
-            }
-        }
-
-        check4ValidVariable(variableContext, resolvedValue, varName, replPrefix);
-
-        //prefix.$OO_LOCAL{x}.suffix in Dj to-> prefix.RR.suffix
-        StringBuilder pattToReplace = new StringBuilder(replPrefix).append(varName).append("\\}");
-        String resAfter = attrValue.replaceAll(pattToReplace.toString(), Matcher.quoteReplacement(resolvedValue));
-        if (logger.isDebugEnabled()) {
-            logger.debug("Resolved value set to :" + resAfter + " in Ci " + ciName);
-        }
-        return resAfter;
-    }
-
-    private void check4ValidVariable(VariableContext variableContext, String resolvedValue, String varName, String replPrefix) {
-        String ciName = variableContext.getCiName();
-        String nsPath = variableContext.getNsPath();
-        String attrName = variableContext.getAttrName();
-        if (resolvedValue == null ||        //fix, it is actually okay if resolvedValue equals("")
-                isCloudVar(resolvedValue) ||
-                isGlobalVar(resolvedValue) ||
-                isLocalVar(resolvedValue)) {//substituion did not happen: bad.
-            String errorMessage = getErrorMessage(ciName, nsPath, attrName, resolvedValue, varName, replPrefix).toString();
-            logger.warn(errorMessage);
-            throw new CIValidationException(TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
-                    errorMessage);
-
-        }
-    }
-
-
-    protected String getErrorMessage(String ciName, String nsPath, String attrName, String resolvedValue, String varName, String prefix) {
+    private String getErrorMessage(String message, String ciName, String nsPath, String attrName, String varName) {
         String attributeDescription = "";
         try {
             attributeDescription = cmProcessor.getAttributeDescription(nsPath, ciName, attrName);
@@ -1460,31 +1283,35 @@ public class CmsUtil {
             // also tests do not inject cmProcessor, so description lookup will throw NPE
         }
 
-        return String.format("%s@%s attribute '%s' [%s] references unknown %s variable '%s'",
+        return String.format("%s@%s attribute '%s' [%s] %s '%s'",
                 ciName,
                 truncateNS(nsPath),
                 attributeDescription,
                 attrName,
-                guessVariableType(prefix),
+                message,
                 varName);
     }
 
     private String guessVariableType(String prefix) {
-        String varType = "local";
+        String varType = "";
         if (prefix != null) {
             switch (prefix) {
-                case CLOUDVARRPL:
+                case CLOUDVARPFX:
                     varType = "cloud";
                     break;
-                case GLOBALVARRPL:
+                case GLOBALVARPFX:
                     varType = "global";
                     break;
-                default:
+                case LOCALVARPFX:
                     varType = "local";
-                    break;
             }
         }
         return varType;
+    }
+
+    private void throwValidationException(int code, String message) {
+        logger.warn(message);
+        throw new CIValidationException(code, message);
     }
 
     private String truncateNS(String nsPath) {
@@ -1495,23 +1322,6 @@ public class CmsUtil {
             }
         }
         return nsPath;
-    }
-
-    /**
-     * $OO_CLOUD{xyz} returned as xyz
-     */
-    private String stripSymbolics(String variableReference) {
-        return variableReference.substring(variableReference.indexOf("{") + 1, indexOfVarSuffix(variableReference,0));
-
-    }
-
-    private String stripSymbolicsWithPrefix(String variableReference, String prefix) {
-        int startIndex = variableReference.indexOf(prefix) + prefix.length();
-        return variableReference.substring(startIndex, indexOfVarSuffix(variableReference,startIndex));
-    }
-
-    private int indexOfVarSuffix(String variableReference, int startIndex) {
-        return variableReference.indexOf(VARSUFFIX,startIndex);
     }
 
     private CmsRfcCI newRfcVar(String name, String className, String value) {
@@ -1526,7 +1336,7 @@ public class CmsUtil {
     }
 
 	private List<CmsCI> getVarsCIs(CmsCI ci, String relationName) {
-		List<CmsCI> vars = new ArrayList<CmsCI>();
+		List<CmsCI> vars = new ArrayList<>();
 		List<CmsCIRelation> varRels = cmProcessor.getToCIRelations(ci.getCiId(), relationName, null);
 
 		for (CmsCIRelation varRel : varRels) {
@@ -1604,39 +1414,8 @@ public class CmsUtil {
                     varsMap.put(var.getCiName(), var.getAttribute(VAR_UNSEC_ATTR_VALUE).getNewValue());
                 }
             }
-
-            if(varsMap.get("cloud_name") != null) {
-                Map<String, Object> mappings = getCloudSystemVars();
-                if (mappings != null) {
-                    Set<String> mappingCloudsKey = (mappings.keySet()
-                            .stream()
-                            .filter(s -> Pattern.compile(s).matcher(varsMap.get("cloud_name")).matches())
-                            .collect(Collectors.toSet()));
-                    if (mappingCloudsKey != null && mappingCloudsKey.size() > 0) {
-                        varsMap.putAll((Map<String, String>) mappings.get(mappingCloudsKey.toArray()[0]));
-                    }
-                }
-            }
         }
         return varsMap;
-    }
-
-    private Map<String, Object> getCloudSystemVars() {
-        Map<String, Object> mappings = null;
-        CmsVar cmsVar = cmProcessor.getCmSimpleVar(CLOUD_SYSTEM_VARS);
-        if (cmsVar != null) {
-            String json = cmsVar.getValue();
-            if (json != null && !json.isEmpty()) {
-                mappings = gson.fromJson(cmsVar.getValue(), Map.class);
-            }
-        }
-
-        if (mappings == null || mappings.size() == 0) {
-            logger.warn("Cloud provider mappings is not set.");
-            mappings = null;
-        }
-
-        return mappings;
     }
 
     private Map<String, String> getVarCiValuesMap(List<CmsCI> vars) {
@@ -1670,7 +1449,7 @@ public class CmsUtil {
      * @param cloud for which cloud vars need to be resolved
      * @param env for which global vars need to be resolved
      * @param platform for which local vars need to be resolved
-     * @return
+     * @return map of var cis with resolved values
      */
     public Map<String, List<CmsCI>> getResolvedVariableCIs(CmsCI cloud, CmsCI env, CmsCI platform) {
         List<CmsCI> cloudVarCis = new ArrayList<>();

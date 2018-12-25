@@ -83,9 +83,12 @@ public class VariableContext {
 
 
     public String getCloudVar(String variableToResolve) {
-        if (getCloudVars() != null )
-            return  getCloudVars().get(variableToResolve);
-        return null;
+        String cloudVarValue = null;
+        if (getCloudVars() != null && getCloudVars().get("cloud_name") != null)
+            cloudVarValue = getCloudSystemVarValue(getCloudVars().get("cloud_name"), variableToResolve);
+        if (cloudVarValue == null && getCloudVars() != null)
+            cloudVarValue = getCloudVars().get(variableToResolve);
+        return cloudVarValue;
     }
 
     public String getGlobalVar(String variableToResolve) {

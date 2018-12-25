@@ -216,7 +216,7 @@ class ReportsController < ApplicationController
           url = grouping[:url]
           grouping_data[grouping_name] = time_bucket[(grouping[:path].presence || grouping_name).to_s]['buckets'].inject([]) do |aa, grouping_bucket|
             aa << {:label => grouping_bucket['key'],
-                   :value => grouping_bucket['cost']['value'].round(2),
+                   :value => grouping_bucket['cost']['value'],
                    :url   => url && !sum && url.call(grouping_bucket['key'])}
           end
           if sum
@@ -227,10 +227,10 @@ class ReportsController < ApplicationController
               r
             end
             grouping_data[grouping_name] = sum_aggs.map {|k, v| {:label => k,
-                                                                 :value => v.round(2),
+                                                                 :value => v,
                                                                  :url   => url && url.call(k)}}
           end
-          grouping_data[:total] = time_bucket['total']['value'].round(2)
+          grouping_data[:total] = time_bucket['total']['value']
           grouping_data
         end
         xy
@@ -240,7 +240,7 @@ class ReportsController < ApplicationController
                :units     => {:x => @interval, :y => data[:unit]},
                :labels    => {:x => nil, :y => nil},
                :groupings => groupings,
-               :total     => data[:total].round(2),
+               :total     => data[:total],
                :x         => x,
                :y         => y}
     end
