@@ -3313,8 +3313,13 @@ div.ciAttributes {
   width: 388px;
 }
 
-.ciAttributes .input-xlarge.encrypted,
-.relationAttributes .input-xlarge.encrypted {
+.ciAttributes .input-append>.input-xlarge:not(.readonly),
+.relationAttributes .input-append>.input-xlarge:not(.readonly) {
+  width: 361px;
+}
+
+.ciAttributes .input-append>.input-xlarge.encrypted:not(.readonly),
+.relationAttributes .input-append>.input-xlarge.encrypted:not(.readonly) {
   width: 294px;
 }
 
@@ -3745,7 +3750,7 @@ div.status .label {
   width: 388px;
 }
 
-.input-xlarge.encrypted {
+.input-xlarge.encrypted:not(.readonly) {
   width: 322px;
 }
 
@@ -4730,4 +4735,10 @@ form.deploy-action textarea {
 .pending-approvals td > input {
   margin: 0;
   padding: 0 4px;
+}
+
+.ciAttributes .input-append .dropdown-menu {
+  position: relative;
+  max-height: 400px;
+  overflow-x: hidden;
 }
