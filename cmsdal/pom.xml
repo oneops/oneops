@@ -31,6 +31,12 @@
           <exclude>**/*.java</exclude>
         </excludes>
       </testResource>
+      <testResource>
+        <directory>src/main/resources</directory>
+        <excludes>
+          <exclude>**/*.java</exclude>
+        </excludes>
+      </testResource>
     </testResources>
     <plugins>
       <plugin>

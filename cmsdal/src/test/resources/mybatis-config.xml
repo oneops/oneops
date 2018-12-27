@@ -36,7 +36,7 @@ PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
 		<mapper resource="com/oneops/cms/ns/dal/NSMapper.xml" />
 		<mapper resource="com/oneops/cms/dj/dal/DJMapper.xml" />
         <mapper resource="com/oneops/cms/cm/ops/dal/OpsMapper.xml" />
-
+		<mapper resource="com/oneops/cms/util/dal/UtilMapper.xml" />
 	</mappers>
 
 </configuration>
