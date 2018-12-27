@@ -43,7 +43,6 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static com.oneops.cms.util.CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF;
 
@@ -1211,20 +1210,7 @@ public class CmsUtil {
         return resolvedValue;
     }
 
-    protected static  String getCloudSystemVarValue(String cloudName, String cloudSystemVar){
-        Map<String, Object> mappings = getCloudSystemVars();
-        if (mappings != null) {
-            Set<String> mappingCloudsKey = (mappings.keySet()
-                    .stream()
-                    .filter(s -> Pattern.compile(s).matcher(cloudName).matches())
-                    .collect(Collectors.toSet()));
-            if (mappingCloudsKey != null && mappingCloudsKey.size() > 0) {
-                return ((Map<String, String>) mappings.get(mappingCloudsKey.toArray()[0])).get(cloudSystemVar);
-            }
-        }
-        return null;
-    }
-    private static Map<String, Object> getCloudSystemVars() {
+    protected static Map<String, Object> getCloudSystemVars() {
         Map<String, Object> mappings = null;
         CmsVar cmsVar = cmProcessor.getCmSimpleVar(CLOUD_SYSTEM_VARS);
         if (cmsVar != null) {

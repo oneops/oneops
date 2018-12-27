@@ -20,6 +20,9 @@ package com.oneops.cms.util;
 import org.apache.log4j.Logger;
 
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static com.oneops.cms.util.CmsUtil.*;
 
@@ -35,6 +38,7 @@ public class VariableContext {
     private final Map<String, String> cloudVars;
     private final Map<String, String> globalVars;
     private final Map<String, String> localVars;
+    private final Map<String, Object> mappings;
 
     private static final Logger logger = Logger.getLogger(VariableContext.class);
 
@@ -45,6 +49,7 @@ public class VariableContext {
         this.cloudVars = cloudVars;
         this.globalVars = globalVars;
         this.localVars = localVars;
+        this.mappings = getCloudSystemVars();
     }
 
 
@@ -84,10 +89,10 @@ public class VariableContext {
 
     public String getCloudVar(String variableToResolve) {
         String cloudVarValue = null;
-        if (getCloudVars() != null && getCloudVars().get("cloud_name") != null)
-            cloudVarValue = getCloudSystemVarValue(getCloudVars().get("cloud_name"), variableToResolve);
-        if (cloudVarValue == null && getCloudVars() != null)
+        if (getCloudVars() != null)
             cloudVarValue = getCloudVars().get(variableToResolve);
+        if (cloudVarValue == null && getCloudVars() != null && getCloudVars().get("cloud_name") != null)
+            cloudVarValue = getCloudSystemVarValue(getCloudVars().get("cloud_name"), variableToResolve);
         return cloudVarValue;
     }
 
@@ -102,9 +107,18 @@ public class VariableContext {
         return null;
     }
 
-
-
-
+    private String getCloudSystemVarValue(String cloudName, String cloudSystemVar){
+        if (mappings != null) {
+            Set<String> mappingCloudsKey = (mappings.keySet()
+                    .stream()
+                    .filter(s -> Pattern.compile(s).matcher(cloudName).matches())
+                    .collect(Collectors.toSet()));
+            if (mappingCloudsKey != null && mappingCloudsKey.size() > 0) {
+                return ((Map<String, String>) mappings.get(mappingCloudsKey.toArray()[0])).get(cloudSystemVar);
+            }
+        }
+        return null;
+    }
 
     public void setAttrName(String attrName) {
         this.attrName = attrName;
