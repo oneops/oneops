@@ -33,6 +33,7 @@ import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.ExceptionConsolidator;
 import com.oneops.cms.simple.domain.*;
 import com.oneops.cms.util.domain.AttrQueryCondition;
+import com.oneops.cms.util.domain.CmsVar;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
@@ -55,6 +56,7 @@ public class CmsUtil {
     public static final String LOCAL_VARS_PAYLOAD_NAME = "OO_LOCAL_VARS";
     public static final String WORK_ORDER_TYPE = "deploybom";
     public static final String ACTION_ORDER_TYPE = "opsprocedure";
+    public static final String CLOUD_SYSTEM_VARS = "CLOUD_SYSTEM_VARS";
 
     protected static final String GLOBALVARPFX = "$OO_GLOBAL{";
     protected static final String LOCALVARPFX = "$OO_LOCAL{";
@@ -76,7 +78,7 @@ public class CmsUtil {
     private static final Logger logger = Logger.getLogger(CmsUtil.class);
     private static Gson gson = new Gson();
 
-    private CmsCmProcessor cmProcessor;
+    private static CmsCmProcessor cmProcessor;
     private CmsRfcUtil rfcUtil;
     private CmsCrypto cmsCrypto;
 
@@ -1115,7 +1117,8 @@ public class CmsUtil {
             {
                 vContext.setAttrName(manifestAttr.getAttributeName());
                 vContext.setUnresolvedAttrValue(manifestAttr.getDjValue());
-                manifestAttr.setDjValue(processAllVarsForString(vContext));
+                String djDfValue = processAllVarsForString(vContext);
+                manifestAttr.setDjValue(djDfValue);
                 vContext.setUnresolvedAttrValue(manifestAttr.getDfValue());
                 manifestAttr.setDfValue(processAllVarsForString(vContext));
             });
@@ -1172,32 +1175,6 @@ public class CmsUtil {
         return attrValue;
     }
 
-//    public static void main(String [] args) {
-//        CmsUtil cmsUtil = new CmsUtil();
-//        Map<String, String> cVars = new HashMap<>();
-//        cVars.put("c1", "C111");
-//        cVars.put("c2", "C222");
-//        cVars.put("c3", "$OO_CLOUD{c1}");
-//        Map<String, String> gVars = new HashMap<>();
-//        gVars.put("g1", "G111");
-//        gVars.put("g2", "$OO_CLOUD{c3}");
-//        Map<String, String> lVars = new HashMap<>();
-//        lVars.put("l1", "L111");
-//        lVars.put("l2", "$OO_GLOBAL{g2}");
-//        VariableContext ctx = new VariableContext(1, "some-ci", "/some/where", cVars, gVars, lVars);
-//        ctx.setAttrName("the_attr");
-//        ctx.setUnresolvedAttrValue("nothing");
-//        System.out.println(ctx.getUnresolvedAttrValue() + " =>\n\t" + cmsUtil.resolve(ctx, ctx.getUnresolvedAttrValue()));
-//        ctx.setUnresolvedAttrValue("abc++$OO_CLOUD{c2}----$OO_CLOUD{c1}++");
-//        System.out.println(ctx.getUnresolvedAttrValue() + " =>\n\t" + cmsUtil.resolve(ctx, ctx.getUnresolvedAttrValue()));
-//        ctx.setUnresolvedAttrValue("abc++$OO_CLOUD{c2}----$OO_CLOUD{c1}=====$OO_CLOUD{c3}");
-//        System.out.println(ctx.getUnresolvedAttrValue() + " =>\n\t" + cmsUtil.resolve(ctx, ctx.getUnresolvedAttrValue()));
-//        ctx.setUnresolvedAttrValue("abc++$OO_CLOUD{c2}----$OO_CLOUD{c1}=====$OO_CLOUD{c4:OPA}");
-//        System.out.println(ctx.getUnresolvedAttrValue() + " =>\n\t" + cmsUtil.resolve(ctx, ctx.getUnresolvedAttrValue()));
-//        ctx.setUnresolvedAttrValue("abc++$OO_CLOUD{c2}----$OO_GLOBAL{g1}=====$OO_GLOBAL{g4:OPA}---$OO_LOCAL{l1}+++++$OO_LOCAL{l2}");
-//        System.out.println(ctx.getUnresolvedAttrValue() + " =>\n\t" + cmsUtil.resolve(ctx, ctx.getUnresolvedAttrValue()));
-//    }
-//
     private String resolve(VariableContext variableContext, String value) {
         if (value == null) return null;
         String resolvedValue = value;
@@ -1217,10 +1194,10 @@ public class CmsUtil {
                 String varRef = resolvedValue.substring(start, end + 1);
                 String varNameAndDefault = varRef.substring(prefix.length(), varRef.length() - 1);
                 String[] split = varNameAndDefault.split(":");
-                String varName = split[0];
-                String varValue = variableContext.get(varName, prefix);
+                String varName = split.length > 0 ? split[0] : null;
+                String varValue = varName != null ? variableContext.get(varName, prefix) : null;
                 if (varValue == null) {
-                    if (split.length == 1) {
+                    if (split.length <= 1) {
                         throwValidationException(TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF, getErrorMessage("references unknown " + guessVariableType(prefix) + " variable", variableContext.getCiName(), variableContext.getNsPath(), variableContext.getAttrName(), varName));
                     } else {
                         varValue = split[1];   // default is specified, use it.
@@ -1231,6 +1208,24 @@ public class CmsUtil {
         }
 
         return resolvedValue;
+    }
+
+    protected static Map<String, Object> getCloudSystemVars() {
+        Map<String, Object> mappings = null;
+        CmsVar cmsVar = cmProcessor.getCmSimpleVar(CLOUD_SYSTEM_VARS);
+        if (cmsVar != null) {
+            String json = cmsVar.getValue();
+            if (json != null && !json.isEmpty()) {
+                mappings = gson.fromJson(cmsVar.getValue(), Map.class);
+            }
+        }
+
+        if (mappings == null || mappings.size() == 0) {
+            logger.warn("Cloud provider mappings is not set.");
+            mappings = null;
+        }
+
+        return mappings;
     }
 
     public void processAllVars(CmsRfcCI ci, Map<String, String> cloudVars, Map<String, String> globalVars, Map<String, String> localVars) {
@@ -1250,9 +1245,10 @@ public class CmsUtil {
         for (CmsRfcAttribute rfcAttr : ci.getAttributes().values()) {
             vContext.setAttrName(rfcAttr.getAttributeName());
             vContext.setUnresolvedAttrValue(rfcAttr.getNewValue());
-            rfcAttr.setNewValue(processAllVarsForString(vContext));
+            String djDfValue = processAllVarsForString(vContext);
+            rfcAttr.setNewValue(djDfValue);
             vContext.setUnresolvedAttrValue(rfcAttr.getOldValue());
-            rfcAttr.setOldValue(processAllVarsForString(vContext));
+            rfcAttr.setOldValue(djDfValue);
         }
         if (logger.isDebugEnabled()) {
             StringBuilder sb = new StringBuilder("Processing vars complete for RfcCi [")
