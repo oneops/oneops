@@ -1,12 +1,17 @@
 package com.oneops.transistor.service;
 
+import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
+import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.crypto.CmsCryptoDES;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.util.CmsUtil;
+import com.oneops.cms.util.domain.CmsVar;
+import org.apache.ibatis.io.Resources;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.util.*;
 
@@ -31,6 +36,8 @@ import static org.testng.Assert.*;
  *******************************************************************************/
 public class BomRfcBulkProcessorTest {
     BomRfcBulkProcessor proc;
+    private CmsCmProcessor cmsCmProcessor;
+    private CmsVar cmsVarProviderMapping;
 
     @Before
     public void setup() {
@@ -38,6 +45,22 @@ public class BomRfcBulkProcessorTest {
         cmsUtil.setCmsCrypto(new CmsCryptoDES());
         cmsUtil.setCountOfErrorsToReport(5);
         proc = new BomRfcBulkProcessor();
+        try {
+            String resource = "cloud_system_vars.json";
+            String flavorVars = new Scanner(Resources.getResourceAsFile(resource)).useDelimiter("\\Z").next();
+
+            cmsCmProcessor = Mockito.mock(CmsCmProcessor.class);
+
+            cmsVarProviderMapping = new CmsVar();
+            Gson gson = new Gson();
+
+            cmsVarProviderMapping.setValue(flavorVars);
+
+        }catch (Exception e){
+            System.out.println(e);
+        }
+        Mockito.when(cmsCmProcessor.getCmSimpleVar(Mockito.eq(cmsUtil.CLOUD_SYSTEM_VARS))).thenReturn(cmsVarProviderMapping);
+        cmsUtil.setCmProcessor(cmsCmProcessor);
         proc.setCmsUtil(cmsUtil);
     }
 

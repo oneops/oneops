@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
-  <version>18.10.31-12-SNAPSHOT</version>
+  <version>18.10.31-13-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>OneOps</name>
   <url>http://oneops.com</url>
@@ -93,7 +93,7 @@
     <jsr305.version>3.0.2</jsr305.version>
     <qpid-jms-client.version>0.28.0</qpid-jms-client.version>
     <snakeyaml.version>1.19</snakeyaml.version>
-    <torbit.gslb.version>1.1.11</torbit.gslb.version>
+    <torbit.gslb.version>1.1.12</torbit.gslb.version>
     <dnsjava.version>2.1.8</dnsjava.version>
     <failsafe.version>1.1.0</failsafe.version>
   </properties>

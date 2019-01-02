@@ -49,7 +49,7 @@ public class NSMessageProcessor {
 		//Fetch and delete CIs for given nsId
 		fetchAndDeleteRecords("ci", "cms-all", nsId);
 		//Fetch and delete releases for given nsId
-		fetchAndDeleteRecords("release", "cms-weekly",nsId);
+		//fetchAndDeleteRecords("release", "cms-weekly",nsId);
 	}
 
 	/**
