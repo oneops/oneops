@@ -3,35 +3,37 @@ namespace :oneops do
     desc "List inactive users to a csv file 'inactive_users_SINCE_in_ORG.csv'\nUsage:\n\trake user:inactive[inactive_since,org?,verbose?,batch_size?]\n\t e.g.:\n\t\take user:inactive[2017-01-01,some-org,true]"
     task :inactive, [:inactive_since, :org, :verbose, :batch_size] => :environment do |t, args|
       inactive_users = []
-      total          = 0
       since          = args[:inactive_since].presence || Time.now
       org            = args[:org]
       verbose        = args[:verbose].to_i
       batch_size     = (args[:batch_size] || 500).to_i
 
-      t = Time.now
       puts "Args: inactive_since=#{since}, org=#{org}, verbose=#{verbose}, batch_size=#{batch_size}"
 
+      t = Time.now
       user_scope     = org.present? ? Organization.where(:name => org).first.users : User
       inactive_scope = user_scope.where('current_sign_in_at < ?', since)
       puts "\n#{user_scope.count} users, #{inactive_scope.count} inactive users"
 
       inactive_scope.select('users.id, users.username, users.email, users.name, users.created_at, users.current_sign_in_at').
         find_in_batches(:batch_size => batch_size) do |batch|
+        print "Fetching user info... "
         inactive_users += batch
         total          = inactive_users.size
-        puts "#{total} users loaded, #{(Time.now - t).round(1)}sec"
+        print "#{total} users loaded, #{(Time.now - t).round(1)}sec\r"
       end
 
-      puts "#{(Time.now - t).round(1)}sec"
-
-      open("inactive_users_since_#{since}#{"_in_#{org}" if org.present?}.csv", 'w') do |f|
+      file_name = "inactive_users_since_#{since}#{"_in_#{org}" if org.present?}.csv"
+      open(file_name, 'w') do |f|
         f.puts "username,email,name,last_sign_in_at\n"
         inactive_users.sort_by(&:current_sign_in_at).each do |u|
           puts "#{u.username.ljust(20)}#{(u.name || '').ljust(30)}\e[32mactive\e[0m (#{u.current_sign_in_at})" if verbose > 0
           f.puts "#{u.username},#{u.email},#{u.name},#{u.current_sign_in_at}\n"
         end
       end
+      puts "\n#{inactive_users.size} inactive users saved to #{file_name}"
+
+      puts "Done in #{(Time.now - t).round(1)}sec"
     end
 
     desc "List obsolete users to a csv file 'obsolete_users_SINCE_in_ORG.csv'\nUsage:\n\trake user:obsolete[inactive_since?,org?,verbose?,batch_size?]\n\t e.g.:\n\t\take user:obsolete[2017-01-01,some-org,true]"
@@ -43,48 +45,43 @@ namespace :oneops do
       org            = args[:org]
       verbose        = args[:verbose].to_i
       batch_size     = (args[:batch_size] || 30).to_i
-      progress_chunk = 20 * batch_size
+      progress_chunk = 10 * batch_size
 
       puts "Args: inactive_since=#{since}, org=#{org}, verbose=#{verbose}, batch_size=#{batch_size}"
 
-      t     = Time.now
-      users = (org.present? ? Organization.where(:name => org).first.users : User).where('current_sign_in_at < ?', since)
-      puts "#{users.count} inactive users in db"
+      t = Time.now
+      user_scope     = org.present? ? Organization.where(:name => org).first.users : User
+      inactive_scope = (user_scope).where('current_sign_in_at < ?', since)
+      puts "\n#{user_scope.count} users, #{inactive_scope.count} inactive users"
 
       Devise.ldap_logger = false
-      ldap               = Devise::LdapAdapter.ldap_connect(nil)
+      ldap = Devise::LdapAdapter.ldap_connect(nil)
 
-      users.select('users.id, users.username, users.email, users.name, users.created_at, users.current_sign_in_at').
+      inactive_scope.select('users.id, users.username, users.email, users.name, users.created_at, users.current_sign_in_at').
         find_in_batches(:batch_size => batch_size) do |batch|
+        print "Checking inactive uers against LDAP/AD... " if total % (progress_chunk) == 0
         inactive_users += batch
         entries        = ldap.search_for_logins(batch.map(&:username))
         batch.each do |u|
           obsolete_users[u.username] = u unless entries[u.username]
         end
         total = inactive_users.size
-        puts "#{total} users checked, #{obsolete_users.size} obsolete, #{(Time.now - t).round(1)}sec" if total % (progress_chunk) == 0
+        print "#{total} users checked, #{obsolete_users.size} obsolete, #{(Time.now - t).round(1)}sec\r" if total % (progress_chunk) == 0 || batch.size < batch_size
       end
 
-      puts "\n#{total} users, #{obsolete_users.size} obsolete users."
-      puts "Done in #{(Time.now - t).round(1)}sec"
+      puts "\n#{total} inactive users, #{obsolete_users.size} obsolete users."
 
-      open("obsolete_users_since_#{since}#{"_in_#{org}" if org.present?}.csv", 'w') do |f|
+      file_name = "obsolete_users_since_#{since}#{"_in_#{org}" if org.present?}.csv"
+      open(file_name, 'w') do |f|
         f.puts "username,email,name,last_sign_in_at\n"
         obsolete_users.values.sort_by(&:current_sign_in_at).each do |u|
           puts "#{u.username.ljust(20)}#{u.name.ljust(30)}\e[31mobsolete\e[0m (#{u.current_sign_in_at})" if verbose > 0
           f.puts "#{u.username},#{u.email},#{u.name},#{u.current_sign_in_at}\n"
         end
       end
+      puts "#{obsolete_users.size} obsolete users saved to #{file_name}"
+      puts "Done in #{(Time.now - t).round(1)}sec"
 
-      open("inactive_users_since_#{since}#{"_in_#{org}" if org.present?}.csv", 'w') do |f|
-        f.puts "username,email,name,last_sign_in_at\n"
-        inactive_users.sort_by(&:current_sign_in_at).each do |u|
-          unless obsolete_users[u.username]
-            puts "#{u.username.ljust(20)}#{(u.name || '').ljust(30)}\e[32mactive\e[0m (#{u.current_sign_in_at})" if verbose > 1
-            f.puts "#{u.username},#{u.email},#{u.name},#{u.current_sign_in_at}\n"
-          end
-        end
-      end
     end
 
     desc "Removes list of users (specified by csv file) from db \nUsage:\n\trake user:remove[file_name,verbose?]"
