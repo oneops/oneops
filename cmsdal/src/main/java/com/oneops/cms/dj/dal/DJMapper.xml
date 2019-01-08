@@ -147,6 +147,7 @@
    	      release_id = coalesce(NULLIF(#{releaseId}, 0), release_id),
        	  execution_order = coalesce(#{execOrder}, execution_order),
 	        comments = coalesce(#{comments}, comments),
+	        hint = coalesce(#{comments}, hint),
 	        updated_by = coalesce(#{updatedBy}, updated_by),
 	        updated = now()
 	     where rfc_id = #{rfcId};
@@ -314,6 +315,7 @@
 		    rci.last_rfc_id lastAppliedRfcId, 
 		    r.release_type as releaseType,
 		    rci.comments,
+		    rci.hint,
 		    rci.created_by as createdBy,
 		    rci.updated_by as updatedBy, 
 		    rci.created_by as rfcCreatedBy,
@@ -578,47 +580,6 @@
           and rci.action_id = a.action_id
 		ORDER BY rci.rfc_id desc
 	 </select>
-
-    <select id="getRollUpRfc" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
-		SELECT
-			rci.rfc_id as rfcId,
-			rci.release_id as releaseId,
-			rci.ci_id as ciId,
-			rci.ns_id as nsId,
-			ns.ns_path as nsPath,
-			rci.class_id as ciClassId,
-			cl.class_name as ciClassName,
-			cl.impl as impl,
-			rci.ci_name as ciName,
-			rci.ci_goid as ciGoid,
-		    rci.action_id as rfcActionId,
-		    a.action_name as rfcAction,
-		    rci.execution_order as execOrder,
-		    rci.is_active_in_release as isActiveInRelease,
-		    rci.last_rfc_id lastAppliedRfcId,
-		    r.release_type as releaseType,
-		    rci.comments,
-		    rci.created_by as createdBy,
-		    rci.updated_by as updatedBy,
-		    rci.created_by as rfcCreatedBy,
-		    rci.updated_by as rfcUpdatedBy,
-		    rci.created as rfcCreated,
-		    rci.updated as rfcUpdated,
-		    rci.created,
-		    rci.updated
-        FROM dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs
-        WHERE rci.ci_id = #{ciId}
-          and rci.rfc_id &lt;= #{rfcId}
-          and rci.release_id = r.release_id
-          and r.release_state_id = rs.release_state_id
-          and rs.state_name = 'close'
-          and rci.ns_id = ns.ns_id
-          and rci.class_id = cl.class_id
-          and rci.action_id = a.action_id
-		ORDER BY rci.rfc_id asc
-    </select>
-
-
 
 	<insert id="insertRfcCIAttribute" parameterType="com.oneops.cms.dj.domain.CmsRfcAttribute" statementType="CALLABLE">
 		WITH existing AS ((select cia.df_attribute_value
@@ -1577,35 +1538,79 @@
 	</select>
 
 
-	<select id="getRfcCIsAppliedBetweenTwoReleases" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
-		SELECT 
-			rci.rfc_id as rfcId, 
-			rci.release_id as releaseId, 
-			rci.ci_id as ciId, 
+	<select id="getAppliedRfcCIsAfterRfcId" parameterType="map" useCache="false"
+			resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+		SELECT
+			rci.rfc_id as rfcId,
+			rci.release_id as releaseId,
+			rci.ci_id as ciId,
 			rci.ns_id as nsId,
-			ns1.ns_path as nsPath,  
+			ns.ns_path as nsPath,
 			rci.class_id as ciClassId,
-			cl.class_name as ciClassName, 
+			mdc.class_name as ciClassName,
+			mdc.impl as impl,
+			rci.ci_name as ciName,
+			rci.ci_goid as ciGoid,
+			rci.action_id as rfcActionId,
+			a.action_name as rfcAction,
+			rci.execution_order as execOrder,
+			rci.is_active_in_release as isActiveInRelease,
+			rci.last_rfc_id lastAppliedRfcId,
+			r.release_type as releaseType,
+			rci.comments,
+			rci.hint,
+			rci.created_by as createdBy,
+			rci.updated_by as updatedBy,
+			rci.created_by as rfcCreatedBy,
+			rci.updated_by as rfcUpdatedBy,
+			rci.created as rfcCreated,
+			rci.updated as rfcUpdated,
+			rci.created,
+			rci.updated
+		FROM dj_rfc_ci rci
+			join ns_namespaces ns on rci.ns_id = ns.ns_id
+			join md_classes mdc on rci.class_id = mdc.class_id
+			join dj_releases r on rci.release_id = r.release_id
+			join dj_rfc_ci_actions a on rci.action_id = a.action_id
+			join dj_release_states rs on r.release_state_id = rs.release_state_id
+		WHERE rci.ci_id = #{ciId}
+			and rci.rfc_id &gt; #{afterRfcId}
+			<if test="toRfcId != null">
+				and rci.rfc_id &lt;= #{toRfcId}
+			</if>
+			and rci.is_active_in_release = 'true'
+			and rs.state_name ='closed'
+	</select>
+
+	<select id="getRfcCIsAppliedBetweenTwoReleases" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+		SELECT
+			rci.rfc_id as rfcId,
+			rci.release_id as releaseId,
+			rci.ci_id as ciId,
+			rci.ns_id as nsId,
+			ns1.ns_path as nsPath,
+			rci.class_id as ciClassId,
+			cl.class_name as ciClassName,
 			cl.impl as impl,
-			rci.ci_name as ciName, 
-			rci.ci_goid as ciGoid, 
+			rci.ci_name as ciName,
+			rci.ci_goid as ciGoid,
 		    rci.action_id as rfcActionId,
-		    a.action_name as rfcAction, 
-		    rci.execution_order as execOrder, 
+		    a.action_name as rfcAction,
+		    rci.execution_order as execOrder,
 		    rci.is_active_in_release as isActiveInRelease,
-		    rci.last_rfc_id lastAppliedRfcId, 
+		    rci.last_rfc_id lastAppliedRfcId,
 		    r.release_type as releaseType,
 		    rci.comments,
 		    rci.created_by as createdBy,
-		    rci.updated_by as updatedBy, 
+		    rci.updated_by as updatedBy,
 		    rci.created_by as rfcCreatedBy,
-		    rci.updated_by as rfcUpdatedBy, 
+		    rci.updated_by as rfcUpdatedBy,
 		    rci.created as rfcCreated,
 		    rci.updated as rfcUpdated,
 		    rci.created,
 		    rci.updated
         FROM dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs, ns_namespaces ns1
-        where r.release_id &gt; #{fromReleaseId} 
+        where r.release_id &gt; #{fromReleaseId}
           and ((r.release_id &lt; #{toReleaseId} and rs.state_name ='closed') or ((r.release_id = #{toReleaseId})))
           and rci.release_id = r.release_id
           and rci.is_active_in_release = 'true'
@@ -1615,7 +1620,7 @@
           and rci.class_id = cl.class_id
           and rci.action_id = a.action_id
           and r.release_state_id = rs.release_state_id
-		  
+
           order by rci.release_id, rci.rfc_id
 	</select>
 

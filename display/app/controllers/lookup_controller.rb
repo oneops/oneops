@@ -177,6 +177,15 @@ class LookupController < ApplicationController
         result[:cloud] = Cms::Ci.all(:params => {:nsPath      => clouds_ns_path,
                                                  :ciClassName => 'account.Cloudvar',
                                                  :recursive   => true}).map(&:ciName).uniq.map {|v| {:name => v, :type => 'CLOUD'}}
+
+        begin
+          system_cloud_vars_var = Cms::Var.find('CLOUD_SYSTEM_VARS')
+          system_cloud_vars     = JSON.parse(system_cloud_vars_var.value).values.inject([]) do |a, providder_vars|
+            providder_vars.keys.inject(a) {|aa, var| aa << var}
+          end
+          result[:cloud] += system_cloud_vars.uniq.map {|v| {:name => v, :type => 'CLOUD'}}
+        rescue Exception
+        end
       end
     end
 

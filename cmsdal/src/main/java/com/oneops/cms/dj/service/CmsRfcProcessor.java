@@ -1609,50 +1609,7 @@ public class CmsRfcProcessor {
         populateRfcRelationAttributes(rfcList);
         return rfcList;
     }
-    
-    
-    /**
-     * Gets the roll up rfc.
-     *
-     * @param ciId the ci id
-     * @param rfcId the rfc id
-     * @return the roll up rfc
-     */
-    public CmsRfcCI getRollUpRfc(long ciId, long rfcId) {
-        List<CmsRfcCI> rfcCIList = djMapper.getRollUpRfc(ciId, rfcId);
-        logger.debug(rfcCIList.size()+" RfcCi found fo aggregation");
-        CmsRfcCI resultRfc = null;
-        for(CmsRfcCI rfcCi : rfcCIList) {
-            populateRfcCIAttributes(rfcCi);
-            if(rfcCi.getRfcActionId() == 100) {
-                if(resultRfc != null) {
-                    logger.warn("Error in RfcCi: more one 'add' action!");
-                }
-                resultRfc =  rfcCi;
-                resultRfc.setRfcId(0);
-            } else if(rfcCi.getRfcActionId() == 200){
-                if(resultRfc != null) {
-                    Map<String,CmsRfcAttribute> attrs = rfcCi.getAttributes();
-                    for(String key: attrs.keySet()) {
-                        CmsRfcAttribute attr = attrs.get(key);
-                        CmsRfcAttribute resultAttr = resultRfc.getAttribute(key);
-                        if(resultAttr == null) {
-                            attr.setRfcId(0);
-                            resultRfc.addAttribute(attr);
-                        } else {
-                            resultAttr.setRfcId(0);
-                            resultAttr.setOldValue(resultAttr.getNewValue());
-                            resultAttr.setNewValue(attr.getNewValue());
-                        }
-                    }
-                } else {
-                    logger.warn("Error in RfcCi: 'update' action without 'add'!");
-                }
-            }
-        }
 
-        return null;
-    }
 
     private CmsRfcCI populateRfcCIAttributes(CmsRfcCI rfcCi) {
         if (rfcCi == null) return null;
@@ -1898,6 +1855,10 @@ public class CmsRfcProcessor {
 		List<TimelineRelease> releasesWithOnlyRelations = djMapper.getReleasesByRelationFilter(queryParam);
 		releases.addAll(releasesWithOnlyRelations);
 		return releases;
+	}
+
+	public List<CmsRfcCI> getAppliedRfcCIsAfterRfcIdNoAttrs(Long ciId, Long afterRfcId, Long toRfcId) {
+		return djMapper.getAppliedRfcCIsAfterRfcId(ciId, afterRfcId, toRfcId);
 	}
 
 	public List<CmsRfcCI> getRfcCIsAppliedBetweenTwoReleases(String nsPath, Long fromReleaseId, Long toReleaseId) {

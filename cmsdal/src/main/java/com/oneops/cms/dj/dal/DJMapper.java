@@ -18,16 +18,12 @@
 package com.oneops.cms.dj.dal;
 
 import com.oneops.cms.cm.domain.CmsAltNs;
-import com.oneops.cms.dj.domain.CmsRelease;
-import com.oneops.cms.dj.domain.CmsRfcAttribute;
-import com.oneops.cms.dj.domain.CmsRfcBasicAttribute;
-import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsRfcRelation;
-import com.oneops.cms.dj.domain.TimelineRelease;
+import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.util.TimelineQueryParam;
+import org.apache.ibatis.annotations.Param;
+
 import java.util.List;
 import java.util.Set;
-import org.apache.ibatis.annotations.Param;
 
 /**
  * The Interface DJMapper.
@@ -106,8 +102,6 @@ public interface DJMapper {
       @Param("altCiName") String altCiName);
 
   List<CmsRfcCI> getClosedRfcCIByCiId(long ciId);
-
-  List<CmsRfcCI> getRollUpRfc(@Param("ciId") long ciId, @Param("rfcId") long rfcId);
 
   List<CmsRfcAttribute> getRfcCIAttributes(long rfcId);
 
@@ -222,6 +216,8 @@ public interface DJMapper {
   List<TimelineRelease> getReleasesByCiFilter(TimelineQueryParam queryParam);
 
   List<TimelineRelease> getReleasesByRelationFilter(TimelineQueryParam queryParam);
+
+  List<CmsRfcCI> getAppliedRfcCIsAfterRfcId(@Param("ciId") Long ciId, @Param("afterRfcId") Long afterRfcId, @Param("toRfcId") Long toRfcId);
 
   List<CmsRfcCI> getRfcCIsAppliedBetweenTwoReleases(@Param("nsPath") String nsPath,
       @Param("fromReleaseId") Long fromReleaseId, @Param("toReleaseId") Long toReleaseId);

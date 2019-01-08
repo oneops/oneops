@@ -17,13 +17,13 @@
  *******************************************************************************/
 package com.oneops.cms.dj.service;
 
-import java.util.List;
-
-import org.apache.log4j.Logger;
-
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
+import com.oneops.cms.dj.domain.RfcHint;
 import com.oneops.cms.util.domain.AttrQueryCondition;
+import org.apache.log4j.Logger;
+
+import java.util.List;
 
 /**
  * The Class CmsCmDjManagerImpl.
@@ -63,7 +63,8 @@ public class CmsCmDjManagerImpl implements CmsCmDjManager {
 	 */
 	@Override
 	public CmsRfcCI touchCi(CmsRfcCI rfcCi, String userId) {
-		return cmRfcMrgProcessor.createDummyUpdateRfc(rfcCi.getCiId(), rfcCi.getReleaseType(), 0, userId);
+		CmsRfcCI rfc = cmRfcMrgProcessor.createDummyUpdateRfc(rfcCi.getCiId(), rfcCi.getReleaseType(), 0, userId, RfcHint.TOUCH);
+		return rfc;
 	}
 	
 	

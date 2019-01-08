@@ -101,7 +101,8 @@
 	<bean id="bomGenerationProcessor" class="com.oneops.transistor.service.BomRfcBulkProcessor">
 		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
 		<property name="cmProcessor" ref="cmsCmProcessor" />
-		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+		<property name="manifestRfcProcessor" ref="cmsRfcProcessor" />
+		<property name="bomRfcProcessor" ref="cmsRfcProcessor" />
         <property name="trUtil" ref="trUtil" />
         <property name="cmsUtil" ref="cmsUtil" />
 		<property name="envManager" ref="envManager" />
@@ -189,7 +190,8 @@
 	<bean id="bomRfcProcessorIM" class="com.oneops.transistor.service.BomRfcBulkProcessor">
 		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessorIM" />
 		<property name="cmProcessor" ref="cmsCmProcessorIM" />
-		<property name="rfcProcessor" ref="cmsRfcProcessorIM" />
+		<property name="manifestRfcProcessor" ref="cmsRfcProcessor" />
+		<property name="bomRfcProcessor" ref="cmsRfcProcessorIM" />
 		<property name="trUtil" ref="trUtil" />
 		<property name="cmsUtil" ref="cmsUtil" />
 	</bean>

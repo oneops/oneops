@@ -324,14 +324,17 @@
                          if (match) {
                            element.attr('autocomplete', 'off');
                            this.matchString = match[0];
-                           this.matchVarType = this.matchString.substr(4).split('{')[0].toUpperCase();
+                           this.matchVarType = this.matchString.substr(3).split('{')[0].toUpperCase();
                            this.matchVarName = this.matchString.split(/[{}\s]/)[1];
                            if (this.matchVarType &&
-                               !"GLOBAL".startsWith(this.matchVarType) &&
-                               !"LOCAL".startsWith(this.matchVarType) &&
-                               !"CLOUD".startsWith(this.matchVarType)) {
+                               !"_GLOBAL".startsWith(this.matchVarType) &&
+                               !"_LOCAL".startsWith(this.matchVarType) &&
+                               !"_CLOUD".startsWith(this.matchVarType)) {
                              this.matchVarName = this.matchVarName || this.matchVarType;
                              this.matchVarType = null;
+                           }
+                           else {
+                             this.matchVarType = this.matchVarType.substring(1)
                            }
                            this.matchVarName = this.matchVarName && this.matchVarName.toLowerCase();
 
@@ -380,7 +383,7 @@
                        sorter: function(items) {
                          var matchString = this.matchVarName;
                          return items.sort(function(a, b) {
-                           return (matchString ? (a.name.indexOf(matchString) - b.name.indexOf(matchString)) : a.type.localeCompare(b.type)) || a.name.localeCompare(b.name);
+                           return (matchString ? (a.name.indexOf(matchString) - b.name.indexOf(matchString)) : b.type.localeCompare(a.type)) || a.name.localeCompare(b.name);
                          });
                        },
                        updater: function (item) {

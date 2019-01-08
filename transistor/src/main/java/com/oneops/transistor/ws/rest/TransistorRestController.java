@@ -42,7 +42,6 @@ import com.oneops.transistor.service.peristenceless.BomData;
 import com.oneops.transistor.service.peristenceless.InMemoryBomProcessor;
 import com.oneops.transistor.snapshot.domain.Snapshot;
 import org.apache.commons.lang.BooleanUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
 import org.apache.log4j.Logger;
 import org.springframework.dao.DataIntegrityViolationException;
