@@ -17,22 +17,21 @@
  *******************************************************************************/
 package com.oneops.cms.dj.service;
 
+import com.oneops.cms.cm.domain.CmsAltNs;
+import com.oneops.cms.dj.domain.*;
+import com.oneops.cms.exceptions.DJException;
+import com.oneops.cms.util.CmsError;
+import com.oneops.cms.util.QueryOrder;
+import com.oneops.cms.util.TimelineQueryParam;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import com.oneops.cms.cm.domain.CmsAltNs;
-import com.oneops.cms.dj.domain.*;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
-
-import com.oneops.cms.exceptions.DJException;
-import com.oneops.cms.util.CmsError;
-import com.oneops.cms.util.QueryOrder;
-import com.oneops.cms.util.TimelineQueryParam;
 
 /**
  * The Class CmsDjManagerImpl.
@@ -192,14 +191,6 @@ public class CmsDjManagerImpl implements CmsDjManager {
     @Override
     public List<CmsRfcCI> getClosedRfcCIByCiId(long ciId) {
         return rfcProcessor.getClosedRfcCIByCiId(ciId);
-    }
-
-    /* (non-Javadoc)
-     * @see com.oneops.cms.dj.service.CmsDjManager#getRollUpRfc(long, long)
-     */
-    @Override
-    public CmsRfcCI getRollUpRfc(long ciId, long rfcId) {
-        return rfcProcessor.getRollUpRfc(ciId, rfcId);
     }
 
     /* (non-Javadoc)

@@ -75,8 +75,8 @@ public class InMemoryDJMapper implements DJMapper{
     @Override
     public void brushReleaseExecOrder(long releaseId) {
         List<CmsRfcCI> orderedCIs = cis.values().stream()
-                                       .sorted(Comparator.comparingInt(ci -> ci.getExecOrder()))
-                                       .collect(Collectors.toList());
+                .sorted(Comparator.comparingInt(CmsRfcCIBasic::getExecOrder))
+                .collect(Collectors.toList());
         int lastExecOrder = 0;
         int newExecOrder = 0;
         for (CmsRfcCI ci : orderedCIs) {
@@ -226,11 +226,6 @@ public class InMemoryDJMapper implements DJMapper{
 
     @Override
     public List<CmsRfcCI> getClosedRfcCIByCiId(long ciId) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public List<CmsRfcCI> getRollUpRfc(long ciId, long rfcId) {
         throw new UnsupportedOperationException();
     }
 
@@ -452,6 +447,11 @@ public class InMemoryDJMapper implements DJMapper{
     }
 
     @Override
+    public List<CmsRfcCI> getAppliedRfcCIsAfterRfcId(Long ciId, Long afterRfcId, Long toRfcId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public List<CmsRfcCI> getRfcCIsAppliedBetweenTwoReleases(String nsPath, Long fromReleaseId, Long toReleaseId) {
         throw new UnsupportedOperationException();
     }
@@ -494,7 +494,7 @@ public class InMemoryDJMapper implements DJMapper{
     @Override
     public List<Integer> getDeploymentDistinctStepsTotal(long deploymentId) {
         throw new UnsupportedOperationException();
-    };
+    }
 
     public BomData getBOM(){
         return new BomData(release, cis.values(), relations.values());

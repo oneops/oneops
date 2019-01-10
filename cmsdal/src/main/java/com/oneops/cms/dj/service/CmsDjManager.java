@@ -17,15 +17,14 @@
  *******************************************************************************/
 package com.oneops.cms.dj.service;
 
+import com.oneops.cms.cm.domain.CmsAltNs;
+import com.oneops.cms.dj.domain.*;
+import com.oneops.cms.util.TimelineQueryParam;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-
-import com.oneops.cms.cm.domain.CmsAltNs;
-import com.oneops.cms.dj.domain.*;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.oneops.cms.util.TimelineQueryParam;
 
 /**
  * The Interface CmsDjManager.
@@ -47,7 +46,6 @@ public interface CmsDjManager {
 	List<CmsRfcCI> getRfcCIBy3(long releaseId, Boolean isActive, Long ciId);
     List<CmsRfcCI> getClosedRfcCIByCiId(long ciId);
 	List<CmsRfcCI> getRfcCIByNs(String nsPath, Boolean isActive);
-    CmsRfcCI getRollUpRfc(long ciId, long rfcId);
 
     CmsRfcRelation createRfcRelation(CmsRfcRelation rel);
 	CmsRfcRelation updateRfcRelation(CmsRfcRelation rel);

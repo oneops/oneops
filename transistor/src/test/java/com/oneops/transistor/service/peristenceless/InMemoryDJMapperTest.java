@@ -267,11 +267,6 @@ public class InMemoryDJMapperTest {
     }
 
     @Test
-    public void testGetRollUpRfc() throws Exception {
-        assertThrows(UnsupportedOperationException.class, () -> mapper.getRollUpRfc(1L, 1));
-    }
-
-    @Test
     public void testGetRfcCIAttributes() throws Exception {
         assertEquals(mapper.getRfcCIAttributes(1), new ArrayList());
     }
