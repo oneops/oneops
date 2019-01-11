@@ -334,8 +334,57 @@
           and rci.action_id = a.action_id
 	 </select>
 
+	<select id="getRfcCIByNsPathDateRangeClassName" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+		SELECT
+		rci.rfc_id as rfcId,
+		rci.release_id as releaseId,
+		rci.ci_id as ciId,
+		rci.ns_id as nsId,
+		ns.ns_path as nsPath,
+		rci.class_id as ciClassId,
+		mdc.class_name as ciClassName,
+		mdc.impl as impl,
+		rci.ci_name as ciName,
+		rci.ci_goid as ciGoid,
+		rci.action_id as rfcActionId,
+		a.action_name as rfcAction,
+		rci.execution_order as execOrder,
+		rci.is_active_in_release as isActiveInRelease,
+		rci.last_rfc_id lastAppliedRfcId,
+		r.release_type as releaseType,
+		rci.comments,
+		rci.created_by as createdBy,
+		rci.updated_by as updatedBy,
+		rci.created_by as rfcCreatedBy,
+		rci.updated_by as rfcUpdatedBy,
+		rci.created as rfcCreated,
+		rci.updated as rfcUpdated,
+		rci.created,
+		rci.updated
+		FROM dj_rfc_ci rci
+			join ns_namespaces ns on rci.ns_id = ns.ns_id
+			join md_classes mdc on rci.class_id = mdc.class_id
+			join dj_releases r on rci.release_id = r.release_id
+			join dj_rfc_ci_actions a on rci.action_id = a.action_id
+			join dj_release_states rs on r.release_state_id = rs.release_state_id
+		where ns.ns_path like #{nsPath}
+			<if test='ciClassName != null &amp;&amp; ciClassName.contains(".")'>
+				and mdc.class_name = #{ciClassName}
+			</if>
+			<if test='ciClassName != null &amp;&amp; !ciClassName.contains(".")'>
+				and mdc.short_class_name = #{ciClassName}
+			</if>
+			<if test='startDate != null'>
+				and rci.created >= #{startDate}
+			</if>
+			<if test='endDate != null'>
+				and rci.created &lt;= #{endDate}
+			</if>
+			and rci.is_active_in_release = 'true'
+			and rs.state_name ='closed'
+	</select>
 
-	 <select id="getRfcCIByReleaseAndClass" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+	<select id="getRfcCIByReleaseAndClass" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
 		SELECT
 			rci.rfc_id as rfcId,
 			rci.release_id as releaseId,

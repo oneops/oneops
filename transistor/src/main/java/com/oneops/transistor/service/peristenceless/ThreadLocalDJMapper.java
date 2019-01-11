@@ -5,6 +5,7 @@ import com.oneops.cms.dj.dal.DJMapper;
 import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.util.TimelineQueryParam;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
@@ -158,6 +159,11 @@ public class ThreadLocalDJMapper implements DJMapper{
     @Override
     public List<CmsRfcCI> getRfcCIBy3(long releaseId, Boolean isActive, Long ciId) {
         return get().getRfcCIBy3(releaseId, isActive, ciId);
+    }
+
+    @Override
+    public List<CmsRfcCI> getRfcCIByNsPathDateRangeClassName(String nsPath, Date startDate, Date endDate, String ciClassName) {
+        return get().getRfcCIByNsPathDateRangeClassName(nsPath, startDate, endDate, ciClassName);
     }
 
     @Override

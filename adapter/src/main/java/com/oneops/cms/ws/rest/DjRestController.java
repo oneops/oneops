@@ -40,6 +40,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Controller
@@ -233,6 +234,9 @@ public class DjRestController extends AbstractRestController {
             @RequestParam(value="altNsPath", required = false) String altNsPath, 
             @RequestParam(value="tag", required = false) String tag,
 			@RequestParam(value="attrProps", required = false) String attrProps,
+			@RequestParam(value="ciClassName", required = false) String ciClassName,
+			@RequestParam(value="startDate", required = false) Long startDate,
+			@RequestParam(value="endDate", required = false) Long endDate,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
 		List<CmsRfcCISimple> rfcSimpleList = new ArrayList<>();
@@ -247,7 +251,11 @@ public class DjRestController extends AbstractRestController {
 		} else if (ciId != null) {
 			rfcList = djManager.getClosedRfcCIByCiId(ciId);
 		} else if (nsPath!=null){
-			rfcList = djManager.getRfcCIByNs(nsPath, isActive);
+			if(startDate != null || endDate != null || ciClassName != null) {
+				rfcList = djManager.getRfcCIByNsPathDateRangeClassName(nsPath, startDate == null ? null : new Date(startDate), endDate == null ? null : new Date(endDate), ciClassName);
+			} else {
+				rfcList = djManager.getRfcCIByNs(nsPath, isActive);
+			}
 		}
 		
 		if (rfcList != null) {
