@@ -99,6 +99,11 @@ public class InMemoryDJMapper implements DJMapper{
     }
 
     @Override
+    public List<CmsRfcCI> getRfcCIByNsPathDateRangeClassName(String nsPath, Date startDate, Date endDate, String ciClassName){
+        return new ArrayList<>();
+    }
+
+    @Override
     public List<CmsRfcCI> getRfcCIByReleaseAndClass(long releaseId, String className) {
         return cis.values().stream()
                 .filter(ci -> ci.getReleaseId() == releaseId &&

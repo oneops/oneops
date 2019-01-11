@@ -22,6 +22,7 @@ import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.util.TimelineQueryParam;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
@@ -83,6 +84,10 @@ public interface DJMapper {
 
   List<CmsRfcCI> getRfcCIBy3(@Param("releaseId") long releaseId,
       @Param("isActive") Boolean isActive, @Param("ciId") Long ciId);
+
+  List<CmsRfcCI> getRfcCIByNsPathDateRangeClassName(@Param("nsPath") String nsPath,
+      @Param("startDate") Date startDate, @Param("endDate") Date endDate,
+      @Param("ciClassName") String ciClassName);
 
   List<CmsRfcCI> getRfcCIByReleaseAndClass(@Param("releaseId") long releaseId,
                                                  @Param("className") String className);

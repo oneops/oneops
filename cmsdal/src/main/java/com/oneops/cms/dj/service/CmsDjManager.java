@@ -44,6 +44,7 @@ public interface CmsDjManager {
 	CmsRfcCI getRfcCIById(long rfcId);
 	long rmRfcCiFromRelease(long rfcId);
 	List<CmsRfcCI> getRfcCIBy3(long releaseId, Boolean isActive, Long ciId);
+	List<CmsRfcCI> getRfcCIByNsPathDateRangeClassName(String nsPath, Date startDate, Date endDate, String ciClassName);
     List<CmsRfcCI> getClosedRfcCIByCiId(long ciId);
 	List<CmsRfcCI> getRfcCIByNs(String nsPath, Boolean isActive);
 

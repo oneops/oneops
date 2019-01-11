@@ -913,6 +913,21 @@ public class CmsRfcProcessor {
 	}
 
 	/**
+	 * Gets the rfc ci by NS Pth, Date Range (Start Date, End Date), Class Name.
+	 *
+	 * @param nsPath the NS Pth
+	 * @param startDate the Start Date of Date Range
+	 * @param endDate the End Date of Date Range
+	 * @param ciClassName the Class Name
+	 * @return the rfc ci by NS Pth, Date Range (Start Date, End Date), Class Name.
+	 */
+	public List<CmsRfcCI> getRfcCIByNsPathDateRangeClassName(String nsPath, Date startDate, Date endDate, String ciClassName){
+		List<CmsRfcCI> rfcList = djMapper.getRfcCIByNsPathDateRangeClassName(nsPath, startDate, endDate, ciClassName);
+		populateRfcCIAttributes(rfcList);
+		return rfcList;
+	}
+
+	/**
 	 * Gets the rfc cis by release id and ci class name (long or short).
 	 *
 	 * @param releaseId the release id
