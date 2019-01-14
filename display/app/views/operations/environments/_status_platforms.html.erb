@@ -29,13 +29,67 @@
         <div class="dropdown inline-block">
           <a class="dropdown-toggle" data-toggle="dropdown" href="#"><b>&nbsp;<%= icon('download') %></b></a>
           <ul class="dropdown-menu">
-            <li><%= link_to(icon(site_icon(:csv), 'to CSV', 'fa-fw'), authorized_keys_assembly_operations_environment_path(@assembly, @environment, :format => :csv)) %></li>
+            <li><%= link_to(icon(site_icon(:csv),  'to CSV', 'fa-fw'),  authorized_keys_assembly_operations_environment_path(@assembly, @environment, :format => :csv)) %></li>
             <li><%= link_to(icon(site_icon(:json), 'to JSON', 'fa-fw'), authorized_keys_assembly_operations_environment_path(@assembly, @environment, :format => :json), :target => '_blank') %></li>
+            <li><%= link_to(icon(site_icon(:json), 'to YAML', 'fa-fw'), authorized_keys_assembly_operations_environment_path(@assembly, @environment, :format => :yaml), :target => '_blank') %></li>
           </ul>
         </div>
+      </dd>
+      <dt><%= icon('user') %></dt>
+      <dd>
+        Audit user component changes
+        <%= link_to_function(icon('download'), "render_modal('user_changes_download_modal')") %>
       </dd>
     </dl>
   </div>
 </li>
 
+<div id="user_changes_download_modal" class="modal hide">
+  <div class="modal-header">
+    <h3>Download user component changes</h3>
+  </div>
+  <div class="modal-body">
+    <p>You can export a list of committed user component changes for a given time period.</p>
+    <br>
+    <%= form_tag user_changes_assembly_operations_environment_path(@assembly, @environment),
+                 :method => :get,
+                 :target => '_blank',
+                 :class  => 'form-horizontal' do %>
+      <div class="control-group">
+        <%= label_tag :start, 'From:', :class => 'control-label' %>
+        <div class="controls">
+          <%= date_field_tag :start, (Date.today.last_month - 2.months).beginning_of_month, :required => true %>
+        </div>
+      </div>
+      <div class="control-group">
+        <%= label_tag :end, 'To:', :class => 'control-label' %>
+        <div class="controls">
+          <%= date_field_tag :end, Date.today.last_month.end_of_month, :required => true %>
+        </div>
+      </div>
+      <%= hidden_field_tag :format, 'csv' %>
+    <% end %>
+  </div>
+
+  <div class="modal-footer">
+    <%= link_to_function(raw(icon('times', 'cancel')), 'hide_modal()', :class => 'btn btn-danger') %>
+    <div class="btn-group">
+      <a class="btn btn-success dropdown-toggle" data-toggle="dropdown" href="#">
+        <%= icon('download', 'ok') %> <span class="caret"></span>
+      </a>
+      <ul class="dropdown-menu">
+        <li><%= link_to_function(icon(site_icon(:csv),  content_tag(:small, 'to CSV'), 'faw-fw'),  'donwload_user_changes("csv")') %></li>
+        <li><%= link_to_function(icon(site_icon(:json), content_tag(:small, 'to JSON'), 'faw-fw'), 'donwload_user_changes("json")') %></li>
+        <li><%= link_to_function(icon(site_icon(:yaml), content_tag(:small, 'to YAML'), 'faw-fw'), 'donwload_user_changes("yaml")') %></li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+  window.donwload_user_changes = function (format) {
+    $j("#user_changes_download_modal input#format").val(format);
+    hide_modal();
+    $j("#user_changes_download_modal form").submit()
+  }
+</script>
 

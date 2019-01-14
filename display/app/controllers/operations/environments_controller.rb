@@ -124,8 +124,55 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
 
     respond_to do |format|
       format.json {render :json => result}
-
+      format.yaml {render :text => result.to_yaml, :content_type => 'text/data_string'}
       format.any {render_csv(result, [:key, :platform, :instance, :username, :sudoer, :url], [:key, :url])}
+    end
+  end
+
+  def user_changes
+    search_params = {:nsPath      => environment_manifest_ns_path(@environment),
+                     :ciClassName => 'User'}
+    %w(start end).each do |k|
+      date = params[k]
+      search_params["#{k}Date"] = Time.parse(date).to_i * 1000 if date.present?
+    end
+    rfcs   = Cms::RfcCi.all(:params => search_params)
+    result = rfcs.group_by(&:ciId).inject([]) do |h, (ci_id, ci_rfcs)|
+      ci_rfcs.sort_by! do |rfc|
+        action = rfc.rfcAction
+        action == 'delete' ? -2 : (action == 'add' ? -1 : rfc.created)
+      end
+      changed_attrs = ci_rfcs.inject([]) do |a, rfc|
+        if rfc.rfcAction == 'update'
+          base_attrs = rfc.ciBaseAttributes.attributes
+          rfc.ciAttributes.attributes.to_a.inject(a) do |aa, (k, v)|
+            aa << k unless (v.blank? && base_attrs[k].blank?) || v == base_attrs[k]
+            aa
+          end
+        else
+          break []
+        end
+      end
+
+      rfc = ci_rfcs.first
+      next h if rfc.rfcAction == 'update' && changed_attrs.blank?
+
+      _, org, assembly, env, _, platform, version, _ = rfc.nsPath.split('/')
+      h << {:id                => ci_id,
+            :component          => rfc.ciName,
+            :platform           => "#{platform}/#{version}",
+            :timestamp          => rfc.created_timestamp,
+            :actions            => ci_rfcs[1] && ci_rfcs[1].rfcAction == 'add' ? 'add delete' : rfc.rfcAction,
+            :changed_attributes => rfc.rfcAction == 'update' ? changed_attrs.uniq.join(',') : nil,
+            :url                => rfc.rfcAction == 'delete' ? nil : redirect_ci_url(:id => rfc.ciId, :org_name => nil)}
+    end
+
+    result.sort_by! {|e| "#{e[:platform]}+|+#{e[:component]}"}
+
+    respond_to do |format|
+      format.json {render :json => result}
+      format.yaml {render :text => result.to_yaml, :content_type => 'text/data_string'}
+      format.any {render_csv(result, [:id, :component, :platform, :timestamp, :actions, :changed_attributes, :url], [:actions, :changed_attributes, :url])}
     end
   end
 
