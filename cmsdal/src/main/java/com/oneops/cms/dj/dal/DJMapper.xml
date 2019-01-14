@@ -367,7 +367,7 @@
 			join dj_releases r on rci.release_id = r.release_id
 			join dj_rfc_ci_actions a on rci.action_id = a.action_id
 			join dj_release_states rs on r.release_state_id = rs.release_state_id
-		where ns.ns_path like #{nsPath}
+		where (ns.ns_path like #{nsLike} or ns.ns_path = #{ns})
 			<if test='ciClassName != null &amp;&amp; ciClassName.contains(".")'>
 				and mdc.class_name = #{ciClassName}
 			</if>

@@ -519,6 +519,7 @@ Display::Application.routes.draw do
           get 'cost_estimate',   :on => :member
           get 'health',          :on => :member
           get 'authorized_keys', :on => :member
+          get 'user_changes',    :on => :member
 
           resources :platforms, :only => [:index, :show] do
             resources :components, :only => [:index, :show] do

@@ -922,7 +922,8 @@ public class CmsRfcProcessor {
 	 * @return the rfc ci by NS Pth, Date Range (Start Date, End Date), Class Name.
 	 */
 	public List<CmsRfcCI> getRfcCIByNsPathDateRangeClassName(String nsPath, Date startDate, Date endDate, String ciClassName){
-		List<CmsRfcCI> rfcList = djMapper.getRfcCIByNsPathDateRangeClassName(nsPath, startDate, endDate, ciClassName);
+		String nsLike = CmsUtil.likefyNsPath(nsPath);
+		List<CmsRfcCI> rfcList = djMapper.getRfcCIByNsPathDateRangeClassName(nsPath, nsLike, startDate, endDate, ciClassName);
 		populateRfcCIAttributes(rfcList);
 		return rfcList;
 	}

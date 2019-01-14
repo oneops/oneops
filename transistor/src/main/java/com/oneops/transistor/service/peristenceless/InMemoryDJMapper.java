@@ -99,7 +99,7 @@ public class InMemoryDJMapper implements DJMapper{
     }
 
     @Override
-    public List<CmsRfcCI> getRfcCIByNsPathDateRangeClassName(String nsPath, Date startDate, Date endDate, String ciClassName){
+    public List<CmsRfcCI> getRfcCIByNsPathDateRangeClassName(String ns, String nsLike, Date startDate, Date endDate, String ciClassName){
         throw new UnsupportedOperationException();
     }
 
