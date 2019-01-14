@@ -1181,7 +1181,7 @@ public class CmsUtil {
         for (String prefix : VAR_PREFIXES) {
             int safetyValve = 0;
             while(true) {
-                if (safetyValve > 20) {
+                if (safetyValve > 250) {
                     throwValidationException(TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF, getErrorMessage("too much nesting in resolving variable interpolation (probably cyclic reference) for ", variableContext.getCiName(), variableContext.getNsPath(), variableContext.getAttrName(), resolvedValue));
                 }
                 safetyValve++;
