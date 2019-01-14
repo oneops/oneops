@@ -85,7 +85,7 @@ public interface DJMapper {
   List<CmsRfcCI> getRfcCIBy3(@Param("releaseId") long releaseId,
       @Param("isActive") Boolean isActive, @Param("ciId") Long ciId);
 
-  List<CmsRfcCI> getRfcCIByNsPathDateRangeClassName(@Param("nsPath") String nsPath,
+  List<CmsRfcCI> getRfcCIByNsPathDateRangeClassName(@Param("ns") String ns, @Param("nsLike") String nsLike,
       @Param("startDate") Date startDate, @Param("endDate") Date endDate,
       @Param("ciClassName") String ciClassName);
 

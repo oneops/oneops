@@ -162,8 +162,8 @@ public class ThreadLocalDJMapper implements DJMapper{
     }
 
     @Override
-    public List<CmsRfcCI> getRfcCIByNsPathDateRangeClassName(String nsPath, Date startDate, Date endDate, String ciClassName) {
-        return get().getRfcCIByNsPathDateRangeClassName(nsPath, startDate, endDate, ciClassName);
+    public List<CmsRfcCI> getRfcCIByNsPathDateRangeClassName(String ns, String nsLike, Date startDate, Date endDate, String ciClassName) {
+        return get().getRfcCIByNsPathDateRangeClassName(ns, nsLike, startDate, endDate, ciClassName);
     }
 
     @Override
