@@ -54,17 +54,18 @@
     <%= form_tag user_changes_assembly_operations_environment_path(@assembly, @environment),
                  :method => :get,
                  :target => '_blank',
+                 :enforce_utf8 => false,
                  :class  => 'form-horizontal' do %>
       <div class="control-group">
         <%= label_tag :start, 'From:', :class => 'control-label' %>
         <div class="controls">
-          <%= date_field_tag :start, (Date.today.last_month - 2.months).beginning_of_month, :required => true %>
+          <%= date_field_tag :start, (Date.today.last_month - 3.months).beginning_of_month, :required => true %>
         </div>
       </div>
       <div class="control-group">
         <%= label_tag :end, 'To:', :class => 'control-label' %>
         <div class="controls">
-          <%= date_field_tag :end, Date.today.last_month.end_of_month, :required => true %>
+          <%= date_field_tag :end, Date.today, :required => true %>
         </div>
       </div>
       <%= hidden_field_tag :format, 'csv' %>
