@@ -21,6 +21,7 @@ Display::Application.routes.draw do
   get 'r/ns/:path'                          => 'redirect#ns', :constraints => {:path => /[a-zA-Z0-9\-]+(\/[a-zA-Z0-9\-]+)+\/?/}
   get 'r/:id'                               => 'redirect#ci'
   get 'r/ci/:id'                            => 'redirect#ci',          :as => 'redirect_ci'
+  get 'r/rfc/:id'                           => 'redirect#rfc',         :as => 'redirect_rfc'
   get 'r/release/:id'                       => 'redirect#release'
   get 'r/r/:id'                             => 'redirect#release',     :as => 'redirect_release'
   get 'r/deployment/:id'                    => 'redirect#deployment'

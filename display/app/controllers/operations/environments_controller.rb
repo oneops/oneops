@@ -130,49 +130,45 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
   end
 
   def user_changes
-    search_params = {:nsPath      => environment_manifest_ns_path(@environment),
+    search_params = {:nsPath      => search_ns_path,
                      :ciClassName => 'User'}
     %w(start end).each do |k|
       date = params[k]
       search_params["#{k}Date"] = Time.parse(date).to_i * 1000 if date.present?
     end
     rfcs   = Cms::RfcCi.all(:params => search_params)
-    result = rfcs.group_by(&:ciId).inject([]) do |h, (ci_id, ci_rfcs)|
-      ci_rfcs.sort_by! do |rfc|
-        action = rfc.rfcAction
-        action == 'delete' ? -2 : (action == 'add' ? -1 : rfc.created)
-      end
-      changed_attrs = ci_rfcs.inject([]) do |a, rfc|
+    result = rfcs.group_by(&:ciId).inject([]) do |a, (ci_id, ci_rfcs)|
+      ci_rfcs.sort_by!(&:created)
+      _, org, assembly, env, _, platform, version, _ = ci_rfcs.first.nsPath.split('/')
+      ci_rfcs.inject(a) do |aa, rfc|
+        attrs = nil
         if rfc.rfcAction == 'update'
           base_attrs = rfc.ciBaseAttributes.attributes
-          rfc.ciAttributes.attributes.to_a.inject(a) do |aa, (k, v)|
-            aa << k unless (v.blank? && base_attrs[k].blank?) || v == base_attrs[k]
-            aa
+          attrs = rfc.ciAttributes.attributes.to_a.inject([]) do |aaa, (k, v)|
+            aaa << k if (k == 'sudoer' || k == 'authorized_keys') && (v.present? || base_attrs[k].present?) && v != base_attrs[k]
+            aaa
           end
-        else
-          break []
+          next aa if attrs.blank?
         end
+
+        a << {:component_id       => ci_id,
+              :component          => rfc.ciName,
+              :platform           => "#{platform}/#{version}",
+              :change_id          => rfc.rfcId,
+              :executed_at        => rfc.updated_timestamp,
+              :executed_by        => rfc.createdBy,
+              :action             => rfc.rfcAction,
+              :changed_attributes => attrs ? attrs.join(',') : nil,
+              :url                => ci_rfcs.last.rfcAction == 'delete' ? nil : redirect_rfc_url(:id => rfc.rfcId, :org_name => nil)}
       end
-
-      rfc = ci_rfcs.first
-      next h if rfc.rfcAction == 'update' && changed_attrs.blank?
-
-      _, org, assembly, env, _, platform, version, _ = rfc.nsPath.split('/')
-      h << {:id                => ci_id,
-            :component          => rfc.ciName,
-            :platform           => "#{platform}/#{version}",
-            :timestamp          => rfc.created_timestamp,
-            :actions            => ci_rfcs[1] && ci_rfcs[1].rfcAction == 'add' ? 'add delete' : rfc.rfcAction,
-            :changed_attributes => rfc.rfcAction == 'update' ? changed_attrs.uniq.join(',') : nil,
-            :url                => rfc.rfcAction == 'delete' ? nil : redirect_ci_url(:id => rfc.ciId, :org_name => nil)}
     end
 
-    result.sort_by! {|e| "#{e[:platform]}+|+#{e[:component]}"}
+    result.sort_by! {|e| "#{e[:platform]}+|+#{e[:component_id]}+|+#{e[:change_id]}"}
 
     respond_to do |format|
       format.json {render :json => result}
       format.yaml {render :text => result.to_yaml, :content_type => 'text/data_string'}
-      format.any {render_csv(result, [:id, :component, :platform, :timestamp, :actions, :changed_attributes, :url], [:actions, :changed_attributes, :url])}
+      format.any {render_csv(result, [:component_id, :component, :platform, :change_id, :executed_at, :executed_by, :action, :changed_attributes, :url], [:component_id, :changed_attributes, :url])}
     end
   end
 
