@@ -64,6 +64,8 @@ public class CmsUtil {
     protected static final String[] VAR_PREFIXES = new String[] {LOCALVARPFX, GLOBALVARPFX, CLOUDVARPFX};
     protected static final String MASK = "##############";
 
+    protected static final int MAX_INTERPOLATION_RECURSION_DEPTH = Integer.valueOf(System.getProperty("com.oneops.variable.MaxRecursion", "250"));
+
     private static final String VAR_SEC_ATTR_FLAG = "secure";
     private static final String VAR_SEC_ATTR_VALUE = "encrypted_value";
     private static final String VAR_UNSEC_ATTR_VALUE = "value";
@@ -1177,16 +1179,22 @@ public class CmsUtil {
 
     private String resolve(VariableContext variableContext, String value) {
         if (value == null) return null;
+        int safetyValve = 0;
         String resolvedValue = value;
-        for (String prefix : VAR_PREFIXES) {
-            int safetyValve = 0;
+        for (int i = 0; i < VAR_PREFIXES.length; i++) {
+            String prefix = VAR_PREFIXES[i];
             while(true) {
-                if (safetyValve > 250) {
+                if (safetyValve > MAX_INTERPOLATION_RECURSION_DEPTH) {
                     throwValidationException(TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF, getErrorMessage("too much nesting in resolving variable interpolation (probably cyclic reference) for ", variableContext.getCiName(), variableContext.getNsPath(), variableContext.getAttrName(), resolvedValue));
                 }
                 safetyValve++;
                 int start = resolvedValue.indexOf(prefix);
-                if (start == -1) break;
+                if (start == -1) {
+                    if (i > 0 && resolvedValue.contains(VAR_PREFIXES[i - 1])) {  // local var refers to global which refers back to other local
+                        i = i - 2;
+                    }
+                    break;
+                }
                 int end = resolvedValue.indexOf("}", start);
                 if (end == -1 || end == start + prefix.length()) {
                     throwValidationException(TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF, getErrorMessage("invalid variable syntax", variableContext.getCiName(), variableContext.getNsPath(), variableContext.getAttrName(), resolvedValue.substring(start)));
