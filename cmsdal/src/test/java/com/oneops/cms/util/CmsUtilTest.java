@@ -17,7 +17,6 @@
  *******************************************************************************/
 package com.oneops.cms.util;
 
-import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.service.CmsCmProcessor;
@@ -46,8 +45,6 @@ import static org.testng.Assert.*;
 
 
 public class CmsUtilTest {
-
-
   private static final String CLASS_NAME = null;
   private static final long CI_ID = 100;
   private static final String CI_NAME = "Source";
@@ -55,7 +52,6 @@ public class CmsUtilTest {
   private static final String CI_IMPL = "java.lang";
   private static final Logger logger = Logger.getLogger(CmsUtilTest.class);
   CmsCISimple ciSimple = new CmsCISimple();
-  private CmsUtil util = new CmsUtil();
   private CmsCmProcessor cmsCmProcessor;
   private CmsVar cmsVarProviderMapping;
   private Map<String, String> ciAttributes;
@@ -81,7 +77,6 @@ public class CmsUtilTest {
         cmsCmProcessor = Mockito.mock(CmsCmProcessor.class);
 
         cmsVarProviderMapping = new CmsVar();
-        Gson gson = new Gson();
 
         cmsVarProviderMapping.setValue(flavorVars);
 
@@ -1144,6 +1139,76 @@ public class CmsUtilTest {
 
     }
 
+  }
+
+  @Test
+  public void globalVarRefersLocalVar() {
+    Map<String, String> globalVars = new HashMap<>(3);
+    globalVars.put("gv1", "globalVar1");
+    globalVars.put("gv2", "$OO_GLOBAL{gv1}-$OO_LOCAL{lv1}");
+    globalVars.put("gv3", "$OO_GLOBAL{gv1}-$OO_LOCAL{lv2}");
+    Map<String, String> localVars = new HashMap<>(3);
+    localVars.put("lv1", "localVar1");
+    localVars.put("lv2", "$OO_GLOBAL{gv2}");
+
+    CmsCI ci = new CmsCI();
+    ci.setCiId(90);
+    ci.setCiName("globalVarRefersLocalVar");
+    Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
+    CmsCIAttribute attr = new CmsCIAttribute();
+    attr.setDjValue("$OO_GLOBAL{gv3}");
+    attributes.put("globalVarRefersLocalVarAttr1", attr);
+    ci.setAttributes(attributes);
+    CmsUtil util = getCmsUtil();
+    dumpCmsCIAttributes(ci);
+    util.processAllVars(ci, null, globalVars, localVars);
+
+    assertEquals(attr.getDjValue(), "globalVar1-globalVar1-localVar1");
+  }
+
+  @Test(expectedExceptions = {CIValidationException.class}, expectedExceptionsMessageRegExp = ".* cyclic reference.*")
+  public void globalVarRefersLocalVarCyclicDetection() {
+    Map<String, String> globalVars = new HashMap<>(3);
+    globalVars.put("gv1", "globalVar1");
+    globalVars.put("gv2", "$OO_GLOBAL{gv1}-$OO_LOCAL{lv1}");
+    Map<String, String> localVars = new HashMap<>(3);
+    localVars.put("lv1", "$OO_GLOBAL{gv2}");
+
+    CmsCI ci = new CmsCI();
+    ci.setCiId(90);
+    ci.setCiName("globalVarRefersLocalVar");
+    Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
+    CmsCIAttribute attr = new CmsCIAttribute();
+    attr.setDjValue("$OO_GLOBAL{gv2}");
+    attributes.put("globalVarRefersLocalVarAttr1", attr);
+    ci.setAttributes(attributes);
+    CmsUtil util = getCmsUtil();
+    dumpCmsCIAttributes(ci);
+    util.processAllVars(ci, null, globalVars, localVars);
+  }
+
+  @Test(expectedExceptions = {CIValidationException.class}, expectedExceptionsMessageRegExp = ".* cyclic reference.*")
+  public void maxRecusionDetecdtion() {
+    CmsCI ci = new CmsCI();
+    ci.setCiId(90);
+    ci.setCiName("globalVarRefersLocalVar");
+    Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
+    CmsCIAttribute attr = new CmsCIAttribute();
+    attributes.put("globalVarRefersLocalVarAttr1", attr);
+    attr.setDjValue("");
+    ci.setAttributes(attributes);
+
+    Map<String, String> globalVars = new HashMap<>(3);
+    Map<String, String> localVars = new HashMap<>(3);
+    for (int i = 0; i < CmsUtil.MAX_INTERPOLATION_RECURSION_DEPTH / 2; i++) {
+      globalVars.put("gv" + i, "$OO_LOCAL{lv" + i + "}");
+      localVars.put("lv" + i, "localVar" + i);
+      attr.setDjValue(attr.getDjValue() + "-$OO_GLOBAL{gv" + i + "}");
+    }
+
+    CmsUtil util = getCmsUtil();
+    dumpCmsCIAttributes(ci);
+    util.processAllVars(ci, null, globalVars, localVars);
   }
 
   @Test
