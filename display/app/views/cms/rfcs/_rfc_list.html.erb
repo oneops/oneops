@@ -137,6 +137,7 @@
 
           var value = filterField.val();
           apply_rfc_list_filter(listDiv, value);
+          listDiv.find("li.rfc").show();
         };
 
         window.set_rfc_list_filter = function (list, value) {
@@ -189,7 +190,19 @@
       (function () {
         var list = $j("#<%= list_id %>");
         update_rfc_list_filter_marker(list);
+
         if (window.rfc_list_filter) set_rfc_list_filter(list, window.rfc_list_filter);
+
+        var rfcId = getHashParam("rfc_id");
+        if (rfcId) {
+          var rfcLi = list.find("li[data-bom-rfc-id=" + rfcId + "]");
+          set_rfc_list_filter(list, "rfc_id=" + rfcId);
+          list.find(".cloud-component:has(li[data-bom-rfc-id=" + rfcId + "])").show()
+            .find("li.rfc").hide();
+          rfcLi.addClass("highlight").show();
+          list.find(".list-count-marker").html(rfcLi.length);
+        }
+
         var filter_field = list.find(".list-toolbar-filter");
         var taItems = list.find(".list-toolbar").attr("filters").split(",");
         filter_field.typeahead({items: 15,

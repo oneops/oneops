@@ -212,8 +212,7 @@ public class CmsRfcProcessor {
 	
 	
 	public List<CmsRfcRelation> getRfcRelationByReleaseAndClassNoAttrs(long releaseId, String relationName, String shortRelName) {
-		List<CmsRfcRelation> relList = djMapper.getRfcRelationByReleaseAndClass(releaseId, relationName, shortRelName);
-		return relList;
+        return djMapper.getRfcRelationByReleaseAndClass(releaseId, relationName, shortRelName);
 	}
 
 
@@ -777,8 +776,7 @@ public class CmsRfcProcessor {
 	 * @return the rfc ci by id
 	 */
 	public CmsRfcCI getRfcCIByIdNoAttrs(long rfcId) {
-		CmsRfcCI rfcCi = djMapper.getRfcCIById(rfcId);
-		return rfcCi;
+        return djMapper.getRfcCIById(rfcId);
 	}
 	
 
@@ -811,7 +809,7 @@ public class CmsRfcProcessor {
 	 * @return the open rfc ci by ci id
 	 */
 	public List<CmsRfcCI> getOpenRfcCIByCiIdListNoAttrs(List<Long> ids) {
-		List<CmsRfcCI> rfcs = new ArrayList<CmsRfcCI>();
+		List<CmsRfcCI> rfcs = new ArrayList<>();
 		if (ids == null || ids.size() == 0) {
 			return rfcs;
 		}
@@ -836,7 +834,7 @@ public class CmsRfcProcessor {
 	 * @return the open rfc ci by ci id
 	 */
 	public List<CmsRfcCI> getOpenRfcCIByCiIdList(List<Long> ids) {
-		List<CmsRfcCI> rfcs = new ArrayList<CmsRfcCI>();
+		List<CmsRfcCI> rfcs = new ArrayList<>();
 		if (ids == null || ids.size() == 0) {
 			return rfcs;
 		}
@@ -929,6 +927,22 @@ public class CmsRfcProcessor {
 	}
 
 	/**
+	 * Gets the rfc ci by NS Pth, Date Range (Start Date, End Date), Class Name.
+	 *
+	 * @param nsPath      the NS Pth
+	 * @param startDate   the Start Date of Date Range
+	 * @param endDate     the End Date of Date Range
+	 * @param ciClassName the Class Name
+	 * @return the rfc ci by NS Pth, Date Range (Start Date, End Date), Class Name.
+	 */
+	public List<CmsRfcCIDeployed> getDeployedRfcCIByNsPathDateRangeClassName(String nsPath, Date startDate, Date endDate, String ciClassName) {
+		String nsLike = CmsUtil.likefyNsPath(nsPath);
+		List<CmsRfcCIDeployed> rfcList = djMapper.getDeployedRfcCIByNsPathDateRangeClassName(nsPath, nsLike, startDate, endDate, ciClassName);
+		populateRfcCIAttributes(rfcList);
+		return rfcList;
+	}
+
+	/**
 	 * Gets the rfc cis by release id and ci class name (long or short).
 	 *
 	 * @param releaseId the release id
@@ -964,8 +978,7 @@ public class CmsRfcProcessor {
 	 * @return the open rfc ci by clazz and name lower no attr
 	 */
 	public List<CmsRfcCI> getOpenRfcCIByClazzAndNameLowerNoAttr(String nsPath, String clazzName, String ciName) {
-		List<CmsRfcCI> rfcList = djMapper.getOpenRfcCIByClazzAndNameLower(nsPath, clazzName, ciName);
-		return rfcList;
+        return djMapper.getOpenRfcCIByClazzAndNameLower(nsPath, clazzName, ciName);
 	}
 	
 	/**
@@ -1165,7 +1178,7 @@ public class CmsRfcProcessor {
 	}
 
 	private String generateComments(CmsCI fromCi, CmsCI toCi) {
-		Map<String, String> strMap = new HashMap<String, String>();
+		Map<String, String> strMap = new HashMap<>();
 		strMap.put("fromCiName", fromCi.getCiName());
 		strMap.put("fromCiClass", fromCi.getCiClassName());
 		strMap.put("toCiName", toCi.getCiName());
@@ -1346,7 +1359,7 @@ public class CmsRfcProcessor {
 	public List<CmsRfcRelation> getOpenFromRfcRelationByAttrs
 		(Long fromCiId, String relName, String shortRelName, String targetClassName, Map<String,String> attrs) {
 		
-		List<CmsRfcBasicAttribute> attrList = new ArrayList<CmsRfcBasicAttribute>();
+		List<CmsRfcBasicAttribute> attrList = new ArrayList<>();
 		
 		for (String attrName : attrs.keySet()) {
 			attrList.add(new CmsRfcBasicAttribute(attrName, attrs.get(attrName)));
@@ -1369,7 +1382,7 @@ public class CmsRfcProcessor {
 	 */
 	public List<CmsRfcRelation> getOpenToRfcRelationByAttrs(Long toCiId, String relName, String shortRelName, String targetClassName, Map<String,String> attrs) {
 	
-	List<CmsRfcBasicAttribute> attrList = new ArrayList<CmsRfcBasicAttribute>();
+	List<CmsRfcBasicAttribute> attrList = new ArrayList<>();
 
 	for (String attrName : attrs.keySet()) {
 		attrList.add(new CmsRfcBasicAttribute(attrName, attrs.get(attrName)));
@@ -1615,6 +1628,18 @@ public class CmsRfcProcessor {
     }
 
     /**
+     * Gets the deployed rfc ci by ci id.
+     *
+     * @param ciId the ci id
+     * @return the closed rfc ci by ci id
+     */
+    public List<CmsRfcCIDeployed> getDeployedRfcCIByCiId(long ciId) {
+        List<CmsRfcCIDeployed> rfcList = djMapper.getDeployedRfcCIByCiId(ciId);
+        populateRfcCIAttributes(rfcList);
+        return rfcList;
+    }
+
+    /**
      * Gets the closed relation rfcs by ciid (to or from).
      *
      * @param ciId the ci id
@@ -1635,7 +1660,7 @@ public class CmsRfcProcessor {
         return rfcCi;
     }
 
-    private void populateRfcCIAttributesSimple(List<CmsRfcCI> rfcCis) {
+    private void populateRfcCIAttributesSimple(List<? extends CmsRfcCI> rfcCis) {
     	if (rfcCis.size() == 0) {
     		return;
     	}
@@ -1648,10 +1673,10 @@ public class CmsRfcProcessor {
         }
     }
 
-    private void populateRfcCIAttributes(List<CmsRfcCI> rfcCis) {
+    private void populateRfcCIAttributes(List<? extends CmsRfcCI> rfcCis) {
 		int fromIndex = 0;
 		int toIndex = rfcCis.size() > (fromIndex + CHUNK_SIZE) ? fromIndex + CHUNK_SIZE : rfcCis.size();
-		List<CmsRfcCI> subList = rfcCis.subList(fromIndex, toIndex);
+		List<? extends CmsRfcCI> subList = rfcCis.subList(fromIndex, toIndex);
 		while (subList.size() == CHUNK_SIZE) {
 			populateRfcCIAttributesSimple(subList);
 			fromIndex += CHUNK_SIZE;
@@ -1892,7 +1917,7 @@ public class CmsRfcProcessor {
 
 	public void createAltNs(CmsAltNs cmsAltNs, CmsRfcCI rfcCi) {
 
-		CmsNamespace ns = null;
+		CmsNamespace ns;
 		if (cmsAltNs.getNsId() != 0) {
 			ns = cmsNsProcessor.getNsById(cmsAltNs.getNsId());
 		} else {

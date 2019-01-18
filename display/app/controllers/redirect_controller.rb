@@ -30,7 +30,8 @@ class RedirectController < ApplicationController
     end
 
     if deployment
-      redirect_to path_to_deployment(deployment)
+      rfc_id = params[:rfc_id]
+      redirect_to "#{path_to_deployment(deployment)}#{"/rfc_id/#{rfc_id}" if rfc_id.present?}"
     else
       render :text => 'Deployment not found'
      end

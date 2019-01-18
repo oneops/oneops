@@ -107,6 +107,7 @@ public interface DJMapper {
       @Param("altCiName") String altCiName);
 
   List<CmsRfcCI> getClosedRfcCIByCiId(long ciId);
+  List<CmsRfcCIDeployed> getDeployedRfcCIByCiId(long ciId);
 
   List<CmsRfcAttribute> getRfcCIAttributes(long rfcId);
 
@@ -246,4 +247,8 @@ public interface DJMapper {
   List<CmsAltNs> getAltNsBy(@Param("rfcId") long rfcCI);
 
   List<Integer> getDeploymentDistinctStepsTotal(@Param("deploymentId") long deploymentId);
+
+  List<CmsRfcCIDeployed> getDeployedRfcCIByNsPathDateRangeClassName(@Param("ns") String ns, @Param("nsLike") String nsLike,
+                                                            @Param("startDate") Date startDate, @Param("endDate") Date endDate,
+                                                            @Param("ciClassName") String ciClassName);
 }

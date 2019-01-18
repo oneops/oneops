@@ -23,10 +23,7 @@ import com.oneops.cms.cm.domain.*;
 import com.oneops.cms.cm.ops.domain.CmsActionOrder;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.crypto.CmsCrypto;
-import com.oneops.cms.dj.domain.CmsRfcAttribute;
-import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsRfcRelation;
-import com.oneops.cms.dj.domain.CmsWorkOrder;
+import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.dj.service.CmsRfcUtil;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.exceptions.CIValidationException;
@@ -663,7 +660,7 @@ public class CmsUtil {
     }
 
     /**
-     * Cust rfc c i2 rfc ci simple.
+     * Converts rfc ci to simple format.
      *
      * @param rfc       the rfc
      * @param attrProps the attr props
@@ -673,14 +670,33 @@ public class CmsUtil {
         return custRfcCI2RfcCISimpleLocal(rfc, attrProps, false);
     }
 
-    private CmsRfcCISimple custRfcCI2RfcCISimpleLocal(CmsRfcCI rfc, String[] attrProps, boolean getEncrepted) {
-
+    /**
+     * Converts rfc ci to simple format.
+     *
+     * @param rfc       the rfc
+     * @param attrProps the attr props
+     * @return the cms rfc ci simple
+     */
+    public CmsRfcCISimpleDeployed custRfcCI2RfcCISimpleDeployed(CmsRfcCIDeployed rfc, String[] attrProps) {
         if (rfc == null) {
             return null;
         }
 
-        CmsRfcCISimple rfcSimple = new CmsRfcCISimple();
+        CmsRfcCISimpleDeployed rfcSimple = new CmsRfcCISimpleDeployed();
+        custRfcCI2RfcCISimpleLocal(rfcSimple, rfc, attrProps, false);
+        rfcSimple.setDeploymentId(rfc.getDeploymentId());
+        return rfcSimple;
+    }
 
+    private CmsRfcCISimple custRfcCI2RfcCISimpleLocal(CmsRfcCI rfc, String[] attrProps, boolean getEncrepted) {
+        if (rfc == null) {
+            return null;
+        }
+
+        return custRfcCI2RfcCISimpleLocal(new CmsRfcCISimple(), rfc, attrProps, getEncrepted);
+    }
+
+    private CmsRfcCISimple custRfcCI2RfcCISimpleLocal(CmsRfcCISimple rfcSimple, CmsRfcCI rfc, String[] attrProps, boolean getEncrepted) {
         rfcSimple.setRfcId(rfc.getRfcId());
         rfcSimple.setReleaseId(rfc.getReleaseId());
         rfcSimple.setCiId(rfc.getCiId());

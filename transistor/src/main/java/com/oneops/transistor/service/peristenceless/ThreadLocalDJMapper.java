@@ -167,6 +167,11 @@ public class ThreadLocalDJMapper implements DJMapper{
     }
 
     @Override
+    public List<CmsRfcCIDeployed> getDeployedRfcCIByNsPathDateRangeClassName(String ns, String nsLike, Date startDate, Date endDate, String ciClassName) {
+        return get().getDeployedRfcCIByNsPathDateRangeClassName(ns, nsLike, startDate, endDate, ciClassName);
+    }
+
+    @Override
     public List<CmsRfcCI> getRfcCIByClazzAndName(String nsPath, String clazzName, String ciName, Boolean isActive, String state) {
         return get().getRfcCIByClazzAndName(nsPath, clazzName, ciName, isActive, state);
     }
@@ -189,6 +194,11 @@ public class ThreadLocalDJMapper implements DJMapper{
     @Override
     public List<CmsRfcCI> getClosedRfcCIByCiId(long ciId) {
         return get().getClosedRfcCIByCiId(ciId);
+    }
+
+    @Override
+    public List<CmsRfcCIDeployed> getDeployedRfcCIByCiId(long ciId) {
+        return get().getDeployedRfcCIByCiId(ciId);
     }
 
     @Override
