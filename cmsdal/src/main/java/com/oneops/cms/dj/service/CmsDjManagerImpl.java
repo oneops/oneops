@@ -185,6 +185,11 @@ public class CmsDjManagerImpl implements CmsDjManager {
         return rfcProcessor.getRfcCIByNsPathDateRangeClassName(nsPath, startDate, endDate, ciClassName);
     }
 
+    @Override
+    public List<CmsRfcCIDeployed> getDeployedRfcCIByNsPathDateRangeClassName(String nsPath, Date startDate, Date endDate, String ciClassName){
+        return rfcProcessor.getDeployedRfcCIByNsPathDateRangeClassName(nsPath, startDate, endDate, ciClassName);
+    }
+
     /* (non-Javadoc)
       * @see com.oneops.cms.dj.service.CmsDjManager#getRfcCIByNs(java.lang.String, java.lang.Boolean)
       */
@@ -199,6 +204,14 @@ public class CmsDjManagerImpl implements CmsDjManager {
     @Override
     public List<CmsRfcCI> getClosedRfcCIByCiId(long ciId) {
         return rfcProcessor.getClosedRfcCIByCiId(ciId);
+    }
+
+    /* (non-Javadoc)
+     * @see com.oneops.cms.dj.service.CmsDjManager#getDeployedRfcCIByCiId(long)
+     */
+    @Override
+    public List<CmsRfcCIDeployed> getDeployedRfcCIByCiId(long ciId) {
+        return rfcProcessor.getDeployedRfcCIByCiId(ciId);
     }
 
     /* (non-Javadoc)

@@ -2781,6 +2781,14 @@ div.rfc-list img, div.action-list img {
   padding:  2px;
 }
 
+.rfc-list li.rfc.highlight .accordion-group  {
+  border: 2px solid #555;
+}
+
+.rfc-list li.rfc.highlight .accordion-heading  {
+  background-color: #fcf8e3;
+}
+
 .rfc-list li.rfc .accordion-toggle {
   padding-left:  10px;
   padding-right: 5px;

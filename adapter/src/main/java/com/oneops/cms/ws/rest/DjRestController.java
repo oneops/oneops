@@ -18,10 +18,7 @@
 package com.oneops.cms.ws.rest;
 
 import com.oneops.cms.cm.domain.CmsAltNs;
-import com.oneops.cms.dj.domain.CmsRelease;
-import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsRfcRelation;
-import com.oneops.cms.dj.domain.TimelineBase;
+import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.dj.service.CmsDjManager;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.DJException;
@@ -226,7 +223,7 @@ public class DjRestController extends AbstractRestController {
 	
 	@RequestMapping(value="/dj/simple/rfc/cis", method = RequestMethod.GET)
 	@ResponseBody
-	public List<CmsRfcCISimple> getRfcCiBy3(
+	public List<? extends CmsRfcCISimple> getRfcCiBy3(
 			@RequestParam(value="releaseId", required = false) Long releaseId,  
 			@RequestParam(value="isActive", required = false) Boolean isActive, 
 			@RequestParam(value="ciId", required = false) Long ciId,
@@ -237,10 +234,11 @@ public class DjRestController extends AbstractRestController {
 			@RequestParam(value="ciClassName", required = false) String ciClassName,
 			@RequestParam(value="startDate", required = false) Long startDate,
 			@RequestParam(value="endDate", required = false) Long endDate,
+			@RequestParam(value="deployed", required = false) Boolean deployed,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
 		List<CmsRfcCISimple> rfcSimpleList = new ArrayList<>();
-		List<CmsRfcCI> rfcList = null;
+		List<? extends CmsRfcCI> rfcList = null;
 		if (isActive == null) {
 			isActive = true;
 		}
@@ -249,10 +247,18 @@ public class DjRestController extends AbstractRestController {
         } else if (releaseId != null) {
 			rfcList = djManager.getRfcCIBy3(releaseId, isActive, ciId);
 		} else if (ciId != null) {
-			rfcList = djManager.getClosedRfcCIByCiId(ciId);
+			if (Boolean.TRUE.equals(deployed)) {
+				rfcList = djManager.getDeployedRfcCIByCiId(ciId);
+			} else {
+				rfcList = djManager.getClosedRfcCIByCiId(ciId);
+			}
 		} else if (nsPath!=null){
 			if(startDate != null || endDate != null || ciClassName != null) {
-				rfcList = djManager.getRfcCIByNsPathDateRangeClassName(nsPath, startDate == null ? null : new Date(startDate), endDate == null ? null : new Date(endDate), ciClassName);
+				if (Boolean.TRUE.equals(deployed)) {
+					rfcList = djManager.getDeployedRfcCIByNsPathDateRangeClassName(nsPath, startDate == null ? null : new Date(startDate), endDate == null ? null : new Date(endDate), ciClassName);
+				} else {
+					rfcList = djManager.getRfcCIByNsPathDateRangeClassName(nsPath, startDate == null ? null : new Date(startDate), endDate == null ? null : new Date(endDate), ciClassName);
+				}
 			} else {
 				rfcList = djManager.getRfcCIByNs(nsPath, isActive);
 			}
@@ -261,7 +267,11 @@ public class DjRestController extends AbstractRestController {
 		if (rfcList != null) {
 			for (CmsRfcCI rfc : rfcList) {
 				scopeVerifier.verifyScope(scope, rfc);
-				rfcSimpleList.add(cmsUtil.custRfcCI2RfcCISimple(rfc, attrProps == null ? null : attrProps.split(",")));
+				if (rfc instanceof CmsRfcCIDeployed) {
+					rfcSimpleList.add(cmsUtil.custRfcCI2RfcCISimpleDeployed((CmsRfcCIDeployed) rfc, attrProps == null ? null : attrProps.split(",")));
+				} else {
+					rfcSimpleList.add(cmsUtil.custRfcCI2RfcCISimple(rfc, attrProps == null ? null : attrProps.split(",")));
+				}
 			}
 		}
 

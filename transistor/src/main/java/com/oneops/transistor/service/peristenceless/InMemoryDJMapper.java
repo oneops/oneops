@@ -104,6 +104,11 @@ public class InMemoryDJMapper implements DJMapper{
     }
 
     @Override
+    public List<CmsRfcCIDeployed> getDeployedRfcCIByNsPathDateRangeClassName(String ns, String nsLike, Date startDate, Date endDate, String ciClassName){
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public List<CmsRfcCI> getRfcCIByReleaseAndClass(long releaseId, String className) {
         return cis.values().stream()
                 .filter(ci -> ci.getReleaseId() == releaseId &&
@@ -231,6 +236,11 @@ public class InMemoryDJMapper implements DJMapper{
 
     @Override
     public List<CmsRfcCI> getClosedRfcCIByCiId(long ciId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<CmsRfcCIDeployed> getDeployedRfcCIByCiId(long ciId) {
         throw new UnsupportedOperationException();
     }
 
