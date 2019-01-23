@@ -2058,7 +2058,7 @@ public class CmsUtilTest {
     Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
     CmsCIAttribute attrC = new CmsCIAttribute();
     attrC.setAttributeName("required_availability_zone");
-    attrC.setDjValue("$OO_CLOUD{Standard_D1_v2:S}");
+    attrC.setDjValue("$OO_CLOUD{Azure_Compute_Standard_D1_v2:S}");
     attributes.put("cloud_1", attrC);
 
     ci.setAttributes(attributes);

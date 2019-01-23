@@ -1,6 +1,5 @@
 package com.oneops.transistor.service;
 
-import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.service.CmsCmProcessor;
@@ -8,14 +7,13 @@ import com.oneops.cms.crypto.CmsCryptoDES;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.cms.util.domain.CmsVar;
-import org.apache.ibatis.io.Resources;
-import org.junit.Before;
-import org.junit.Test;
 import org.mockito.Mockito;
+import org.testng.annotations.Test;
 
 import java.util.*;
 
 import static org.testng.Assert.*;
+
 
 /*******************************************************************************
  *
@@ -37,34 +35,20 @@ import static org.testng.Assert.*;
 public class BomRfcBulkProcessorTest {
     BomRfcBulkProcessor proc;
     private CmsCmProcessor cmsCmProcessor;
-    private CmsVar cmsVarProviderMapping;
 
-    @Before
-    public void setup() {
+    public BomRfcBulkProcessorTest() {
         CmsUtil cmsUtil = new CmsUtil();
         cmsUtil.setCmsCrypto(new CmsCryptoDES());
         cmsUtil.setCountOfErrorsToReport(5);
         proc = new BomRfcBulkProcessor();
-        try {
-            String resource = "cloud_system_vars.json";
-            String flavorVars = new Scanner(Resources.getResourceAsFile(resource)).useDelimiter("\\Z").next();
-
-            cmsCmProcessor = Mockito.mock(CmsCmProcessor.class);
-
-            cmsVarProviderMapping = new CmsVar();
-            Gson gson = new Gson();
-
-            cmsVarProviderMapping.setValue(flavorVars);
-
-        }catch (Exception e){
-            System.out.println(e);
-        }
-        Mockito.when(cmsCmProcessor.getCmSimpleVar(Mockito.eq(cmsUtil.CLOUD_SYSTEM_VARS))).thenReturn(cmsVarProviderMapping);
+        cmsCmProcessor = Mockito.mock(CmsCmProcessor.class);
+        Mockito.when(cmsCmProcessor.getCmSimpleVar(Mockito.eq(cmsUtil.CLOUD_SYSTEM_VARS))).thenReturn(new CmsVar(cmsUtil.CLOUD_SYSTEM_VARS, "{}"));
         cmsUtil.setCmProcessor(cmsCmProcessor);
         proc.setCmsUtil(cmsUtil);
     }
 
-    @Test
+    @Test(expectedExceptions = {CIValidationException.class},
+            expectedExceptionsMessageRegExp = ".*testAttribute[12].*references unknown global.*test[12].*")
     public void processAndValidateVars() {
 
         ArrayList<CmsCI> cis = new ArrayList<>();
@@ -84,17 +68,7 @@ public class BomRfcBulkProcessorTest {
         cis.add(ci);
 
 
-        //assertThrows(CIValidationException.class,() -> proc.processAndValidateVars(cis, new HashMap<>(), new HashMap<>(), new HashMap<>()));
-        try {
-            proc.processAndValidateVars(cis, new HashMap<>(), new HashMap<>(), new HashMap<>());
-            fail();
-        } catch (CIValidationException exception) {
-            String message = exception.getMessage();
-            assertNotNull(message);
-            assertTrue(message.contains("testAttribute1") && message.contains("testAttribute2") && message.contains("test1") && message.contains("test2"));
-        } catch (Exception e) {
-            fail(); // fail if any other exception thrown
-        }
+        proc.processAndValidateVars(cis, new HashMap<>(), new HashMap<>(), new HashMap<>());
     }
 
     @Test
