@@ -17,26 +17,11 @@
  *******************************************************************************/
 package com.oneops.cms.dj.service;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.apache.log4j.Logger;
-
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.crypto.CmsCrypto;
-import com.oneops.cms.dj.domain.CmsRelease;
-import com.oneops.cms.dj.domain.CmsRfcAttribute;
-import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsRfcRelation;
+import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.exceptions.MDException;
 import com.oneops.cms.md.domain.CmsClazzRelation;
@@ -44,6 +29,11 @@ import com.oneops.cms.md.service.CmsMdProcessor;
 import com.oneops.cms.util.CmsDJValidator;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.domain.AttrQueryCondition;
+import org.apache.log4j.Logger;
+
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The Class CmsCmRfcMrgProcessor.
@@ -193,13 +183,13 @@ public class CmsCmRfcMrgProcessor {
         //if this is a manifest.WatchedBy relation we need to generate dummy update rfc
         if (rel.getRelationName().equals("manifest.WatchedBy") &&
                 (rel.getToRfcId() != null || rel.getToRfcCi() != null)) {
-            createDummyUpdateRfc(rel.getFromCiId(), rel.getReleaseType(), 0, userId);
+            createDummyUpdateRfc(rel.getFromCiId(), rel.getReleaseType(), 0, userId, RfcHint.MONITOR);
         } else if (rel.getRelationName().equals("manifest.EscortedBy") &&
                 (rel.getToRfcId() != null || rel.getToRfcCi() != null)) {
-            createDummyUpdateRfc(rel.getFromCiId(), rel.getReleaseType(), 0, userId);
+            createDummyUpdateRfc(rel.getFromCiId(), rel.getReleaseType(), 0, userId, RfcHint.ATTACHMENT);
         } else if (rel.getRelationName().equals("manifest.LoggedBy") &&
                 (rel.getToRfcId() != null || rel.getToRfcCi() != null)) {
-            createDummyUpdateRfc(rel.getFromCiId(), rel.getReleaseType(), 0, userId);
+            createDummyUpdateRfc(rel.getFromCiId(), rel.getReleaseType(), 0, userId, RfcHint.LOG);
         }
     }
 
@@ -208,25 +198,24 @@ public class CmsCmRfcMrgProcessor {
         if (rfc.getCiClassName().equals("manifest.Monitor")
                 && (rfc.getRfcAction().equals("update") || rfc.getRfcAction().equals("delete"))) {
             for (CmsCIRelation rel : cmProcessor.getToCIRelationsNakedNoAttrs(rfc.getCiId(), "manifest.WatchedBy", null, null)) {
-                createDummyUpdateRfc(rel.getFromCiId(), rfc.getReleaseType(), 0, userId);
+                createDummyUpdateRfc(rel.getFromCiId(), rfc.getReleaseType(), 0, userId, RfcHint.MONITOR);
             }
         } else if (rfc.getCiClassName().equals("manifest.Log")
                 && (rfc.getRfcAction().equals("update") || rfc.getRfcAction().equals("delete"))) {
             for (CmsCIRelation rel : cmProcessor.getToCIRelationsNakedNoAttrs(rfc.getCiId(), "manifest.LoggedBy", null, null)) {
-                createDummyUpdateRfc(rel.getFromCiId(), rfc.getReleaseType(), 0, userId);
+                createDummyUpdateRfc(rel.getFromCiId(), rfc.getReleaseType(), 0, userId, RfcHint.LOG);
             }
         }
         //this is temporary hack until we implement traversal relation logic
-        else if (rfc.getCiClassName().equals("bom.Compute")
-                && rfc.getRfcAction().equals("replace")) {
-            for (CmsCIRelation rel : cmProcessor.getToCIRelationsNakedNoAttrs(rfc.getCiId(), "bom.DependsOn", null, "bom.Lb")) {
-                createDummyUpdateRfc(rel.getFromCiId(), rfc.getReleaseType(), rfc.getExecOrder() + 1, userId);
-            }
-            for (CmsCIRelation rel : cmProcessor.getToCIRelationsNakedNoAttrs(rfc.getCiId(), "bom.DependsOn", null, "bom.Fqdn")) {
-                createDummyUpdateRfc(rel.getFromCiId(), rfc.getReleaseType(), rfc.getExecOrder() + 1, userId);
-            }
-
-        }
+//        else if (rfc.getCiClassName().equals("bom.Compute")
+//                && rfc.getRfcAction().equals("replace")) {
+//            for (CmsCIRelation rel : cmProcessor.getToCIRelationsNakedNoAttrs(rfc.getCiId(), "bom.DependsOn", null, "bom.Lb")) {
+//                createDummyUpdateRfc(rel.getFromCiId(), rfc.getReleaseType(), rfc.getExecOrder() + 1, userId);
+//            }
+//            for (CmsCIRelation rel : cmProcessor.getToCIRelationsNakedNoAttrs(rfc.getCiId(), "bom.DependsOn", null, "bom.Fqdn")) {
+//                createDummyUpdateRfc(rel.getFromCiId(), rfc.getReleaseType(), rfc.getExecOrder() + 1, userId);
+//            }
+//        }
     }
 
 
@@ -647,23 +636,26 @@ public class CmsCmRfcMrgProcessor {
      * @param releaseType the release type
      * @param execOrder   the exec order
      * @param userId      the user id
+     * @param hint        hint
      * @return the cms rfc ci
      */
-    public CmsRfcCI createDummyUpdateRfc(long ciId, String releaseType, int execOrder, String userId) {
-
+    public CmsRfcCI createDummyUpdateRfc(long ciId, String releaseType, int execOrder, String userId, String hint) {
         //first lets check if there is an rfc already
         CmsRfcCI existingRfc = rfcProcessor.getOpenRfcCIByCiId(ciId);
         if (existingRfc != null) {
+            if (hint != null && !hint.equals(existingRfc.getHint())) {
+                existingRfc.setHint(hint);
+                rfcProcessor.updateRfcExecOrder(existingRfc);
+            }
             return existingRfc;
         }
 
         CmsCI ci = cmProcessor.getCiByIdNaked(ciId);
-        if (ci != null) {
-            CmsRfcCI rfcCi = newRfcCi(ci, releaseType, execOrder, userId);
-            return createRfc(rfcCi, userId);
-        } else {
-            return null;
-        }
+        if (ci == null) return null;
+
+        CmsRfcCI rfcCi = newRfcCi(ci, releaseType, execOrder, userId);
+        if (hint != null) rfcCi.setHint(hint);
+        return createRfc(rfcCi, userId);
     }
 
     private CmsRfcCI newRfcCi(CmsCI ci, String releaseType, int execOrder, String userId) {

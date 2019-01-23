@@ -2,8 +2,8 @@
 <%= list((rfc_cis.presence || []) + (rfc_relations.presence || []),
             :class => 'release-diff',
             :toolbar => {:list_name => 'release_rfc_list',
-                         :sort_by   => [%w(Timestamp timestamp), %w(Release release), %w(Type rfcType)],
-                         :filter_by => %w(release attributeName rfcType relationName timestamp),
+                         :sort_by   => [%w(ID id), %w(Timestamp timestamp), %w(Release release), %w(Type rfcType)],
+                         :filter_by => %w(id release attributeName rfcType relationName timestamp),
                          :quick_filters => [{:label => 'All', :value => ''},
                                             {:label => 'CIs', :value => 'rfcType=ci', :selected => true},
                                             {:label => 'Relations', :value => 'rfcType=relation'}],
@@ -19,9 +19,10 @@
        mda ? mda.description : attr
      end
      timestamp = target.rfc_updated_timestamp.presence || target.rfc_created_timestamp.presence || target.updated_timestamp.presence || target.created_timestamp
-     timestamp_str = timestamp.present? && timestamp.strftime('%F %R') %>
+     timestamp_str = timestamp.present? && timestamp.strftime('%F %R')
+     deployment_id = target.attributes[:deploymentId] %>
   <% builder.itemid rfc_id %>
-  <% builder.attributes raw(%(release="#{target.releaseId}" timestamp="#{timestamp_str}" rfcType="#{is_ci ? 'ci' : 'relation'}" relationName="#{relation_name}" attributeName="#{diff_attribute_desc.join('+')}")) %>
+  <% builder.attributes raw(%(id=#{rfc_id} release="#{target.releaseId}" timestamp="#{timestamp_str}" rfcType="#{is_ci ? 'ci' : 'relation'}" relationName="#{relation_name}" attributeName="#{diff_attribute_desc.join('+')}")) %>
   <% builder.target nil %>
   <% builder.status do %>
     <%= marker(timestamp_str, 'label-inverse') if timestamp_str.present? %>
@@ -30,8 +31,14 @@
         <%= status_marker('release', "#{target.releaseId} #{icon('external-link')}") %>
       <% end %>
     <% end %>
-    <%= status_marker('id', target.rfcId) %>
+    <%= status_marker('id', rfc_id) %>
     <%= status_marker('action', target.rfcAction, action_to_label(target.rfcAction)) %>
+    <% if deployment_id.present? %>
+      <%= link_to(redirect_deployment_path(deployment_id, :rfc_id => rfc_id)) do %>
+        <%= status_marker('deployment', deployment_id) %>
+      <% end %>
+    <% end %>
+
   <% end %>
   <% builder.menu :none %>
   <% builder.top do %>
@@ -93,4 +100,11 @@
 
 <script>
   $j(".release-diff .diff-container").prettyTextDiff({cleanup: true, diffContainer: ".changed"});
+
+  (function () {
+    var listItemId = getHashParam("release_rfc_list");
+    if (listItemId) {
+      $j("#item_" + listItemId + " .topdesc a").click();
+    }
+  })();
 </script>

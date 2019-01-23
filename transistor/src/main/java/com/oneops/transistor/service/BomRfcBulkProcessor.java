@@ -53,13 +53,14 @@ public class BomRfcBulkProcessor {
 
     private static final int priorityMax = 1;
 
-	private static final String CONVERGE_RELATION_ATTRIBUTE   = "converge";
+	private static final String CONVERGE_RELATION_ATTRIBUTE = "converge";
 
     private static final int MAX_RECURSION_DEPTH = Integer.valueOf(System.getProperty("com.oneops.transistor.MaxRecursion", "150"));
     private static final int MAX_NUM_OF_EDGES    = Integer.valueOf(System.getProperty("com.oneops.transistor.MaxEdges", "100000"));
 
 	private CmsCmProcessor cmProcessor;
-	private CmsRfcProcessor rfcProcessor;
+	private CmsRfcProcessor manifestRfcProcessor;
+	private CmsRfcProcessor bomRfcProcessor;
 	private CmsCmRfcMrgProcessor cmRfcMrgProcessor;
 	private TransUtil trUtil;
 	private CmsUtil cmsUtil;
@@ -67,8 +68,7 @@ public class BomRfcBulkProcessor {
 	private BomEnvManager envManager;
 
 	//Compares bom cis by the numbers in their ci_name. Essentially sorts them by "edge numbers" like *-1, *-2 etc
-	public static Comparator<CmsCI> bomCiComparatorByName = Comparator.comparing(bomCi
-			-> Long.valueOf(bomCi.getCiName().replaceAll("[^0-9]", "")));
+	public static Comparator<CmsCI> bomCiComparatorByName = Comparator.comparing(bomCi -> Long.valueOf(bomCi.getCiName().replaceAll("[^0-9]", "")));
 
 
 	public void setCmsUtil(CmsUtil cmsUtil) {
@@ -83,8 +83,11 @@ public class BomRfcBulkProcessor {
 		this.cmProcessor = cmProcessor;
 	}
 
-	public void setRfcProcessor(CmsRfcProcessor rfcProcessor) {
-		this.rfcProcessor = rfcProcessor;
+	public void setManifestRfcProcessor(CmsRfcProcessor rfcProcessor) {
+		this.manifestRfcProcessor = rfcProcessor;
+	}
+	public void setBomRfcProcessor(CmsRfcProcessor bomRfcProcessor) {
+		this.bomRfcProcessor = bomRfcProcessor;
 	}
 
 	public void setCmRfcMrgProcessor(CmsCmRfcMrgProcessor cmRfcMrgProcessor) {
@@ -378,7 +381,7 @@ public class BomRfcBulkProcessor {
 		newRfc.setCreatedBy(userId);
 		newRfc.setUpdatedBy(userId);
 		newRfc.setReleaseId(releaseId);
-		rfcProcessor.createRfcCI(newRfc, userId);
+		bomRfcProcessor.createRfcCI(newRfc, userId);
 	}
 
 	private void processObsoleteOrder(long startingCiId, Map<Long, Integer> execOrder, Map<Long, List<CmsCIRelation>> obsoleteRelations) {
@@ -414,6 +417,7 @@ public class BomRfcBulkProcessor {
 		String bomNsPath = pc.getBomNsPath();
 		Map<Long, List<CmsCIRelation>> depOnFromMap = pc.getDependsOnFromMap();
 		Map<Long, List<CmsCIRelation>> depOnToMap = pc.getDependsOnToMap();
+		ForceUpdateCache forceUpdateCache = new ForceUpdateCache();
 
 
 		Map<String, BomRfc> bomMap = new HashMap<>();
@@ -468,16 +472,16 @@ public class BomRfcBulkProcessor {
 					String bomId = "bom." + trUtil.getLongShortClazzName(bom.mfstCi.getCiClassName()) + ":" + bom.ciName;
 					CmsCI existingCi = existingCIsByBomIdMap.get(bomId);
 					CmsRfcCI existingRfc = existingRfcCIs.get(bomId);
-					boolean rfcCreated = false;
+					boolean rfcCreated;
 					if (priorityMap.containsKey(shortClazzName)) {
 						bom.execOrder = priorityMap.get(shortClazzName);
-						rfcCreated = upsertRfcs(bom, existingCi, existingRfc, nsId, bomNsPath, bindingRel, releaseId, userId, existingRels);
+						rfcCreated = upsertRfcs(bom, existingCi, existingRfc, nsId, bomNsPath, bindingRel, releaseId, userId, existingRels, forceUpdateCache);
 						if (rfcCreated && realExecOrder == 1) {
 							incOrder = true;
 						}
 					} else {
 						//bom.execOrder = realExecOrder;
-						rfcCreated = upsertRfcs(bom, existingCi, existingRfc, nsId, bomNsPath, bindingRel, releaseId, userId, existingRels);
+						rfcCreated = upsertRfcs(bom, existingCi, existingRfc, nsId, bomNsPath, bindingRel, releaseId, userId, existingRels, forceUpdateCache);
 						if (rfcCreated && bom.rfc != null) {
 							//if rfc was created, lets check if any propagation is required
 							if(bom.rfc.getCiClassName().equals("bom.Compute") && bom.rfc.getRfcAction().equals("replace")) {
@@ -606,7 +610,7 @@ public class BomRfcBulkProcessor {
 	}
 
 	private Map<String, CmsRfcCI> getOpenRfcCis(String nsPath) {
-		return rfcProcessor.getOpenRfcCIByClazzAndName(nsPath, null, null).stream()
+		return bomRfcProcessor.getOpenRfcCIByClazzAndName(nsPath, null, null).stream()
 				.collect(Collectors.toMap(ci -> ci.getCiClassName() + ":" + ci.getCiName(), Function.identity()));
 	}
 
@@ -700,7 +704,7 @@ public class BomRfcBulkProcessor {
 		}
 	}
 
-	private boolean upsertRfcs(BomRfc bom, CmsCI existingCi, CmsRfcCI existingRfc, long nsId, String nsPath, CmsCIRelation bindingRel, Long releaseId, String userId, ExistingRelations existingRels) {
+	private boolean upsertRfcs(BomRfc bom, CmsCI existingCi, CmsRfcCI existingRfc, long nsId, String nsPath, CmsCIRelation bindingRel, Long releaseId, String userId, ExistingRelations existingRels, ForceUpdateCache forceUpdateCache) {
 		boolean rfcCreated = false;
 		if (bom.mfstCi.getCiState().equalsIgnoreCase("pending_deletion")) {
 			List<CmsRfcCI> cis2delete = cmRfcMrgProcessor.getDfDjCi(nsPath, "bom." + trUtil.getLongShortClazzName(bom.mfstCi.getCiClassName()), bom.ciName, "dj");
@@ -718,28 +722,32 @@ public class BomRfcBulkProcessor {
 		} else {
 			bom.rfc = createBomRfc(bom, existingCi, existingRfc, nsPath, nsId, userId, releaseId);
 			rfcCreated = bom.rfc.getRfcId() > 0;
+			long lastAppliedRfcId = bom.mfstCi.getLastAppliedRfcId();
 			if (!rfcCreated) {
 				//lets make sure the manifest object has not changed or we will create dummy update
 				CmsCIRelation realizedAsRel = existingRels.getExistingRel(BASE_REALIZED_AS, bom.mfstCi.getCiId(), bom.rfc.getCiId());
-				if (realizedAsRel != null && realizedAsRel.getAttribute("last_manifest_rfc") != null) {
-					long deployedManifestRfc = Long.valueOf(realizedAsRel.getAttribute("last_manifest_rfc").getDjValue());
-					if (bom.mfstCi.getLastAppliedRfcId() > deployedManifestRfc) {
-						bom.rfc = createDummyUpdateRfc(existingCi, releaseId, bom.execOrder, userId);
-						rfcCreated = true;
+				if (realizedAsRel != null) {
+					CmsCIRelationAttribute lastManifestRfcAttr = realizedAsRel.getAttribute("last_manifest_rfc");
+					if (lastManifestRfcAttr != null) {
+						long deployedManifestRfc = Long.valueOf(lastManifestRfcAttr.getDjValue());
+						if (lastAppliedRfcId > deployedManifestRfc && forceUpdateCache.shouldForce(bom.manifestCiId, deployedManifestRfc, lastAppliedRfcId)) {
+							bom.rfc = createDummyUpdateRfc(existingCi, releaseId, bom.execOrder, userId);
+							rfcCreated = true;
+						}
 					}
 				}
 			}
 
 			String priority = bindingRel.getAttribute("priority").getDjValue();
 			String comments = CmsUtil.generateRelComments(bom.mfstCi.getCiName(), bom.mfstCi.getCiClassName(), bom.rfc.getCiName(), bom.rfc.getCiClassName());
-			CmsRfcRelation realizedAs = bootstrapRfcRelation(bom.mfstCi.getCiId(), bom.rfc.getCiId(), BASE_REALIZED_AS, nsPath, nsId, userId, comments, priority, bom.mfstCi.getLastAppliedRfcId(), existingRels);
+			CmsRfcRelation realizedAs = bootstrapRealizedAsRfcRelation(bom.mfstCi.getCiId(), bom.rfc.getCiId(), nsPath, nsId, userId, comments, priority, lastAppliedRfcId, existingRels);
 			if (rfcCreated) {
 				realizedAs.setToRfcId(bom.rfc.getRfcId());
 			}
 			createBomRelationRfc(realizedAs, existingRels, releaseId);
 
 			comments = CmsUtil.generateRelComments(bom.rfc.getCiName(), bom.rfc.getCiClassName(), bindingRel.getToCi().getCiName(), bindingRel.getToCi().getCiClassName());
-			CmsRfcRelation deployedTo = bootstrapRfcRelation(bom.rfc.getCiId(), bindingRel.getToCiId(), BASE_DEPLOYED_TO, nsPath, nsId, userId, comments, priority, existingRels);
+			CmsRfcRelation deployedTo = bootstrapDeployedToRfcRelation(bom.rfc.getCiId(), bindingRel.getToCiId(), nsPath, nsId, userId, comments, priority, existingRels);
 			if (rfcCreated) {
 				deployedTo.setFromRfcId(bom.rfc.getRfcId());
 			}
@@ -792,9 +800,9 @@ public class BomRfcBulkProcessor {
 
 		rfc.setIsActiveInRelease(true);
 		if (rfc.getRfcId() == 0) {
-			rfcProcessor.createRfcRaw(rfc);
+			bomRfcProcessor.createRfcRaw(rfc);
 		} else {
-			rfcProcessor.updateRfc(rfc, existingRfc);
+			bomRfcProcessor.updateRfc(rfc, existingRfc);
 		}
 
 		return rfc;
@@ -839,9 +847,9 @@ public class BomRfcBulkProcessor {
 			rfc.setRfcAction("add");
 
 			if (rfc.getRfcId() == 0) {
-				rfcProcessor.createRfcRelationRaw(rfc);
+				bomRfcProcessor.createRfcRelationRaw(rfc);
 			} else {
-				rfcProcessor.updateRfcRelation(rfc, existingRels.getRfcRel(rfc.getRelationName(), rfc.getFromCiId(), rfc.getToCiId()));
+				bomRfcProcessor.updateRfcRelation(rfc, existingRels.getRfcRel(rfc.getRelationName(), rfc.getFromCiId(), rfc.getToCiId()));
 			}
 		} else {
 			//need to figure out delta and create update rfc
@@ -850,9 +858,9 @@ public class BomRfcBulkProcessor {
 				rfc.setIsActiveInRelease(true);
 				rfc.setRfcAction("update");
 				if (rfc.getRfcId() == 0) {
-					rfcProcessor.createRfcRelationRaw(rfc);
+					bomRfcProcessor.createRfcRelationRaw(rfc);
 				} else {
-					rfcProcessor.updateRfcRelation(rfc, existingRels.getRfcRel(rfc.getRelationName(), rfc.getFromCiId(), rfc.getToCiId()));
+					bomRfcProcessor.updateRfcRelation(rfc, existingRels.getRfcRel(rfc.getRelationName(), rfc.getFromCiId(), rfc.getToCiId()));
 				}
 			}
 		}
@@ -1284,7 +1292,7 @@ public class BomRfcBulkProcessor {
 	}
 
 	private CmsRfcCI createDummyUpdateRfc(CmsCI ci, Long releaseId, int execOrder, String userId, boolean hint) {
-		CmsRfcCI existingRfc = rfcProcessor.getOpenRfcCIByCiIdNoAttrs(ci.getCiId());
+		CmsRfcCI existingRfc = bomRfcProcessor.getOpenRfcCIByCiIdNoAttrs(ci.getCiId());
 		if (existingRfc != null) {
 			return existingRfc;
 		}
@@ -1294,10 +1302,10 @@ public class BomRfcBulkProcessor {
 		rfcCi.setRfcAction("update");
 		rfcCi.setExecOrder(execOrder);
 		if (hint) {
-			rfcCi.setHint(gson.toJson(new RfcHint("true")));
+			rfcCi.setHint(RfcHint.PROPAGATION);
 		}
 
-		rfcProcessor.createRfcRaw(rfcCi);
+		bomRfcProcessor.createRfcRaw(rfcCi);
 
 		return rfcCi;
 	}
@@ -1335,20 +1343,20 @@ public class BomRfcBulkProcessor {
 		return newRfc;
 	}
 
-	private CmsRfcRelation bootstrapRfcRelation(long fromCiId, long toCiId, String relName, String nsPath, long nsId, String userId, String comments, String priority, ExistingRelations existingRels) {
+	private CmsRfcRelation bootstrapDeployedToRfcRelation(long fromCiId, long toCiId, String nsPath, long nsId, String userId, String comments, String priority, ExistingRelations existingRels) {
 		Set<String> attrs = new HashSet<>();
 		attrs.add("priority");
-		CmsRfcRelation newRfc = bootstrapRfcRelation(fromCiId, toCiId, relName, nsPath, nsId, userId, attrs, existingRels);
+		CmsRfcRelation newRfc = bootstrapRfcRelation(fromCiId, toCiId, BASE_DEPLOYED_TO, nsPath, nsId, userId, attrs, existingRels);
 		newRfc.setComments(comments);
 		newRfc.addOrUpdateAttribute("priority", priority);
 		return newRfc;
 	}
 
-	private CmsRfcRelation bootstrapRfcRelation(long fromCiId, long toCiId, String relName, String nsPath, long nsId, String userId, String comments, String priority, long lastManfestRfcId, ExistingRelations existingRels) {
+	private CmsRfcRelation bootstrapRealizedAsRfcRelation(long fromCiId, long toCiId, String nsPath, long nsId, String userId, String comments, String priority, long lastManfestRfcId, ExistingRelations existingRels) {
 		Set<String> attrs = new HashSet<>();
 		attrs.add("priority");
 		attrs.add("last_manifest_rfc");
-		CmsRfcRelation newRfc = bootstrapRfcRelation(fromCiId, toCiId, relName, nsPath, nsId, userId, attrs, existingRels);
+		CmsRfcRelation newRfc = bootstrapRfcRelation(fromCiId, toCiId, BASE_REALIZED_AS, nsPath, nsId, userId, attrs, existingRels);
 		newRfc.setComments(comments);
 		newRfc.addOrUpdateAttribute("priority", priority);
 		newRfc.addOrUpdateAttribute("last_manifest_rfc", String.valueOf(lastManfestRfcId));
@@ -1391,6 +1399,7 @@ public class BomRfcBulkProcessor {
 			}
 			return links;
 		}
+
 		BomLink getExisitngToLinks(String fromNodeId) {
 			for (BomLink link : toLinks) {
 				if (link.fromNodeId.equals(fromNodeId)) {
@@ -1417,7 +1426,7 @@ public class BomRfcBulkProcessor {
 					.collect(Collectors.groupingBy(CmsCIRelation::getRelationName,
 												   Collectors.toMap(r -> r.getFromCiId() + ":" + r.getToCiId(),
 																	Function.identity())));
-			this.rfcs = rfcProcessor.getOpenRfcRelationsByNs(context.getBomNsPath()).stream()
+			this.rfcs = bomRfcProcessor.getOpenRfcRelationsByNs(context.getBomNsPath()).stream()
 					.collect(Collectors.groupingBy(CmsRfcRelation::getRelationName,
 												   Collectors.toMap(r -> r.getFromCiId() + ":" + r.getToCiId(),
 																	Function.identity())));
@@ -1452,6 +1461,21 @@ public class BomRfcBulkProcessor {
 		}
 	}
 
+	private class ForceUpdateCache {
+		private Map<String, Boolean> cache = new HashMap<>();
+
+		boolean shouldForce(Long ciId, Long afterRfcId, Long toRfcId) {
+			String key = ciId + "-" + afterRfcId + "-" + toRfcId;
+			Boolean result = cache.get(key);
+			if (result == null) {
+				result = manifestRfcProcessor.getAppliedRfcCIsAfterRfcIdNoAttrs(ciId, afterRfcId, toRfcId).stream()
+						.anyMatch(rfc -> rfc.getHint() != null && !rfc.getHint().isEmpty());
+				cache.put(key, result);
+			}
+			return result;
+		}
+	}
+
 	public CmsDeployment scaleDown(CmsCI platformCi, CmsCI env, int scaleDownBy, int minComputesInEachCloud,
 								   boolean ensureEvenScale, String user) {
 		long startTimeMillis = System.currentTimeMillis();
@@ -1476,7 +1500,7 @@ public class BomRfcBulkProcessor {
 		String bomNsPath = env.getNsPath() + "/" + env.getCiName() + "/bom";
 		//TODO: cancel failed deployment
 		envManager.discardEnvBom(env.getCiId());
-		long releaseId = rfcProcessor.createRelease(bomNsPath, null, user);
+		long releaseId = bomRfcProcessor.createRelease(bomNsPath, null, user);
 
 		List<CmsCIRelation> dependsOnRelations = cmProcessor.getCIRelations(platformCi.getNsPath(),
 				"manifest.DependsOn", null, null, null);
@@ -1610,12 +1634,12 @@ public class BomRfcBulkProcessor {
 		//find the bom.depends-on of this bom ci
 		List<CmsCI> allDependsOnCis = new ArrayList<>();
 
-		List<CmsCIRelation> fromRelations = cmProcessor.getFromCIRelations(bomCiId, "bom.DependsOn", null);
+		List<CmsCIRelation> fromRelations = cmProcessor.getFromCIRelations(bomCiId, BOM_DEPENDS_ON, null);
 		for (CmsCIRelation relation : fromRelations) {
 			allDependsOnCis.add(relation.getToCi());
 		}
 
-		List<CmsCIRelation> toRelations = cmProcessor.getToCIRelations(bomCiId, "bom.DependsOn", null);
+		List<CmsCIRelation> toRelations = cmProcessor.getToCIRelations(bomCiId, BOM_DEPENDS_ON, null);
 		for (CmsCIRelation relation : toRelations) {
 			allDependsOnCis.add(relation.getFromCi());
 		}
@@ -1776,8 +1800,7 @@ public class BomRfcBulkProcessor {
 
 	private List<CmsCI> findCisOnCompute(long ciId) {
 		List<CmsCI> onComputeCis = new ArrayList<>();
-		List<CmsCIRelation> managedViaRelations = cmProcessor.getToCIRelations(ciId,
-				"bom.ManagedVia", null);
+		List<CmsCIRelation> managedViaRelations = cmProcessor.getToCIRelations(ciId, BOM_MANAGED_VIA, null);
 		for (CmsCIRelation managedViaRelation : managedViaRelations) {
 			onComputeCis.add(managedViaRelation.getFromCi());
 		}

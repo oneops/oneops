@@ -17,22 +17,21 @@
  *******************************************************************************/
 package com.oneops.cms.dj.service;
 
+import com.oneops.cms.cm.domain.CmsAltNs;
+import com.oneops.cms.dj.domain.*;
+import com.oneops.cms.exceptions.DJException;
+import com.oneops.cms.util.CmsError;
+import com.oneops.cms.util.QueryOrder;
+import com.oneops.cms.util.TimelineQueryParam;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import com.oneops.cms.cm.domain.CmsAltNs;
-import com.oneops.cms.dj.domain.*;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
-
-import com.oneops.cms.exceptions.DJException;
-import com.oneops.cms.util.CmsError;
-import com.oneops.cms.util.QueryOrder;
-import com.oneops.cms.util.TimelineQueryParam;
 
 /**
  * The Class CmsDjManagerImpl.
@@ -179,6 +178,19 @@ public class CmsDjManagerImpl implements CmsDjManager {
     }
 
     /* (non-Javadoc)
+     * @see com.oneops.cms.dj.service.CmsDjManager#getRfcCIByNs(java.lang.String, java.lang.Boolean)
+     */
+    @Override
+    public List<CmsRfcCI> getRfcCIByNsPathDateRangeClassName(String nsPath, Date startDate, Date endDate, String ciClassName){
+        return rfcProcessor.getRfcCIByNsPathDateRangeClassName(nsPath, startDate, endDate, ciClassName);
+    }
+
+    @Override
+    public List<CmsRfcCIDeployed> getDeployedRfcCIByNsPathDateRangeClassName(String nsPath, Date startDate, Date endDate, String ciClassName){
+        return rfcProcessor.getDeployedRfcCIByNsPathDateRangeClassName(nsPath, startDate, endDate, ciClassName);
+    }
+
+    /* (non-Javadoc)
       * @see com.oneops.cms.dj.service.CmsDjManager#getRfcCIByNs(java.lang.String, java.lang.Boolean)
       */
     @Override
@@ -195,11 +207,11 @@ public class CmsDjManagerImpl implements CmsDjManager {
     }
 
     /* (non-Javadoc)
-     * @see com.oneops.cms.dj.service.CmsDjManager#getRollUpRfc(long, long)
+     * @see com.oneops.cms.dj.service.CmsDjManager#getDeployedRfcCIByCiId(long)
      */
     @Override
-    public CmsRfcCI getRollUpRfc(long ciId, long rfcId) {
-        return rfcProcessor.getRollUpRfc(ciId, rfcId);
+    public List<CmsRfcCIDeployed> getDeployedRfcCIByCiId(long ciId) {
+        return rfcProcessor.getDeployedRfcCIByCiId(ciId);
     }
 
     /* (non-Javadoc)

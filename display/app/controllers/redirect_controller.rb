@@ -2,6 +2,7 @@ class RedirectController < ApplicationController
   skip_before_filter :authenticate_user!, :check_eula, :check_organization, :check_reset_password, :check_username, :set_active_resource_headers
   before_filter :clear_active_resource_headers
   before_filter :find_ci, :only => [:ci, :instance, :monitor_doc]
+  before_filter :find_rfc, :only => [:rfc]
 
   def ns
     ns = params[:path]
@@ -29,7 +30,8 @@ class RedirectController < ApplicationController
     end
 
     if deployment
-      redirect_to path_to_deployment(deployment)
+      rfc_id = params[:rfc_id]
+      redirect_to "#{path_to_deployment(deployment)}#{"/rfc_id/#{rfc_id}" if rfc_id.present?}"
     else
       render :text => 'Deployment not found'
      end
@@ -47,6 +49,10 @@ class RedirectController < ApplicationController
 
   def ci
     redirect_to path_to_ci(@ci, params[:dto])
+  end
+
+  def rfc
+    redirect_to "#{path_to_ci(@ci, params[:dto])}/history#/release_rfc_list/#{@rfc.rfcId}"
   end
 
   def instance
@@ -91,7 +97,31 @@ class RedirectController < ApplicationController
     end
 
     unless @ci
-      flash[:error] = "Instance #{ci_id} not found."
+      flash[:error] = "CI #{ci_id} not found."
+      redirect_to :root
+    end
+  end
+
+  def find_rfc
+    begin
+      rfc_id = params[:id]
+      @rfc = Cms::RfcCi.find(rfc_id)
+    rescue
+    end
+
+    unless @rfc
+      flash[:error] = "Rfc #{rfc_id} not found."
+      redirect_to :root
+      return
+    end
+
+    begin
+      @ci = Cms::DjCi.find(@rfc.ciId)
+    rescue
+    end
+
+    unless @ci
+      flash[:error] = "CI #{@rfc.ciId} for rfc #{rfc_id} not found."
       redirect_to :root
     end
   end

@@ -17,6 +17,14 @@ else
   return
 end
 
+Chef::Log.info("Cloud Provider #{provider}")
+
+if provider =~ /azure/
+  Chef::Log.info("Calling azure reboot vm recipe")
+  include_recipe "shared::azure_reboot_vm"
+  return
+end
+
 #only process for openstack clouds (TO-DO support other clouds)
 if provider !~ /openstack/
   Chef::Log.info("Cloud Provider #{provider} is not supported - wait #{sleep_time} seconds.")
@@ -54,7 +62,7 @@ end
   #test
   conn.servers.get(instance_id).reboot
   sleep 2
-  
+
 #1 wait for regular reboot to finish, if not successful try hard reboot
 if !is_reboot_successful?('', max_wait_time, wait_step, conn, instance_id)
   Chef::Log.info( "Soft reboot was unsuccessful, trying a HARD reboot now.")

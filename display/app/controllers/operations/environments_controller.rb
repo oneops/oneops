@@ -100,22 +100,26 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
                                   :recursive   => true,
                                   :ciClassName => 'User'})
     result = cis.inject([]) do |h, u|
-      keys_json = u.ciAttributes.authorized_keys
-      next unless keys_json.present?
       _, org, assembly, env, _, platform, version, _ = u.nsPath.split('/')
-      begin
-        keys = JSON.parse(keys_json)
-      rescue Exception => e
-        Rails.logger.info "Failed to parse authorized_keys attribute for ciId=#{u.ciId}: #{keys_json}"
-        next
-      end
-      keys.each do |key|
-        h << {:key      => key,
-              :platform => "#{platform}/#{version}",
-              :instance => u.ciName,
-              :username => u.ciAttributes.username,
-              :sudoer   => u.ciAttributes.sudoer,
-              :url      => redirect_ci_url(:id => u.ciId, :org_name => nil)}
+      %w(authorized_keys usermap).each do |attr|
+        json = u.ciAttributes.attributes[attr]
+        next unless json.present?
+        begin
+          keys = JSON.parse(json)
+        rescue Exception => e
+          Rails.logger.info "Failed to parse #{attr} attribute for ciId=#{u.ciId}: #{json}"
+          keys = nil
+        end
+        if keys.present?
+          keys.each do |key_or_name, key|
+            h << {:key      => key || key_or_name,
+                  :platform => "#{platform}/#{version}",
+                  :instance => u.ciName,
+                  :username => key ? key_or_name : u.ciAttributes.username,
+                  :sudoer   => u.ciAttributes.sudoer,
+                  :url      => redirect_ci_url(:id => u.ciId, :org_name => nil)}
+          end
+        end
       end
       h
     end
@@ -124,8 +128,53 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
 
     respond_to do |format|
       format.json {render :json => result}
-
+      format.yaml {render :text => result.to_yaml, :content_type => 'text/data_string'}
       format.any {render_csv(result, [:key, :platform, :instance, :username, :sudoer, :url], [:key, :url])}
+    end
+  end
+
+  def user_changes
+    search_params = {:nsPath      => search_ns_path,
+                     :deployed    => true,
+                     :ciClassName => 'User'}
+    %w(start end).each do |k|
+      date = params[k]
+      search_params["#{k}Date"] = Time.parse(date).to_i * 1000 if date.present?
+    end
+    rfcs   = Cms::RfcCi.all(:params => search_params)
+    result = rfcs.group_by(&:ciId).inject([]) do |a, (ci_id, ci_rfcs)|
+      ci_rfcs.sort_by!(&:created)
+      _, org, assembly, env, _, platform, version, _ = ci_rfcs.first.nsPath.split('/')
+      ci_rfcs.inject(a) do |aa, rfc|
+        attrs = nil
+        if rfc.rfcAction == 'update'
+          base_attrs = rfc.ciBaseAttributes.attributes
+          attrs = rfc.ciAttributes.attributes.slice(:sudoer, :authorized_keys, :usermap).to_a.inject([]) do |aaa, (k, v)|
+            aaa << k if (v.present? || base_attrs[k].present?) && v != base_attrs[k]
+            aaa
+          end
+          next aa if attrs.blank?
+        end
+
+        a << {:component_id       => ci_id,
+              :component          => rfc.ciName,
+              :platform           => "#{platform}/#{version}",
+              :change_id          => rfc.rfcId,
+              :deployment_id      => rfc.deploymentId,
+              :deployed_at        => rfc.updated_timestamp,
+              :deployed_by        => rfc.createdBy,
+              :action             => rfc.rfcAction,
+              :changed_attributes => attrs ? attrs.join(',') : nil,
+              :url                => ci_rfcs.last.rfcAction == 'delete' ? nil : redirect_rfc_url(:id => rfc.rfcId, :org_name => nil)}
+      end
+    end
+
+    result.sort_by! {|e| "#{e[:platform]}+|+#{e[:component_id]}+|+#{e[:change_id]}"}
+
+    respond_to do |format|
+      format.json {render :json => result}
+      format.yaml {render :text => result.to_yaml, :content_type => 'text/data_string'}
+      format.any {render_csv(result, [:component_id, :component, :platform, :change_id, :deployed_at, :deployed_by, :action, :changed_attributes, :url], [:component_id, :changed_attributes, :url])}
     end
   end
 

@@ -18,16 +18,13 @@
 package com.oneops.cms.dj.dal;
 
 import com.oneops.cms.cm.domain.CmsAltNs;
-import com.oneops.cms.dj.domain.CmsRelease;
-import com.oneops.cms.dj.domain.CmsRfcAttribute;
-import com.oneops.cms.dj.domain.CmsRfcBasicAttribute;
-import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsRfcRelation;
-import com.oneops.cms.dj.domain.TimelineRelease;
+import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.util.TimelineQueryParam;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
-import org.apache.ibatis.annotations.Param;
 
 /**
  * The Interface DJMapper.
@@ -88,6 +85,10 @@ public interface DJMapper {
   List<CmsRfcCI> getRfcCIBy3(@Param("releaseId") long releaseId,
       @Param("isActive") Boolean isActive, @Param("ciId") Long ciId);
 
+  List<CmsRfcCI> getRfcCIByNsPathDateRangeClassName(@Param("ns") String ns, @Param("nsLike") String nsLike,
+      @Param("startDate") Date startDate, @Param("endDate") Date endDate,
+      @Param("ciClassName") String ciClassName);
+
   List<CmsRfcCI> getRfcCIByReleaseAndClass(@Param("releaseId") long releaseId,
                                                  @Param("className") String className);
 
@@ -106,8 +107,7 @@ public interface DJMapper {
       @Param("altCiName") String altCiName);
 
   List<CmsRfcCI> getClosedRfcCIByCiId(long ciId);
-
-  List<CmsRfcCI> getRollUpRfc(@Param("ciId") long ciId, @Param("rfcId") long rfcId);
+  List<CmsRfcCIDeployed> getDeployedRfcCIByCiId(long ciId);
 
   List<CmsRfcAttribute> getRfcCIAttributes(long rfcId);
 
@@ -223,6 +223,8 @@ public interface DJMapper {
 
   List<TimelineRelease> getReleasesByRelationFilter(TimelineQueryParam queryParam);
 
+  List<CmsRfcCI> getAppliedRfcCIsAfterRfcId(@Param("ciId") Long ciId, @Param("afterRfcId") Long afterRfcId, @Param("toRfcId") Long toRfcId);
+
   List<CmsRfcCI> getRfcCIsAppliedBetweenTwoReleases(@Param("nsPath") String nsPath,
       @Param("fromReleaseId") Long fromReleaseId, @Param("toReleaseId") Long toReleaseId);
 
@@ -245,4 +247,8 @@ public interface DJMapper {
   List<CmsAltNs> getAltNsBy(@Param("rfcId") long rfcCI);
 
   List<Integer> getDeploymentDistinctStepsTotal(@Param("deploymentId") long deploymentId);
+
+  List<CmsRfcCIDeployed> getDeployedRfcCIByNsPathDateRangeClassName(@Param("ns") String ns, @Param("nsLike") String nsLike,
+                                                            @Param("startDate") Date startDate, @Param("endDate") Date endDate,
+                                                            @Param("ciClassName") String ciClassName);
 }

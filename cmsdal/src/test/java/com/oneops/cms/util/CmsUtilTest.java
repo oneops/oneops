@@ -17,51 +17,43 @@
  *******************************************************************************/
 package com.oneops.cms.util;
 
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertNotEquals;
-import static org.testng.Assert.assertTrue;
-
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
+import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.crypto.CmsCrypto;
 import com.oneops.cms.crypto.CmsCryptoDES;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-import java.util.AbstractMap;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.stream.Stream;
+import com.oneops.cms.util.domain.CmsVar;
+import org.apache.ibatis.io.Resources;
 import org.apache.log4j.Logger;
+import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.util.*;
+import java.util.Map.Entry;
+
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.testng.Assert.*;
 
 
 public class CmsUtilTest {
-
-
   private static final String CLASS_NAME = null;
   private static final long CI_ID = 100;
   private static final String CI_NAME = "Source";
   private static final String NS_PATH = "/public/main";
   private static final String CI_IMPL = "java.lang";
-  private static final String DE_FACTO = "df";
-  private static final String DE_JURE = "dj";
   private static final Logger logger = Logger.getLogger(CmsUtilTest.class);
   CmsCISimple ciSimple = new CmsCISimple();
-  private CmsUtil util = new CmsUtil();
+  private CmsCmProcessor cmsCmProcessor;
+  private CmsVar cmsVarProviderMapping;
   private Map<String, String> ciAttributes;
 
   public CmsUtilTest() {
@@ -77,15 +69,21 @@ public class CmsUtilTest {
     this.ciSimple.setImpl(CI_IMPL);
     this.ciSimple.setNsPath(NS_PATH);
     this.ciSimple.setCiAttributes(ciAttributes);
+
+    try {
+        String resource = "cloud_system_vars.json";
+        String flavorVars = new Scanner(Resources.getResourceAsFile(resource)).useDelimiter("\\Z").next();
+
+        cmsCmProcessor = Mockito.mock(CmsCmProcessor.class);
+
+        cmsVarProviderMapping = new CmsVar();
+
+        cmsVarProviderMapping.setValue(flavorVars);
+
+    }catch (Exception e){
+        System.out.println(e);
+    }
   }
-
-
-  //TODO	@Test
-  public void custCiSimpleToCi() {
-
-    CmsCI ci = util.custCISimple2CI(this.ciSimple, DE_FACTO);
-  }
-
 
   protected void dumpCmsCIAttributes(CmsCI ci) {
     for (CmsCIAttribute manifestAttr : ci.getAttributes().values()) {
@@ -194,6 +192,8 @@ public class CmsUtilTest {
       //for mocking
     }
     util.setCmsCrypto(crypto);
+    util.setCmProcessor(cmsCmProcessor);
+    Mockito.when(cmsCmProcessor.getCmSimpleVar(Mockito.eq(util.CLOUD_SYSTEM_VARS))).thenReturn(cmsVarProviderMapping);
     return util;
   }
 
@@ -432,7 +432,6 @@ public class CmsUtilTest {
     ci.setCiId(90);
     ci.setCiName("processLocalVarChoiceGlobalVsCloud");
     Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
-    int i = 0;
     CmsCIAttribute attrL = new CmsCIAttribute();
     attrL.setDjValue("$OO_CLOUD{common}");
     String nameOfAttribute = "my-one-attr";
@@ -470,7 +469,6 @@ public class CmsUtilTest {
     ci.setCiId(95);
     ci.setCiName("processLocalVarMid");
     Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
-    int i = 0;
     CmsCIAttribute attrL = new CmsCIAttribute();
     attrL.setDjValue("/preamble/$OO_LOCAL{mylocal}");
     String nameOfAttribute = "my-only-attr";
@@ -507,7 +505,6 @@ public class CmsUtilTest {
     ci.setCiId(98);
     ci.setCiName("processLocalVarDuo");
     Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
-    int i = 0;
     CmsCIAttribute attrL = new CmsCIAttribute();
     attrL.setDjValue("/preamble/$OO_LOCAL{mylocal}/middle/$OO_LOCAL{mylocal}");
     String nameOfAttribute = "my-only-attr";
@@ -957,14 +954,6 @@ public class CmsUtilTest {
     }
   }
 
-  @Test
-  public void testErrorMessage() {
-    String errorMessage = "tomcat@p1/1 attribute '' [pre_shutdown_command] references unknown local variable 'DEPLOYCONTEXT'";
-    assertEquals(
-        util.getErrorMessage("tomcat", "/LOCAL2/A1/testEnv2/manifest/p1/1", "pre_shutdown_command",
-            null, "DEPLOYCONTEXT", "\\$OO_LOCAL\\{"), errorMessage);
-  }
-
   @Test(priority = 105)
   /** 2. When a global var uses another global var along with a cloud var, it does not result into a correct value.
    * Meaning the global var does not resolve both cloud and another global variable together.**/
@@ -1150,6 +1139,76 @@ public class CmsUtilTest {
 
     }
 
+  }
+
+  @Test
+  public void globalVarRefersLocalVar() {
+    Map<String, String> globalVars = new HashMap<>(3);
+    globalVars.put("gv1", "globalVar1");
+    globalVars.put("gv2", "$OO_GLOBAL{gv1}-$OO_LOCAL{lv1}");
+    globalVars.put("gv3", "$OO_GLOBAL{gv1}-$OO_LOCAL{lv2}");
+    Map<String, String> localVars = new HashMap<>(3);
+    localVars.put("lv1", "localVar1");
+    localVars.put("lv2", "$OO_GLOBAL{gv2}");
+
+    CmsCI ci = new CmsCI();
+    ci.setCiId(90);
+    ci.setCiName("globalVarRefersLocalVar");
+    Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
+    CmsCIAttribute attr = new CmsCIAttribute();
+    attr.setDjValue("$OO_GLOBAL{gv3}");
+    attributes.put("globalVarRefersLocalVarAttr1", attr);
+    ci.setAttributes(attributes);
+    CmsUtil util = getCmsUtil();
+    dumpCmsCIAttributes(ci);
+    util.processAllVars(ci, null, globalVars, localVars);
+
+    assertEquals(attr.getDjValue(), "globalVar1-globalVar1-localVar1");
+  }
+
+  @Test(expectedExceptions = {CIValidationException.class}, expectedExceptionsMessageRegExp = ".* cyclic reference.*")
+  public void globalVarRefersLocalVarCyclicDetection() {
+    Map<String, String> globalVars = new HashMap<>(3);
+    globalVars.put("gv1", "globalVar1");
+    globalVars.put("gv2", "$OO_GLOBAL{gv1}-$OO_LOCAL{lv1}");
+    Map<String, String> localVars = new HashMap<>(3);
+    localVars.put("lv1", "$OO_GLOBAL{gv2}");
+
+    CmsCI ci = new CmsCI();
+    ci.setCiId(90);
+    ci.setCiName("globalVarRefersLocalVar");
+    Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
+    CmsCIAttribute attr = new CmsCIAttribute();
+    attr.setDjValue("$OO_GLOBAL{gv2}");
+    attributes.put("globalVarRefersLocalVarAttr1", attr);
+    ci.setAttributes(attributes);
+    CmsUtil util = getCmsUtil();
+    dumpCmsCIAttributes(ci);
+    util.processAllVars(ci, null, globalVars, localVars);
+  }
+
+  @Test(expectedExceptions = {CIValidationException.class}, expectedExceptionsMessageRegExp = ".* cyclic reference.*")
+  public void maxRecusionDetecdtion() {
+    CmsCI ci = new CmsCI();
+    ci.setCiId(90);
+    ci.setCiName("globalVarRefersLocalVar");
+    Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
+    CmsCIAttribute attr = new CmsCIAttribute();
+    attributes.put("globalVarRefersLocalVarAttr1", attr);
+    attr.setDjValue("");
+    ci.setAttributes(attributes);
+
+    Map<String, String> globalVars = new HashMap<>(3);
+    Map<String, String> localVars = new HashMap<>(3);
+    for (int i = 0; i < CmsUtil.MAX_INTERPOLATION_RECURSION_DEPTH / 2; i++) {
+      globalVars.put("gv" + i, "$OO_LOCAL{lv" + i + "}");
+      localVars.put("lv" + i, "localVar" + i);
+      attr.setDjValue(attr.getDjValue() + "-$OO_GLOBAL{gv" + i + "}");
+    }
+
+    CmsUtil util = getCmsUtil();
+    dumpCmsCIAttributes(ci);
+    util.processAllVars(ci, null, globalVars, localVars);
   }
 
   @Test
@@ -1791,6 +1850,7 @@ public class CmsUtilTest {
     Map<String, String> cloudVars = new HashMap<>(3);
     cloudVars.put("cv1", "$OO_CLOUD{cv1}");
     CmsCI ci = new CmsCI();
+
     ci.setCiId(90);
     ci.setCiName("localVarRefersAnotherLVar");
     Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
@@ -1981,7 +2041,170 @@ public class CmsUtilTest {
    assertEquals(aRfc.getCiBaseAttributes().get("baseAtrribute1"),"baseAtrribute1");
   }
 
+  @Test
+  /** substitute cloud variables which is type of $OO_CLOUD{"FlavorType":"DefaultType"}
+   * Test happy path i.e. flavor type exist in cloud vars/flavor map defined in CmsVars table */
+  public void processVarsForExistingFlavorTest() throws Exception {
+    Map<String, String> cloudVars = new HashMap<>(3);
+
+    CmsCI ci = new CmsCI();
+    ci.setCiId(4444);
+    ci.setCiName("dev-az-eastus2-2");
+
+    CmsUtil util = getCmsUtil();
+
+    cloudVars = util.getCloudVars(ci);
+
+    Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
+    CmsCIAttribute attrC = new CmsCIAttribute();
+    attrC.setAttributeName("required_availability_zone");
+    attrC.setDjValue("$OO_CLOUD{Azure_Compute_Standard_D1_v2:S}");
+    attributes.put("cloud_1", attrC);
+
+    ci.setAttributes(attributes);
+    logger.info("CI Attributes have been set into the ci, attrs: " + attributes);
+    Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+    for (Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+      System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+    }
 
 
+    ci.setCiName("compute");
+    ci.setNsPath("/suresh/NewAssembly/NewAssemblyEnvDev/manifest/AMQ/1");
+    util.processAllVars(ci, cloudVars, null, null);
 
+    for (Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+      String djKey = a.getKey();
+      String djAfter = a.getValue().getDjValue();
+      System.out.println("after>" + djKey + "->" + djAfter);
+      if (djKey.startsWith("cloud_")) {
+        assertEquals(djAfter, "Standard_D1_v2", "did not measure up for key " + djKey);
+      }
+    }
+  }
+
+    @Test
+    /** substitute cloud variables which is type of $OO_CLOUD{"FlavorType":"DefaultType"}
+     * Test happy path i.e. for default flavor type*/
+    public void processVarsForDefaultFlavorTest() throws Exception {
+        Map<String, String> cloudVars = new HashMap<>(3);
+
+        CmsCI ci = new CmsCI();
+        ci.setCiId(4444);
+        ci.setCiName("dev-az-eastus2-2");
+
+        CmsUtil util = getCmsUtil();
+
+        cloudVars = util.getCloudVars(ci);
+
+        Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
+        CmsCIAttribute attrC = new CmsCIAttribute();
+        attrC.setAttributeName("required_availability_zone");
+        attrC.setDjValue("$OO_CLOUD{Not_In_Flavor_Map:S}");
+        attributes.put("cloud_1", attrC);
+
+        ci.setAttributes(attributes);
+        logger.info("CI Attributes have been set into the ci, attrs: " + attributes);
+        Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+        for (Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+            System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+        }
+
+
+        ci.setCiName("compute");
+        ci.setNsPath("/suresh/NewAssembly/NewAssemblyEnvDev/manifest/AMQ/1");
+        util.processAllVars(ci, cloudVars, null, null);
+
+        for (Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+            String djKey = a.getKey();
+            String djAfter = a.getValue().getDjValue();
+            System.out.println("after>" + djKey + "->" + djAfter);
+            if (djKey.startsWith("cloud_")) {
+                assertEquals(djAfter, "S", "did not measure up for key " + djKey);
+            }
+        }
+    }
+
+    @Test
+    /** substitute cloud variables which is type of $OO_CLOUD{"FlavorType":"DefaultType"}
+     * Test happy path i.e. for default flavor type when flavor map not exist */
+    public void processVarsFlavorMapNotExistTest() throws Exception {
+        Map<String, String> cloudVars = new HashMap<>(3);
+
+        CmsCI ci = new CmsCI();
+        ci.setCiId(4444);
+        ci.setCiName("dev-az-eastus2-2");
+
+        CmsUtil util = getCmsUtil();
+
+        Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
+        CmsCIAttribute attrC = new CmsCIAttribute();
+        attrC.setAttributeName("required_availability_zone");
+        attrC.setDjValue("$OO_CLOUD{Standard_D1_v2:S}");
+        attributes.put("cloud_1", attrC);
+
+        ci.setAttributes(attributes);
+        logger.info("CI Attributes have been set into the ci, attrs: " + attributes);
+        Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+        for (Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+            System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+        }
+
+
+        ci.setCiName("compute");
+        ci.setNsPath("/suresh/NewAssembly/NewAssemblyEnvDev/manifest/AMQ/1");
+        util.processAllVars(ci, cloudVars, null, null);
+
+        for (Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+            String djKey = a.getKey();
+            String djAfter = a.getValue().getDjValue();
+            System.out.println("after>" + djKey + "->" + djAfter);
+            if (djKey.startsWith("cloud_")) {
+                assertEquals(djAfter, "S", "did not measure up for key " + djKey);
+            }
+        }
+    }
+
+    @Test(expectedExceptions = {
+            CIValidationException.class}, expectedExceptionsMessageRegExp = ".* references unknown.*")
+    /** substitute cloud variables which is type of $OO_CLOUD{"FlavorType":"DefaultType"}
+     * Test exception path where flavor type or default type does not exist */
+    public void processVarsForNonExistingFlavorTest() throws Exception {
+        Map<String, String> cloudVars = new HashMap<>(3);
+
+        CmsCI ci = new CmsCI();
+        ci.setCiId(4444);
+        ci.setCiName("dev-az-eastus2-2");
+
+        CmsUtil util = getCmsUtil();
+
+        cloudVars = util.getCloudVars(ci);
+
+        Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
+        CmsCIAttribute attrC = new CmsCIAttribute();
+        attrC.setAttributeName("required_availability_zone");
+        attrC.setDjValue("$OO_CLOUD{:}");
+        attributes.put("cloud_1", attrC);
+
+        ci.setAttributes(attributes);
+        logger.info("CI Attributes have been set into the ci, attrs: " + attributes);
+        Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+        for (Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+            System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+        }
+
+
+        ci.setCiName("compute");
+        ci.setNsPath("/suresh/NewAssembly/NewAssemblyEnvDev/manifest/AMQ/1");
+        util.processAllVars(ci, cloudVars, null, null);
+
+        for (Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+            String djKey = a.getKey();
+            String djAfter = a.getValue().getDjValue();
+            System.out.println("after>" + djKey + "->" + djAfter);
+            if (djKey.startsWith("cloud_")) {
+                assertEquals(djAfter, "Standard_D1_v2", "did not measure up for key " + djKey);
+            }
+        }
+    }
 }

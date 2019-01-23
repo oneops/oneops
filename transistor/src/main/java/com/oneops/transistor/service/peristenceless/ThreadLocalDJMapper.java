@@ -4,8 +4,8 @@ import com.oneops.cms.cm.domain.CmsAltNs;
 import com.oneops.cms.dj.dal.DJMapper;
 import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.util.TimelineQueryParam;
-import org.apache.ibatis.annotations.Param;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
@@ -162,6 +162,16 @@ public class ThreadLocalDJMapper implements DJMapper{
     }
 
     @Override
+    public List<CmsRfcCI> getRfcCIByNsPathDateRangeClassName(String ns, String nsLike, Date startDate, Date endDate, String ciClassName) {
+        return get().getRfcCIByNsPathDateRangeClassName(ns, nsLike, startDate, endDate, ciClassName);
+    }
+
+    @Override
+    public List<CmsRfcCIDeployed> getDeployedRfcCIByNsPathDateRangeClassName(String ns, String nsLike, Date startDate, Date endDate, String ciClassName) {
+        return get().getDeployedRfcCIByNsPathDateRangeClassName(ns, nsLike, startDate, endDate, ciClassName);
+    }
+
+    @Override
     public List<CmsRfcCI> getRfcCIByClazzAndName(String nsPath, String clazzName, String ciName, Boolean isActive, String state) {
         return get().getRfcCIByClazzAndName(nsPath, clazzName, ciName, isActive, state);
     }
@@ -187,8 +197,8 @@ public class ThreadLocalDJMapper implements DJMapper{
     }
 
     @Override
-    public List<CmsRfcCI> getRollUpRfc(long ciId, long rfcId) {
-        return get().getRollUpRfc(ciId, rfcId);
+    public List<CmsRfcCIDeployed> getDeployedRfcCIByCiId(long ciId) {
+        return get().getDeployedRfcCIByCiId(ciId);
     }
 
     @Override
@@ -393,6 +403,11 @@ public class ThreadLocalDJMapper implements DJMapper{
     }
 
     @Override
+    public List<CmsRfcCI> getAppliedRfcCIsAfterRfcId(Long ciId, Long afterRfcId, Long toRfcId) {
+        return get().getAppliedRfcCIsAfterRfcId(ciId, afterRfcId, toRfcId);
+    }
+
+    @Override
     public List<CmsRfcCI> getRfcCIsAppliedBetweenTwoReleases(String nsPath, Long fromReleaseId, Long toReleaseId) {
         return get().getRfcCIsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
     }
@@ -433,6 +448,5 @@ public class ThreadLocalDJMapper implements DJMapper{
     }
 
     @Override
-    public List<Integer> getDeploymentDistinctStepsTotal(@Param("deploymentId") long deploymentId) { return get().getDeploymentDistinctStepsTotal(deploymentId); };
-
+    public List<Integer> getDeploymentDistinctStepsTotal(long deploymentId) { return get().getDeploymentDistinctStepsTotal(deploymentId); }
 }

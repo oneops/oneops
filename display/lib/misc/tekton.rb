@@ -80,7 +80,7 @@ end
 
 def oo_request(cmd, msg)
   host = @params.oneops_host
-  host = host.gsub('cmsapi.', 'transistor.') if cmd.start_with?('transistor')
+  host = host.gsub(/(cmsapi|adapter)\./, 'transistor.') if cmd.start_with?('transistor')
   uri = URI("#{host}#{cmd}")
   req = Net::HTTP::Get.new(uri)
   result, response = request(uri, req, msg)
@@ -349,7 +349,7 @@ end
 def execute(action, *args)
   result = nil
   if action == 'version'
-    say 'CLI version:    1.2.5'
+    say 'CLI version:    1.2.6'
     info = tt_request('server/version', 'Getting tekton version')
     say "Tekton version: #{info.version} (#{info.timestamp})"
     say "Tekton host:    #{@params.tekton_host}"
@@ -958,13 +958,17 @@ def execute(action, *args)
 end
 
 def action_regex(action)
-  /#{action.gsub(/\W+/, '\w*:')}\w*$/
+  /^#{action.gsub(/\W+/, '\w*:')}\w*$/
 end
 
 def match_action(action)
   return nil if action.empty?
-  regex = action_regex(action)
-  @actions.keys.find {|k| (regex =~ k) == 0}
+  matching = @action_names.grep(action_regex(action))
+  if matching.size > 1
+    say "More than action matches #{action} (#{matching.join(', ')})".red
+    exit(1)
+  end
+  return matching.first
 end
 
 def run(args)
@@ -1088,6 +1092,8 @@ end
   'oo:org:usage'          => ['oo:org:usage ORG [CLOUD_REGEX]', 'For a given org list usage in OneOps and compare with usage in Tekton'],
   'oo:org:usage:transfer' => ['oo:or./t(:' '):usage:transfer [-f [--omr]] [-b BUFFER_%] ORG [CLOUD_REGEX]', "convert current usage in OneOps into quota in Tekton or update usage for existing Tekton quota with the current ussage in OneOps (idempotent!)\n"]
 }
+@action_names = @actions.keys
+
 @usage = <<-USAGE
 #{'Usage:'.bold}
     #{__FILE__} [OPTIONS] ACTION ARGUMENTS
@@ -1171,14 +1177,14 @@ end
 
 @repl = ARGV.size == 0
 if @repl
-  actions = @actions.keys
   Readline.completer_word_break_characters = "\n"
   Readline.completion_proc = lambda do |s|
     split = s.split(/\s+/, 2)
     if split.size == 1 && s[-1] != ' '
-      actions.grep(action_regex(s))
+      @action_names.grep(/^#{s.gsub(/\W+/, '\w*:')}\w*/)
     else
-      action = @actions[split.first]
+      matching = @action_names.grep(action_regex(split.first))
+      action = matching.size == 1 && @actions[matching.first]
       action ? ["Usage: #{action[0]}", ' ' * 100] : []
     end
   end

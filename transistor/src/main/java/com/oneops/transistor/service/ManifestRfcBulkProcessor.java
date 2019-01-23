@@ -23,6 +23,7 @@ import com.oneops.cms.crypto.CmsCrypto;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
+import com.oneops.cms.dj.domain.RfcHint;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.dj.service.CmsRfcUtil;
@@ -570,7 +571,7 @@ public class ManifestRfcBulkProcessor {
 	private void generateDummyEntrypointUpdates(long platCiId, String userId) {
 		List<CmsRfcRelation> managedViaRels = cmRfcMrgProcessor.getFromCIRelationsNakedNoAttrs(platCiId, "manifest.Entrypoint", null, null);
 		for (CmsRfcRelation managedVia : managedViaRels) {
-			cmRfcMrgProcessor.createDummyUpdateRfc(managedVia.getToCiId(), null, 0, userId);
+			cmRfcMrgProcessor.createDummyUpdateRfc(managedVia.getToCiId(), null, 0, userId, RfcHint.CLOUD);
 		}
 	}
 	
@@ -1006,7 +1007,7 @@ public class ManifestRfcBulkProcessor {
 			//create dummy update on the component if there is an update on the monitor and there is no rfc already for the component
 			if (monitorCiNeedsUpdate && (monitorFromRfc.getRfcId() == 0)) {
 				if (!rfcNames.contains(monitorFromRfc.getCiName())) {
-					cmRfcMrgProcessor.createDummyUpdateRfc(monitorFromRfc.getCiId(), null, 0, context.userId);
+					cmRfcMrgProcessor.createDummyUpdateRfc(monitorFromRfc.getCiId(), null, 0, context.userId, RfcHint.MONITOR);
 				}
 			}
 		}
@@ -1197,23 +1198,7 @@ public class ManifestRfcBulkProcessor {
 		return manifestRfcRelTriplet;
 	}
 
-
-/*	
-	private CmsCI getOldPlatMonitor(CmsRfcCI newPlat, String monCiName) {
-		int platMajVersion = Integer.valueOf(newPlat.getAttribute("major_version").getNewValue()).intValue(); 
-		if ( platMajVersion > 1) {
-			String oldPlatNSPath = trUtil.getPlatformBaseNS(newPlat.getNsPath()) + "/" + (platMajVersion-1);
-			//String monClazzName = "manifest." + trUtil.getShortClazzName(tmplMon.getCiClassName());
-			List<CmsCI> existingMons = cmProcessor.getCiBy3(oldPlatNSPath, MANIFEST_MONITOR, monCiName);
-			if (existingMons.size()>0) {
-				return existingMons.get(0);
-			}
-		}
-		return null;
-	}
-*/
-	
-	private void processEscortRelations(List<CmsCIRelation> designEscortRels, Map<Long, List<Long>> ciIdsMap, Map<Long, List<CmsRfcCI>> newRfcsMap, 
+	private void processEscortRelations(List<CmsCIRelation> designEscortRels, Map<Long, List<Long>> ciIdsMap, Map<Long, List<CmsRfcCI>> newRfcsMap,
 			DesignPullContext context, ManifestRfcContainer platformRfcs) {
 
 		Set<Long> existingAttachments = new HashSet<Long>();
@@ -1267,7 +1252,7 @@ public class ManifestRfcBulkProcessor {
 					
 					
 					if (manifestFromRfc.getRfcId() == 0 && manifestAttachfRfc.getRfcId() > 0) {
-						cmRfcMrgProcessor.createDummyUpdateRfc(manifestFromRfc.getCiId(), null, 0, context.userId);
+						cmRfcMrgProcessor.createDummyUpdateRfc(manifestFromRfc.getCiId(), null, 0, context.userId, RfcHint.ATTACHMENT);
 					}
 				}
 			}

@@ -85,9 +85,9 @@
                                        :autocomplete => 'off',
                                        :required     => required,
                                        :placeholder  => placeholder) %>
-                  <span class="check-box add-on <%= 'muted' if attribute_value == '--ENCRYPTED--' %>">
+                  <a class="check-box add-on <%= 'muted' if attribute_value == '--ENCRYPTED--' %>">
                     <small><%= icon('square-o', 'show typing', 'show-typing fa-lg fa-fw') %></small>
-                  </span>
+                  </a>
                 </div>
                 <% else %>
                   <% if form_options.present? %>
@@ -109,7 +109,19 @@
                                      :id => "#{a.attributeName}_#{(ci.respond_to?(:ciId) && ci.ciId) || 0}" %>
                         <% end %>
                       <% when 'select' %>
-                        <%= c.select(a.attributeName, options_for_select(ci.attribute_options_for_select(a), attribute_value), {}, :class => 'select-xlarge') %>
+                        <% if a.options[:form][:allow_input] %>
+                          <div class="input-append dropdown">
+                            <%= c.text_field a.attributeName, :class => 'input-xlarge', :required => required, :placeholder => placeholder, :pattern => pattern, :autocomplete => 'off' %>
+                            <a class="dropdown-toggle add-on" data-toggle="dropdown" href="#"><%= icon('caret-down') %></a>
+                            <ul class="dropdown-menu">
+                              <% a.options[:form][:options_for_select].each do |o| %>
+                                <li><%= link_to_function(o.first, %($j(this).parents(".input-append").find("input[type=text]").val("#{o.last || o.first}"))) %></li>
+                              <% end %>
+                            </ul>
+                          </div>
+                        <% else %>
+                          <%= c.select(a.attributeName, options_for_select(ci.attribute_options_for_select(a), attribute_value), {}, :class => 'select-xlarge') %>
+                        <% end %>
                       <% else %>
                         <%= c.text_field a.attributeName, :class => 'input-xlarge', :required => required, :placeholder => placeholder, :pattern => pattern %>
                       <% end %>
@@ -153,7 +165,7 @@
   var encrypted_inputs = $j("#<%= dom_id %> input.encrypted");
   encrypted_inputs.on('keypress paste', function(e) {
     var parent = $j(e.target).parents(".controls"),
-        span = parent.find("span.check-box"),
+        span = parent.find("a.check-box"),
         input = parent.find("input.encrypted");
     if (input.val() == '--ENCRYPTED--') {
       input.val('');
@@ -176,7 +188,7 @@
     }, 1000);
   });
 
-  $j("#<%= dom_id %> i.show-typing").parents('span').click(function(e) {
+  $j("#<%= dom_id %> i.show-typing").parents('a').click(function(e) {
     var target = $j(this),
         input  = target.parents(".controls").find("input.encrypted");
     if (input.val() == '--ENCRYPTED--') {
@@ -312,14 +324,17 @@
                          if (match) {
                            element.attr('autocomplete', 'off');
                            this.matchString = match[0];
-                           this.matchVarType = this.matchString.substr(4).split('{')[0].toUpperCase();
+                           this.matchVarType = this.matchString.substr(3).split('{')[0].toUpperCase();
                            this.matchVarName = this.matchString.split(/[{}\s]/)[1];
                            if (this.matchVarType &&
-                               !"GLOBAL".startsWith(this.matchVarType) &&
-                               !"LOCAL".startsWith(this.matchVarType) &&
-                               !"CLOUD".startsWith(this.matchVarType)) {
+                               !"_GLOBAL".startsWith(this.matchVarType) &&
+                               !"_LOCAL".startsWith(this.matchVarType) &&
+                               !"_CLOUD".startsWith(this.matchVarType)) {
                              this.matchVarName = this.matchVarName || this.matchVarType;
                              this.matchVarType = null;
+                           }
+                           else {
+                             this.matchVarType = this.matchVarType.substring(1)
                            }
                            this.matchVarName = this.matchVarName && this.matchVarName.toLowerCase();
 
@@ -368,7 +383,7 @@
                        sorter: function(items) {
                          var matchString = this.matchVarName;
                          return items.sort(function(a, b) {
-                           return (matchString ? (a.name.indexOf(matchString) - b.name.indexOf(matchString)) : a.type.localeCompare(b.type)) || a.name.localeCompare(b.name);
+                           return (matchString ? (a.name.indexOf(matchString) - b.name.indexOf(matchString)) : b.type.localeCompare(a.type)) || a.name.localeCompare(b.name);
                          });
                        },
                        updater: function (item) {

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
@@ -8,6 +8,29 @@ BASE_IMAGE_FILE="$CURRENT_DIR/centos73-oneops-base-virtualbox-ovf/centos73-oneop
 export ONEOPS_ARCHIVE=$1
 export PACKER_CACHE_DIR=$HOME/.packer/cache
 export ONEOPS_VERSION=$(mvn -q -N -Dexec.executable="echo" -Dexec.args='${project.version}' exec:exec)
+
+declare -a circuits=(circuit-oneops-1 circuit-main-1 circuit-walmartlabs-1 circuit-main-2 circuit-walmartlabs-2)
+
+echo "Cloning all circuits..."
+sleep 2
+
+circuits_path=$HOME/oneops_circuits
+
+for circuit in "${circuits[@]}"
+do
+  if [ -d "$circuits_path/$circuit" ]; then
+    echo -e "\ndoing git pull on $circuit\n"
+    cd $circuits_path/$circuit
+    git pull
+  else
+    mkdir -p $circuits_path
+    cd $circuits_path
+    git clone git@gecgithub01.walmart.com:walmartlabs/$circuit.git
+  fi
+  sleep 2
+done
+
+cd $CURRENT_DIR
 
 if [ -z $ONEOPS_ARCHIVE ]
 then

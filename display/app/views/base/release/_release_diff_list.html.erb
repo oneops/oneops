@@ -8,6 +8,16 @@
        m[key] << r
        m
      end
+     # Optionally, we can hide empty RFCs.
+     # rfc_cis = rfc_cis.select do |rfc|
+     #   if rfc.hint.blank?
+     #     diff_attrs = rfc.ciAttributes.attributes
+     #     base_attrs = rfc.ciBaseAttributes.attributes
+     #     diff_attrs.to_a.any? {|(k, v)| !(v.blank? && base_attrs[k].blank?) && v != base_attrs[k]}
+     #   else
+     #     true
+     #   end
+     # end
      rfc_cis_map = rfc_cis.to_map { |c| "#{c.ciName}***#{c.ciClassName}" }
      rfc_relations_with_no_rfc_cis = (rfc_relations || []).reject do |r|
        rfc_cis_map["#{r.ci_hash['toCiName']}***#{r.ci_hash['toCiClass']}"] || rfc_cis_map["#{r.ci_hash['fromCiName']}***#{r.ci_hash['fromCiClass']}"]
@@ -60,6 +70,8 @@
             <%= link_to_function(raw("#{content_tag(:small, pluralize(diff_attrs.size, 'change'))}&nbsp;#{icon('angle-down', '', 'fa-lg')}"),
                                  "$j(this).find('i.fa').toggleClass('fa-angle-down fa-angle-up').parents('li').find('.middle').toggle(500)") %>
           </span>
+        <% elsif rfc.hint.present? %>
+          <small class="topdesc pull-right"><%= rfc.hint %></small>
         <% end %>
       </div>
     <% end %>
