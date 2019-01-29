@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.oneops</groupId>
     <artifactId>oneops-parent</artifactId>
-    <version>19.01.30-1</version>
+    <version>19.01.30-2-SNAPSHOT</version>
   </parent>
   <groupId>com.oneops.cms</groupId>
   <artifactId>cmsdal</artifactId>
