@@ -113,7 +113,8 @@ class Chef
       end
     end
 
-    def fetch(uri, local_path, parts, resume=false)
+    def fetch(_uri, local_path, parts, resume=false)
+      uri = _uri.class.to_s == "String" ? URI(_uri) : _uri
       full_path = "#{uri.scheme}://#{uri.host}:#{uri.port}#{uri.path}"
       Chef::Log.info("Fetching resume is set to #{resume}")
       Chef::Log.info("Remote: #{full_path}")
