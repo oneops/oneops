@@ -9,6 +9,8 @@ class Group < ActiveRecord::Base
   validates_uniqueness_of :name
 
   def is_admin?(user)
-    user.is_global_admin? || admins.where(:user_id => user.id).first.present?
+    global_admin_groups = Settings.global_admin_groups
+    global_admin_group_names = global_admin_groups.is_a?(Array) ? global_admin_groups : global_admin_groups.split(',')
+    (user.is_global_admin? && !global_admin_group_names.include?(name)) || admins.where(:user_id => user.id).first.present?
   end
 end
