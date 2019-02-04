@@ -38,6 +38,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.search.sort.SortOrder;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -194,8 +195,8 @@ public class CIMessageProcessor implements MessageProcessor {
             String date = ciAttributes.get(name);
             //Jan 22 18:21:47 2020 GMT
             DateTimeFormatter wrongFormat = DateTimeFormat.forPattern("MMM dd HH:mm:ss yyyy z");
-            /// 2020/01/22 18:21:47
-            DateTimeFormatter rightFormat = DateTimeFormat.forPattern("yyyy/MM/dd HH:mm:ss");
+            /// 2020-01-22T18:21:47
+            DateTimeFormatter rightFormat = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss");
             try {
                 ciAttributes.put(name, rightFormat.print(wrongFormat.parseMillis(date)));
             } catch (Exception e) {
