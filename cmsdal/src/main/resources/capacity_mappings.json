@@ -180,6 +180,111 @@
           "vCPU": 16,
           "DSv2_vCPU": 16,
           "vm": 1
+        },
+        "Standard_D1_v2": {
+          "vCPU": 1,
+          "Dv2_vCPU": 1,
+          "vm": 1
+        },
+        "Standard_D2_v2": {
+          "vCPU": 2,
+          "Dv2_vCPU": 2,
+          "vm": 1
+        },
+        "Standard_D3_v2": {
+          "vCPU": 4,
+          "Dv2_vCPU": 4,
+          "vm": 1
+        },
+        "Standard_D4_v2": {
+          "vCPU": 8,
+          "Dv2_vCPU": 8,
+          "vm": 1
+        },
+        "Standard_D11_v2": {
+          "vCPU": 2,
+          "Dv2_vCPU": 2,
+          "vm": 1
+        },
+        "Standard_D12_v2": {
+          "vCPU": 4,
+          "Dv2_vCPU": 4,
+          "vm": 1
+        },
+        "Standard_D13_v2": {
+          "vCPU": 8,
+          "Dv2_vCPU": 8,
+          "vm": 1
+        },
+        "Standard_D14_v2": {
+          "vCPU": 16,
+          "Dv2_vCPU": 16,
+          "vm": 1
+        },
+        "Standard_D32s_v3": {
+          "vCPU": 32,
+          "DSv3_vCPU": 32,
+          "vm": 1
+        },
+        "Standard_DS2_v2": {
+          "vCPU": 2,
+          "DSv2_vCPU": 2,
+          "vm": 1
+        },
+        "Standard_DS3_v2": {
+          "vCPU": 4,
+          "DSv2_vCPU": 4,
+          "vm": 1
+        },
+        "Standard_DS4_v2": {
+          "vCPU": 8,
+          "DSv2_vCPU": 8,
+          "vm": 1
+        },
+        "Standard_DS5_v2": {
+          "vCPU": 16,
+          "DSv2_vCPU": 16,
+          "vm": 1
+        },
+        "Standard_DS11_v2": {
+          "vCPU": 2,
+          "DSv2_vCPU": 2,
+          "vm": 1
+        },
+        "Standard_DS12_v2": {
+          "vCPU": 4,
+          "DSv2_vCPU": 4,
+          "vm": 1
+        },
+        "Standard_DS13_v2": {
+          "vCPU": 8,
+          "DSv2_vCPU": 8,
+          "vm": 1
+        },
+        "Standard_DS14_v2": {
+          "vCPU": 16,
+          "DSv2_vCPU": 16,
+          "vm": 1
+        },
+        "Standard_DS15_v2": {
+          "vCPU": 20,
+          "DSv2_vCPU": 20,
+          "vm": 1
+        },
+        "Standard_A8m_v2": {
+          "vCPU": 8,
+          "Av2_vCPU": 8,
+          "vm": 1
+        },
+        "Standard_E32_v3": {
+          "vCPU": 32,
+          "Ev3_vCPU": 32,
+          "vm": 1
+        },
+        "Standard_E32s_v3": {
+          "vCPU": 32,
+          "Esv3_vCPU": 32,
+          "vm": 1
         }
       },
       "*": {
