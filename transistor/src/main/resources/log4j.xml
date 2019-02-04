@@ -28,7 +28,7 @@
 
 	
 	<logger name="com.oneops">
-		<level value="info" />
+		<level value="debug" />
 	</logger>
 	<root>
 		<level value="info" />

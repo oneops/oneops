@@ -207,4 +207,11 @@ public class CmsRfcCI extends CmsRfcCIBasic implements CmsRfcContainer {
 		attr.setComments(comments);
 		return attr;
 	}
+
+	@Override
+	public String toString() {
+		return "cmsRfc: "+ super.toString()+" attributes=" + attributes;
+	}
+	
+	
 }

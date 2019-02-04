@@ -1,2 +1,6 @@
 Manifest-Version: 1.0
+Built-By: vn0kecx
+gitTag: 19.01.16-5-SNAPSHOT
+Build-Jdk: 1.8.0_202-ea
+Created-By: Maven Integration for Eclipse
 

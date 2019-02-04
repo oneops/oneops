@@ -194,4 +194,13 @@ public class CmsRfcBasicAttribute implements Serializable {
     this.owner = owner;
   }
 
+@Override
+public String toString() {
+	return "attributeId=" + attributeId + ", attributeName=" + attributeName + ", oldValue="
+			+ oldValue + ", newValue=" + newValue + ", comments=" + comments + ", owner=" + owner + ", created="
+			+ created;
+}
+
+  
+  
 }
