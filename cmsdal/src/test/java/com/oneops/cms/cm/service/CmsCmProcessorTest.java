@@ -36,7 +36,7 @@ import org.junit.Test;
 
 import java.io.Reader;
 
-@Ignore
+
 public class CmsCmProcessorTest {
 	private static SqlSession session;
 	private static ClazzMapper clazzMapper;
