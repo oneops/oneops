@@ -22,6 +22,8 @@ export ES_HEAP_SIZE=512m
 EOL
 
 sed -i -- 's/\#cluster\.name\: elasticsearch/cluster\.name\: oneops/g' /etc/elasticsearch/elasticsearch.yml
+sed -i -- 's/\#index\.number_of_shards\: 1/index\.number_of_shards\: 1/g' /etc/elasticsearch/elasticsearch.yml
+sed -i -- 's/\#index\.number_of_replicas\: 0/index\.number_of_replicas\: 0/g' /etc/elasticsearch/elasticsearch.yml
 
 systemctl enable elasticsearch
 systemctl start elasticsearch

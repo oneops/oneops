@@ -34,7 +34,13 @@ public class CmsRfcCISimple extends CmsRfcCIBasic implements Serializable, Insta
   private Map<String, String> ciBaseAttributes = new HashMap<String, String>();
   private Map<String, Map<String, String>> ciAttrProps = new HashMap<String, Map<String, String>>();
 
-  /**
+  @Override
+public String toString() {
+	return "ciAttributes=" + ciAttributes + ", ciBaseAttributes=" + ciBaseAttributes + ", ciAttrProps="
+			+ ciAttrProps + ", " + super.toString() + "]";
+}
+
+/**
    * Gets the ci attributes.
    *
    * @return the ci attributes

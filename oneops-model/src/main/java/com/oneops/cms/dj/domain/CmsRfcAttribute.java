@@ -94,4 +94,11 @@ public class CmsRfcAttribute extends CmsRfcBasicAttribute implements Serializabl
     this.rfcId = rfcId;
   }
 
+@Override
+public String toString() {
+	return "[rfcAttributeId=" + rfcAttributeId + ", rfcId=" + rfcId + super.toString();
+}
+
+  
+  
 }

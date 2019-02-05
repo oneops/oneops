@@ -7,7 +7,7 @@
 
 
     <!-- import mybatis staff  -->
-    <import resource="application-context.xml"/>
+    <import resource="classpath:application-context.xml"/>
     <import resource="classpath:shared-lib-context.xml"/>
     <import resource="classpath:ecv-beans.xml"/>
     <bean id="defaultHealthCheck" class="com.oneops.ecv.health.DefaultHealthCheck"/>

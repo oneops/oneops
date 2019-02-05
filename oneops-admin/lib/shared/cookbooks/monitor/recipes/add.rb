@@ -454,6 +454,8 @@ else
 
   if node.workorder.payLoad.Environment[0][:ciAttributes].has_key?('monitoring') &&
      node.workorder.payLoad.Environment[0][:ciAttributes][:monitoring] == 'true'
+
+include_recipe 'monitor::nagios_service_fix' unless node.workorder.rfcCi.ciClassName =~ /bom\..*\.Compute/
   
     service nagios_service do
       provider Chef::Provider::Service::Redhat if File.exist?('/etc/init.d/nagios') && node[:platform_family].include?("rhel")
@@ -471,4 +473,3 @@ else
   end
 end
 
-include_recipe 'monitor::nagios_service_fix' unless node.workorder.rfcCi.ciClassName =~ /bom\..*\.Compute/

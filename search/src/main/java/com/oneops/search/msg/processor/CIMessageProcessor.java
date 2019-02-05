@@ -28,12 +28,17 @@ import com.oneops.search.domain.CmsCISearch;
 import com.oneops.search.msg.index.Indexer;
 import com.oneops.search.msg.processor.ci.DeploymentPlanProcessor;
 import com.oneops.search.msg.processor.ci.PolicyProcessor;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.search.sort.SortOrder;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -147,6 +152,7 @@ public class CIMessageProcessor implements MessageProcessor {
                     wos.payLoad.remove("RequiresComputes");
                     wos.payLoad.remove("SecuredBy");
                     wos.payLoad.remove("DependsOn");
+                    applyDateFixes(wos);
                     ciSearch.setWorkorder(wos);
                     break;
                 } else {
@@ -174,4 +180,29 @@ public class CIMessageProcessor implements MessageProcessor {
         }
         return GSON_ES.toJson(ciSearch);
     }
+
+    private void applyDateFixes(CmsWorkOrderSimple wos) {
+        if (wos.getRfcCi()!=null) {
+            convertIllegalDateFormat(wos.getRfcCi().getCiAttributes(), "expires_on");
+        }
+        if (wos.getResultCi()!=null) {
+            convertIllegalDateFormat(wos.getResultCi().getCiAttributes(),"expires_on");
+        }
+    }
+
+    private static void convertIllegalDateFormat(Map<String, String> ciAttributes, String name) {
+        if (ciAttributes!=null && ciAttributes.containsKey(name)){
+            String date = ciAttributes.get(name);
+            //Jan 22 18:21:47 2020 GMT
+            DateTimeFormatter wrongFormat = DateTimeFormat.forPattern("MMM dd HH:mm:ss yyyy z");
+            /// 2020-01-22T18:21:47
+            DateTimeFormatter rightFormat = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss");
+            try {
+                ciAttributes.put(name, rightFormat.print(wrongFormat.parseMillis(date)));
+            } catch (Exception e) {
+                // do nothing, unexpected date format
+            }
+        }
+    }
+
 }

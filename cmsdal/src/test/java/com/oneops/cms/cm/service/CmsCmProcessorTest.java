@@ -31,10 +31,12 @@ import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.Reader;
 
+@Ignore
 public class CmsCmProcessorTest {
 	private static SqlSession session;
 	private static ClazzMapper clazzMapper;

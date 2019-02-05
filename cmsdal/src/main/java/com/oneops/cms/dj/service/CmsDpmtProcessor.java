@@ -662,13 +662,8 @@ public class CmsDpmtProcessor {
    * @param wo the wo
    */
   public void completeWorkOrder(CmsWorkOrder wo) {
-    String rfcAction = wo.getRfcCi().getRfcAction();
     try {
-      if (rfcAction.equalsIgnoreCase("add")) {
-        capacityProcessor.commitCapacity(wo);
-      } else if (rfcAction.equalsIgnoreCase("delete")) {
-        capacityProcessor.releaseCapacity(wo);
-      }
+        capacityProcessor.adjustCapacity(wo);
     } catch (Exception e) {
       logger.error("Error while processing capacity for WO with rfcId=" + wo.getRfcId() + "(" + wo.getRfcCi().getNsPath() +
                            ", proceeding anyway.");

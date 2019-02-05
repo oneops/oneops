@@ -8,13 +8,14 @@ import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.util.domain.CmsVar;
+
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.transaction.support.TransactionSynchronizationAdapter;
-import org.testng.Assert;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.util.*;
@@ -52,7 +53,7 @@ public class CapacityProcessorTest {
     private CmsCmProcessor cmProcessorMock;
     private TektonClient tektonClient;
 
-    @BeforeMethod
+    @Before
     public void setupTest() {
         bomCIs = new ArrayList<>();
         bomRels = new ArrayList<>();
@@ -123,6 +124,8 @@ public class CapacityProcessorTest {
         openstackCloud = setupCloud(OPENSTACK_CLOUD_ID, "openstack", "cloud.service.Openstack", OPENSTACK_CLOUD_LOCATION, "tenant", OPENSTACK_SUBSCRIPTION_ID);
         googleCloud = setupCloud(GOOGLE_CLOUD_ID, "google", "cloud.service.Google", GOOGLE_CLOUD_LOCATION, "subscription", GOOGLE_SUBSCRIPTION_ID);
 
+        
+        
         Mockito.when(cmProcessorMock.getFromCIRelationsNakedNoAttrs(Mockito.anyLong(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                 .thenAnswer((i) -> bomRels.stream()
                         .filter(r -> r.getFromCiId().equals(i.getArguments()[0]))
@@ -131,10 +134,59 @@ public class CapacityProcessorTest {
                             rel.setRelationName("base.DeployedTo");
                             rel.setFromCiId(r.getFromCiId());
                             rel.setToCiId(r.getToCiId());
+                            rel.setNsPath(ENV_NS_PATH);
                             return rel;
                         })
                         .collect(Collectors.toList()));
 
+        
+        Mockito.when(cmProcessorMock.getCIRelationsByFromCiIdsNakedNoAttrs(Mockito.eq("base.DeployedTo"), Mockito.anyString(), Mockito.anyList()))
+        .thenAnswer((i) -> {
+        		 List<Long> ids = (List<Long>) i.getArguments()[2];
+        		 return ids.stream().map(id->{
+        			  CmsRfcRelation rfcRel = bomRels.stream()
+                      .filter(r -> r.getFromCiId().equals(id)).findFirst().get();
+                      CmsCIRelation rel = new CmsCIRelation();
+                      rel.setRelationName("base.DeployedTo");
+                      rel.setFromCiId(rfcRel.getFromCiId());
+                      rel.setToCiId(rfcRel.getToCiId());
+                      rel.setNsPath(ENV_NS_PATH);
+                      return rel;
+         			  
+        			 })
+        		 .collect(Collectors.toList());
+        				 });
+        
+        Mockito.when(cmProcessorMock.getCiByIdList(Mockito.anyList()))
+        .thenAnswer((i)->
+        	{
+        		List<Long> ids = (List<Long>) i.getArguments()[0];
+        		
+        		return ids.stream().map(id->{
+        			CmsCI ci = new CmsCI();
+        			CmsRfcRelation rfcRel = bomRels.stream()
+                            .filter(r -> r.getFromCiId().equals(id)).findFirst().get();
+        			 CmsRfcCI rfcCI = rfcRel.getToRfcCi();
+        			 ci.setCiId(rfcCI.getCiId());
+        			 ci.setNsPath(ENV_NS_PATH);
+        			 ci.setCiClassName(rfcCI.getCiClassName());
+        			 CmsCIAttribute attr = new CmsCIAttribute();
+        			 attr.setAttributeName("size");
+        			 attr.setDfValue("M");
+        			 ci.addAttribute(attr);
+
+        			 attr = new CmsCIAttribute();
+        			 attr.setAttributeName("slice_count");
+        			 attr.setDfValue("1");
+        			 ci.addAttribute(attr);
+
+ 
+        			 
+        			return ci;
+        		}).collect(Collectors.toList());
+        	}
+        );
+        
         capacityProcessor.setCmProcessor(cmProcessorMock);
 
 
@@ -145,6 +197,12 @@ public class CapacityProcessorTest {
                 .thenAnswer(i -> bomRels.stream().collect(Collectors.groupingBy(r -> r.getToCiId().toString(), Collectors.counting())));
         Mockito.when(rfcProcessor.getRfcRelationByReleaseAndClassNoAttrs(Mockito.anyLong(), Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(bomRels);
+        Mockito.when(rfcProcessor.getRfcRelationByReleaseAndClassNoAttrs(Mockito.anyLong(), Mockito.anyString(), Mockito.anyString()))
+        .thenReturn(bomRels);
+        
+   
+        
+        //getCIRelationsByFromCiIdsNakedNoAttrs("base.DeployedTo", null, allIds)
         Mockito.when(rfcProcessor.getOpenRfcRelationBy2NoAttrs(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyString(), Mockito.anyString()))
                 .thenAnswer(i -> bomRels.stream().filter(r -> r.getFromCiId().equals(i.getArguments()[0])).collect(Collectors.toList()));
         capacityProcessor.setRfcProcessor(rfcProcessor);
@@ -186,7 +244,7 @@ public class CapacityProcessorTest {
         // Should reserve.
         bomCIs.clear();
         bomRels.clear();
-        createComputeRfc(1L, "update", "M", azureCloud);
+        createComputeRfc(1L, "update", "L", azureCloud);
         createComputeRfc(2L, "add", "M", azureCloud);
         createComputeRfc(3L, "delete", "M", azureCloud);
         createComputeRfc(4L, "add", "M", azureCloud);
@@ -199,15 +257,15 @@ public class CapacityProcessorTest {
         createStorageRfc(11L, "add", "IOPS1", "3", azureCloud);
         createStorageRfc(12L, "update", "IOPS1", "3", azureCloud);
         createStorageRfc(13L, "add", "IOPS2", "5", azureCloud);
-        createStorageRfc(14L, "update", "IOPS2", "8", azureCloud);
+        
 
         Map<String, Map<String, Integer>> expectedCapacity = new HashMap<>();
         Map<String, Integer> resources = new HashMap<>();
-        resources.put("Dv2", 4);
+        resources.put("Dv2", 2+2+(6-2));
         resources.put("DSv3", 6);
         resources.put("vm", 3);
         resources.put("nic", 3);
-        resources.put("ssd", 7);
+        resources.put("ssd", 11);
         resources.put("hdd", 6);
         resources.put("lb", 1);
         expectedCapacity.put(AZURE_CLOUD_LOCATION + ":" + AZURE_SUBSCRIPTION_ID, resources);
@@ -221,16 +279,8 @@ public class CapacityProcessorTest {
         Mockito.verify(tektonClient, Mockito.times(1))
                 .reserveQuota(argument.capture(), Mockito.eq(ENV_NS_PATH), Mockito.eq(createdBy));
 
-        Assert.assertEquals(argument.getValue(), expectedCapacity);
+        Assert.assertEquals(expectedCapacity, argument.getValue());
 
-        // Should not reserve - update RFCs only.
-        bomCIs.clear();
-        bomRels.clear();
-        createComputeRfc(1L, "update", "M", azureCloud);
-
-        capacityProcessor.reserveCapacityForDeployment(deployment);
-        Mockito.verify(tektonClient, Mockito.times(1))
-                .reserveQuota(Mockito.anyMap(), Mockito.eq(ENV_NS_PATH), Mockito.eq(createdBy));
 
         // Should not reserve - no mapping for cloud provider.
         bomCIs.clear();
@@ -293,18 +343,43 @@ public class CapacityProcessorTest {
 
         ArgumentCaptor<HashMap> argument = ArgumentCaptor.forClass(HashMap.class);
 
-        capacityProcessor.commitCapacity(workOrder);
+        capacityProcessor.adjustCapacity(workOrder);
         Mockito.verify(tektonClient, Mockito.times(1))
                 .commitReservation(argument.capture(), Mockito.eq(ENV_NS_PATH), Mockito.eq(AZURE_CLOUD_LOCATION + ":" + AZURE_SUBSCRIPTION_ID));
         Assert.assertEquals(argument.getValue(), expectedCapacity);
     }
 
+    
+    @Test
+    public void testUpdate() throws IOException {
+        long deploymentId = 1L;
+        bomCIs.clear();
+        bomRels.clear();
+        createComputeRfc(1L, "update", "L", azureCloud);
+
+
+        CmsWorkOrder workOrder = new CmsWorkOrder();
+        workOrder.setRfcCi(bomCIs.get(0));
+        workOrder.setCloud(azureCloud);
+        workOrder.setDeploymentId(deploymentId);
+
+        Map<String, Integer> expectedCapacity = new HashMap<>();
+        expectedCapacity.put("Dv2", 4);
+
+        ArgumentCaptor<HashMap> argument = ArgumentCaptor.forClass(HashMap.class);
+
+        capacityProcessor.adjustCapacity(workOrder);
+        Mockito.verify(tektonClient, Mockito.times(1))
+                .commitReservation(argument.capture(), Mockito.eq(ENV_NS_PATH), Mockito.eq(AZURE_CLOUD_LOCATION + ":" + AZURE_SUBSCRIPTION_ID));
+        Assert.assertEquals(expectedCapacity, argument.getValue());
+    }
+    
     @Test
     public void testRelease() throws IOException {
         long deploymentId = 1L;
         bomCIs.clear();
         bomRels.clear();
-        createComputeRfc(1L, "add", "M", azureCloud);
+        createComputeRfc(1L, "delete", "M", azureCloud);
 
         CmsWorkOrder workOrder = new CmsWorkOrder();
         workOrder.setRfcCi(bomCIs.get(0));
@@ -317,7 +392,7 @@ public class CapacityProcessorTest {
         expectedCapacity.put("nic", 1);
         ArgumentCaptor<HashMap> argument= ArgumentCaptor.forClass(HashMap.class);
 
-        capacityProcessor.releaseCapacity(workOrder);
+        capacityProcessor.adjustCapacity(workOrder);
         Mockito.verify(tektonClient, Mockito.times(1))
                 .releaseResources(argument.capture(),
                                   Mockito.eq(ENV_NS_PATH),
@@ -325,6 +400,29 @@ public class CapacityProcessorTest {
         Assert.assertEquals(argument.getValue(), expectedCapacity);
     }
 
+    @Test
+    public void testDelta() {
+    	Map<String, Integer> originalCapacity = new HashMap<String, Integer>();
+    	originalCapacity.put("r1", 1);
+    	originalCapacity.put("r2", 2);
+       	originalCapacity.put("r3", 3);
+       	originalCapacity.put("r4", 3);
+       	
+       	
+    	Map<String, Integer> finalCapacity = new HashMap<String, Integer>();
+    	finalCapacity.put("r1", 2);
+    	finalCapacity.put("r2", 2);
+    	finalCapacity.put("r3", 2);
+    	finalCapacity.put("r5", 5);
+    	
+    	Map<String, Integer> delta = CapacityProcessor.calculateDeltaCapacity(originalCapacity, finalCapacity);
+    	assertEquals(delta.remove("r1").intValue(), 1);
+    	assertEquals(delta.remove("r2").intValue(), 0);
+    	assertEquals(delta.remove("r3").intValue(), -1);
+    	assertEquals(delta.remove("r4").intValue(), -3);
+    	assertEquals(delta.remove("r5").intValue(), 5);
+    }
+    
     private CmsCI setupCloud(long id, String name, String className, String location, String subscriptionAttr, String subscriptionValue) {
         CmsCI cloud = new CmsCI();
         cloud.setCiId(id);
