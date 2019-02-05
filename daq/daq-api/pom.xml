@@ -5,7 +5,7 @@
     <artifactId>daq-parent</artifactId>
     
     <relativePath>../pom.xml</relativePath>
-    <version>19.01.30-3</version>
+    <version>19.01.30-4-SNAPSHOT</version>
   </parent>
   <groupId>com.oneops</groupId>
   <artifactId>daq-api</artifactId>
