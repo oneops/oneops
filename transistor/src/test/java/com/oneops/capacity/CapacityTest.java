@@ -121,7 +121,7 @@ public class CapacityTest {
 			logger.info("finalState="+finalRfcs);
 			
 			
-			List<Map<String, Integer>> originalCapacity = capacityProcessor.calculateCapacityByCi(originalRfcs);
+/*			List<Map<String, Integer>> originalCapacity = capacityProcessor.calculateCapacityByCi(originalRfcs);
 			logger.info("original capacity="+originalCapacity);
 			
 			List<Map<String, Integer>> finalCapacity = capacityProcessor.calculateCapacityByCi(finalRfcs);
@@ -130,7 +130,7 @@ public class CapacityTest {
 			
 			
 			List<Map<String, Integer>> deltaCapacity = CapacityProcessor.calculateDeltaCapacity(originalCapacity, finalCapacity);
-			logger.info("delta    capacity="+deltaCapacity);
+			logger.info("delta    capacity="+deltaCapacity); */
 			
 		} catch (CmsBaseException te) {
 			logger.error(te);

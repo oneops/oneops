@@ -118,20 +118,7 @@ public class CapacityProcessor {
     }
 
     
-    public List<Map<String, Integer>> calculateCapacityByCi(List<CmsRfcCI> cis) {
-        Map<String, Object> mappings = getCloudProviderMappings();
-        if (mappings == null) return null;
- 
-        List<Long> ciIds = cis.stream().map(CmsRfcCI::getCiId).collect(toList());
-        
-        List<CmsRfcRelation> deployedToRels = cmProcessor.getCIRelationsByFromCiIdsNakedNoAttrs("base.DeployedTo", null, ciIds).stream()
-                .map(rel -> new CmsRfcRelation(rel, null))
-                .collect(toList());
-        
-  
-        Map<Long, CloudInfo> deployedToCloudInfoMap = getDeployedToCloudInfoMap(deployedToRels);
-        return getCapacityByCi(cis, deployedToRels, deployedToCloudInfoMap, mappings);
-    }    
+
     
     
     public CapacityEstimate estimateCapacity(String nsPath, Collection<CmsRfcCI> cis, Collection<CmsRfcRelation> addDeployedToRels) {
@@ -191,7 +178,7 @@ public class CapacityProcessor {
             if (toUpdateSize > 0) {
             	List<CmsCI> updateCis = allCis.subList(toDeleteSize, allRfcs.size());
             	List<CmsRfcCI> updateRfcs= updateAndDeleteRfcs.subList(toDeleteSize, allRfcs.size());
-            	DeltaCapacity deltaCapacity = calculateDeltaCapacity(updateRfcs, updateCis, deployedToRels, deployedToCloudInfoMap);
+            	DeltaCapacity deltaCapacity = calculateDeltaCapacity(updateRfcs, updateCis, deployedToRels, deployedToCloudInfoMap, mappings);
             	merge(deltaCapacity.getIncrease(), increase);
             	merge(deltaCapacity.getDecrease(), decrease);
             }
@@ -259,7 +246,7 @@ public class CapacityProcessor {
 
         
         if (!updateRfcs.isEmpty()) {
-        	DeltaCapacity deltaCapacity = calculateDeltaCapacity(updateRfcs, deployedToRels, deployedToCloudInfoMap);
+        	DeltaCapacity deltaCapacity = calculateDeltaCapacity(updateRfcs, deployedToRels, deployedToCloudInfoMap, mappings);
         	logger.debug("delta capacity="+deltaCapacity);
         	merge(deltaCapacity.getIncrease(), capacity);
         }        	
@@ -357,7 +344,7 @@ public class CapacityProcessor {
                 .collect(toList());
  
         CloudInfo cloudInfo = getDeployedToCloudInfo(deployedTos.get(0).getToCiId());
-        DeltaCapacity deltaCapacity = calculateDeltaCapacity(Collections.singletonList(rfcCi), deployedTos, Collections.singletonMap(deployedTos.get(0).getToCiId(), cloudInfo));
+        DeltaCapacity deltaCapacity = calculateDeltaCapacity(Collections.singletonList(rfcCi), deployedTos, Collections.singletonMap(deployedTos.get(0).getToCiId(), cloudInfo), mappings);
         
         logger.debug("updateCapacity: delta capacity="+deltaCapacity);
         
@@ -688,20 +675,20 @@ public class CapacityProcessor {
     		return rfcCis.stream().filter(ci->ci.getRfcAction().equals("update") || ci.getRfcAction().equals("replace")).collect(toList());
     }
 
-    private DeltaCapacity calculateDeltaCapacity(List<CmsRfcCI> updateRfcs, List<CmsRfcRelation> deployedToRels, Map<Long, CloudInfo> deployedToCloudInfoMap) {
-    	return calculateDeltaCapacity(updateRfcs, loadCis(updateRfcs), deployedToRels, deployedToCloudInfoMap);
+    private DeltaCapacity calculateDeltaCapacity(List<CmsRfcCI> updateRfcs, List<CmsRfcRelation> deployedToRels, Map<Long, CloudInfo> deployedToCloudInfoMap, Map<String, Object> mappings) {
+    	return calculateDeltaCapacity(updateRfcs, loadCis(updateRfcs), deployedToRels, deployedToCloudInfoMap, mappings);
     }
 
     
     
-    private DeltaCapacity calculateDeltaCapacity(List<CmsRfcCI> updateRfcs, List<CmsCI> updateCis, Collection<CmsRfcRelation> deployedToRels, Map<Long, CloudInfo> deployedToCloudInfoMap) {
+    private DeltaCapacity calculateDeltaCapacity(List<CmsRfcCI> updateRfcs, List<CmsCI> updateCis, Collection<CmsRfcRelation> deployedToRels, Map<Long, CloudInfo> deployedToCloudInfoMap, Map<String, Object> mappings) {
     	// First, load everything needed for all categories: delete and update
     	
     	List<CmsRfcCI> updateRfcCisOriginal = toRfcCis(updateCis);
        	List<CmsRfcCI> updateRfcCisFinal = createFinalSate(updateRfcs, updateCis);
-        	
-    	List<Map<String, Integer>> originalCapacity = calculateCapacityByCi(updateRfcCisOriginal);
-    	List<Map<String, Integer>> finalCapacity = calculateCapacityByCi(updateRfcCisFinal);
+        
+    	List<Map<String, Integer>> originalCapacity = getCapacityByCi(updateRfcCisOriginal,deployedToRels, deployedToCloudInfoMap, mappings);
+    	List<Map<String, Integer>> finalCapacity = getCapacityByCi(updateRfcCisFinal, deployedToRels, deployedToCloudInfoMap, mappings);
     	List<Map<String, Integer>> delta = calculateDeltaCapacity(originalCapacity, finalCapacity);
         	
         Map<Long, Long> ciToCloudMap = deployedToRels.stream()
