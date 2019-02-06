@@ -11,6 +11,8 @@ if nagios_version == '3.5.1' || nagios_version == '4.4.3' && node.platform_famil
 		notifies :restart, 'service[nagios]', :immediately
 	end
 	service 'nagios' do
-		supports :reload => true, :restart => true
+                provider Chef::Provider::Service::Redhat if File.exist?('/etc/init.d/nagios') && node[:platform_family].include?("rhel")
+      		supports [ :restart, :enable ]
+      		action [ :restart, :enable ]
 	end
 end
