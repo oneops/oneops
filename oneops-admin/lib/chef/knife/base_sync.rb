@@ -73,6 +73,7 @@ module BaseSync
       conn = Fog::Storage.new({:provider           => object_store_provider,
                                :openstack_username => Chef::Config[:object_store_user],
                                :openstack_api_key  => Chef::Config[:object_store_pass],
+                               :openstack_region   => Chef::Config[:object_region],
                                :openstack_auth_url => Chef::Config[:object_store_endpoint]})
       env_bucket = Chef::Config[:environment_name]
     elsif ENV['CIRCUIT_LOCAL_ASSET_STORE_ROOT'].present?
