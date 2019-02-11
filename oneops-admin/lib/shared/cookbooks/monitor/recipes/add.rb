@@ -455,10 +455,10 @@ else
   if node.workorder.payLoad.Environment[0][:ciAttributes].has_key?('monitoring') &&
      node.workorder.payLoad.Environment[0][:ciAttributes][:monitoring] == 'true'
 
-    if File.exist?('/etc/init.d/nagios') && node[:platform_family].include?('rhel')
-      provider = Chef::Provider::Service::Redhat
-    elsif node[:platform_family] == 'rhel' && node[:platform_version].to_i >= 7
+    if node[:platform_family] == 'rhel' && node[:platform_version].to_i >= 7
       provider = Chef::Provider::Service::Systemd
+    elsif File.exist?('/etc/init.d/nagios') && node[:platform_family].include?('rhel')
+      provider = Chef::Provider::Service::Redhat
     else
       provider = nil
     end
