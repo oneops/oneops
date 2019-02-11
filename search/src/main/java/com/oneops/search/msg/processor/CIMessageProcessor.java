@@ -181,6 +181,12 @@ public class CIMessageProcessor implements MessageProcessor {
         return GSON_ES.toJson(ciSearch);
     }
 
+
+    /**
+     * This code is to handle expires_on field defined as date in ES that is currently coming in a very weird ioformat.
+     * Until mapping is adjusted we need to translate it to one of the date formats known to ES or CI won't index.
+     * @param wos
+     */
     private void applyDateFixes(CmsWorkOrderSimple wos) {
         if (wos.getRfcCi()!=null) {
             convertIllegalDateFormat(wos.getRfcCi().getCiAttributes(), "expires_on");
@@ -193,16 +199,39 @@ public class CIMessageProcessor implements MessageProcessor {
     private static void convertIllegalDateFormat(Map<String, String> ciAttributes, String name) {
         if (ciAttributes!=null && ciAttributes.containsKey(name)){
             String date = ciAttributes.get(name);
+
+            //Nov  5 21:08:38 2019 GMT
             //Jan 22 18:21:47 2020 GMT
+            // Some of the `expires_one` date fields apparently have date format with two spaces, so while this conversion is a hack,
+            // until we migrate to newer ES version and change the mapping we need to accommodate both, since single DateTimeFormat can't handle it.
             DateTimeFormatter wrongFormat = DateTimeFormat.forPattern("MMM dd HH:mm:ss yyyy z");
+            DateTimeFormatter wrongFormat2 = DateTimeFormat.forPattern("MMM  dd HH:mm:ss yyyy z");
+
             /// 2020-01-22T18:21:47
             DateTimeFormatter rightFormat = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss");
             try {
                 ciAttributes.put(name, rightFormat.print(wrongFormat.parseMillis(date)));
             } catch (Exception e) {
-                // do nothing, unexpected date format
+                try {
+                    ciAttributes.put(name, rightFormat.print(wrongFormat2.parseMillis(date)));
+                } catch (Exception ignore) {
+                    // do nothing, unexpected date format
+                }
             }
         }
+    }
+
+    public static void main(String[] args) {
+        Map<String, String> map = new HashMap<>();
+        map.put("test", "Nov 5 21:08:38 2019 GMT");
+        map.put("test1", "Nov  5 21:08:38 2019 GMT");
+
+        convertIllegalDateFormat(map, "test");
+        convertIllegalDateFormat(map, "test1");
+        System.out.println(map);
+        System.out.println(ISODateTimeFormat.dateOptionalTimeParser().parseDateTime(map.get("test")));
+        System.out.println(ISODateTimeFormat.dateOptionalTimeParser().parseDateTime(map.get("test1")));
+
     }
 
 }
