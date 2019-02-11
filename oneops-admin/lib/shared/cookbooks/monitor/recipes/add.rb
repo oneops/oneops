@@ -455,10 +455,16 @@ else
   if node.workorder.payLoad.Environment[0][:ciAttributes].has_key?('monitoring') &&
      node.workorder.payLoad.Environment[0][:ciAttributes][:monitoring] == 'true'
 
-include_recipe 'monitor::nagios_service_fix' unless node.workorder.rfcCi.ciClassName =~ /bom\..*\.Compute/
-  
+    if node[:platform_family] == 'rhel' && node[:platform_version].to_i >= 7
+      provider = Chef::Provider::Service::Systemd
+    elsif File.exist?('/etc/init.d/nagios') && node[:platform_family].include?('rhel')
+      provider = Chef::Provider::Service::Redhat
+    else
+      provider = nil
+    end
+
     service nagios_service do
-      provider Chef::Provider::Service::Redhat if File.exist?('/etc/init.d/nagios') && node[:platform_family].include?("rhel")
+      provider provider if provider
       supports [ :restart, :enable ]
       action [ :restart, :enable ]
     end
@@ -473,3 +479,4 @@ include_recipe 'monitor::nagios_service_fix' unless node.workorder.rfcCi.ciClass
   end
 end
 
+include_recipe 'monitor::nagios_service_fix' unless node.workorder.rfcCi.ciClassName =~ /bom\..*\.Compute/

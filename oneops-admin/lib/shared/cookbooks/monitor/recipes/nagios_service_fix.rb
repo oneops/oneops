@@ -3,7 +3,7 @@
 
 nagios_version = `yum info nagios | grep 'Version'`.gsub(/\s+/, '').gsub('Version:', '')
 
-if nagios_version == '3.5.1' || nagios_version == '4.4.3' && node.platform_family == 'rhel'
+if nagios_version == '3.5.1' && node.platform_family == 'rhel'
 	template '/etc/init.d/nagios' do
 		source 'nagios_service_3.5.1.erb'
 		mode '0755'

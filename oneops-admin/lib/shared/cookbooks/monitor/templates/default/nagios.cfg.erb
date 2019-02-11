@@ -162,7 +162,9 @@ external_command_buffer_slots=4096
 # LOCK FILE
 # This is the lockfile that Nagios will use to store its PID number
 # in when it is running in daemon mode.
-<% if node.platform_family == "rhel"
+<% if node[:platform_family] == 'rhel' && node[:platform_version].to_i >= 7 %>
+lock_file=/var/run/nagios/nagios.pid
+<% elsif node.platform_family == "rhel"
    # handle old nagios 3 running on centos 7+
    `grep /var/run/nagios.pid /etc/init.d/nagios`
     if $?.to_i == 0 %> 
