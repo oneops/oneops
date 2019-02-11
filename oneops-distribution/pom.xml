@@ -3,7 +3,7 @@
   <parent>
     <groupId>com.oneops</groupId>
     <artifactId>oneops-parent</artifactId>
-    <version>19.02.13-1-SNAPSHOT</version>
+    <version>19.02.13-1</version>
   </parent>
   <groupId>com.oneops</groupId>
   <artifactId>distribution</artifactId>
