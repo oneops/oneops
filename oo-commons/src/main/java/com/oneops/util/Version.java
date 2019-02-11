@@ -28,7 +28,7 @@ public class Version {
     @Value("${oo.version.Path:/META-INF/MANIFEST.MF}")
     private  String manifestPath ;
 
-    @Autowired
+    @Autowired(required=false)
     public void setContext(ServletContext servletContext) {
         this.servletContext = servletContext;
     }

@@ -55,4 +55,13 @@ public class CapacityEstimate {
     public void setReservationCheck(String reservationCheck) {
         this.reservationCheck = reservationCheck;
     }
+
+	@Override
+	public String toString() {
+		return "CapacityEstimate [increase=" + increase + ", decrease=" + decrease + ", reservationCheck="
+				+ reservationCheck + "]";
+	}
+    
+    
+    
 }

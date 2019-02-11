@@ -6,7 +6,7 @@
  ">
 
 	<!-- import mybatis staff  -->
-    <import resource="mybatis-beans.xml"/>
+    <import resource="classpath:mybatis-beans.xml"/>
 
 	<bean id="expEval" class="com.oneops.transistor.util.ExpEvaluator"/>
 	<!--bean id="rfcUtil" class="com.oneops.cms.dj.service.CmsRfcUtil"/>

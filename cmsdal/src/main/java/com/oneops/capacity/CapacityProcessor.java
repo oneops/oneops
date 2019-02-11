@@ -9,21 +9,26 @@ import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.cms.util.domain.CmsVar;
+
 import org.apache.log4j.Logger;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.transaction.support.TransactionSynchronizationAdapter;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.util.Assert;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.IntStream;
 
 import static java.util.stream.Collectors.*;
 
 public class CapacityProcessor {
-    private static Logger logger = Logger.getLogger(CapacityProcessor.class);
-
+	private static final Logger logger = Logger.getLogger(CapacityProcessor.class);
+	
     static final String CAPACITY_MANAGEMENT_VAR_NAME = "CAPACITY_MANAGEMENT";
     static final String PROVIDER_MAPPINGS_CMS_VAR_NAME = "CLOUD_PROVIDER_MAPPINGS";
 
@@ -35,6 +40,34 @@ public class CapacityProcessor {
     private Gson gson = new Gson();
     private Map<String, Expression> expressionCache = new HashMap<>();
 
+    private static class DeltaCapacity {
+    	private Map<String, Map<String, Integer>> increase;
+    	private Map<String, Map<String, Integer>> decrease;
+    	
+		public DeltaCapacity(Map<String, Map<String, Integer>> increase, Map<String, Map<String, Integer>> decrease) {
+			super();
+			this.increase = increase;
+			this.decrease = decrease;
+		}
+
+		public Map<String, Map<String, Integer>> getIncrease() {
+			return increase;
+		}
+
+		public Map<String, Map<String, Integer>> getDecrease() {
+			return decrease;
+		}
+		
+		public boolean isEmpty() {
+			return increase.isEmpty() && decrease.isEmpty();
+		}
+
+		@Override
+		public String toString() {
+			return "DeltaCapacity [increase=" + increase + ", decrease=" + decrease + "]";
+		}
+    }
+    
     public void setCmProcessor(CmsCmProcessor cmProcessor) {
         this.cmProcessor = cmProcessor;
     }
@@ -51,6 +84,8 @@ public class CapacityProcessor {
         this.exprParser = exprParser;
     }
 
+    
+    
     public boolean isCapacityManagementEnabled(String nsPath) {
         CmsVar softQuotaEnabled = cmProcessor.getCmSimpleVar(CAPACITY_MANAGEMENT_VAR_NAME);
         if (softQuotaEnabled != null) {
@@ -82,57 +117,100 @@ public class CapacityProcessor {
         return capacity;
     }
 
-    public CapacityEstimate estimateCapacity(String nsPath, Collection<CmsRfcCI> cis, Collection<CmsRfcRelation> deployedToRels) {
+    
+
+    
+    
+    public CapacityEstimate estimateCapacity(String nsPath, Collection<CmsRfcCI> cis, Collection<CmsRfcRelation> addDeployedToRels) {
         if (!isCapacityManagementEnabled(nsPath)) return null;
 
         Map<String, Object> mappings = getCloudProviderMappings();
         if (mappings == null) return null;
 
         Map<String, List<CmsRfcCI>> groupedCis = cis.stream().collect(groupingBy(CmsRfcCI::getRfcAction));
+        Map<String, Map<String, Integer>> increase = new HashMap<>();
+        Map<String, Map<String, Integer>> decrease = new HashMap<>();
+       
+        List<CmsRfcRelation> deployedToRels = new ArrayList<CmsRfcRelation>();
+        if (addDeployedToRels !=  null) {
+        	deployedToRels.addAll(addDeployedToRels);
+        }		
+        
+        List<CmsRfcCI> toAdd = groupedCis.remove("add");
+        // handle not "add" first
+        
+        List<CmsRfcCI> updateAndDeleteRfcs = new ArrayList<>();
+        List<CmsRfcCI> toDelete = groupedCis.remove("delete");
+        if (toDelete != null) {
+        	updateAndDeleteRfcs.addAll(toDelete);
+        }
+        
+       groupedCis.values().forEach(l->updateAndDeleteRfcs.addAll(l));
+       
+       
+       if (!updateAndDeleteRfcs.isEmpty()) {
+        	// First, load everything needed for all categories: delete and update
+        	List<Long> allIds = updateAndDeleteRfcs.stream().map(CmsRfcCI::getCiId).collect(toList());
+        	
+        	
+            deployedToRels.addAll(cmProcessor.getCIRelationsByFromCiIdsNakedNoAttrs("base.DeployedTo", null, allIds).stream()
+                    .map(rel -> new CmsRfcRelation(rel, null))
+                    .collect(toList()));
+       }
 
-        // Capacity to reserve.
-        Map<Long, CloudInfo> deployedToCloudInfoMap = getDeployedToCloudInfoMap(deployedToRels);
-        Map<String, Map<String, Integer>> increase = getCapacityForCis(groupedCis.get("add"), deployedToRels, deployedToCloudInfoMap, mappings);
-        String check = "ok";
-        if (increase != null && !increase.isEmpty()) {
-            Map<String, String> info = tektonClient.precheckReservation(increase, getReservationNsPath(nsPath), "oneops-system");
-            if (info == null) {
-                check = "failed";
-            } else if (info.isEmpty()) {
-                check = "ok";
-            } else {
-                check = capacityShortageMessage(info, deployedToCloudInfoMap, "");
+       deployedToRels = deployedToRels.stream().filter(distinctByKey(CmsRfcRelation::getFromCiId)).collect(toList());
+       Map<Long, CloudInfo> deployedToCloudInfoMap = getDeployedToCloudInfoMap(deployedToRels);
+       
+       if (!updateAndDeleteRfcs.isEmpty()) {      
+           	List<CmsCI> allCis = loadCis(updateAndDeleteRfcs);
+        	List<CmsRfcCI> allRfcs = toRfcCis(allCis);
+            // ok, all loaded. First process those to delete
+            
+            int toDeleteSize = toDelete == null ? 0 : toDelete.size();
+            
+            if (toDeleteSize > 0) {
+            	List<CmsRfcCI> deleteCis = allRfcs.subList(0, toDelete.size());
+            	decrease.putAll(getCapacityForCis(deleteCis, deployedToRels, deployedToCloudInfoMap, mappings));
+            }
+            
+             int toUpdateSize = allRfcs.size() - toDeleteSize;
+            
+            if (toUpdateSize > 0) {
+            	List<CmsCI> updateCis = allCis.subList(toDeleteSize, allRfcs.size());
+            	List<CmsRfcCI> updateRfcs= updateAndDeleteRfcs.subList(toDeleteSize, allRfcs.size());
+            	DeltaCapacity deltaCapacity = calculateDeltaCapacity(updateRfcs, updateCis, deployedToRels, deployedToCloudInfoMap, mappings);
+            	merge(deltaCapacity.getIncrease(), increase);
+            	merge(deltaCapacity.getDecrease(), decrease);
             }
         }
+        
+        // handle add
+ 	    Map<String, Map<String, Integer>> toIncrease = getCapacityForCis(toAdd, deployedToRels, deployedToCloudInfoMap, mappings);
+	        
+	    if (toIncrease != null && !toIncrease.isEmpty()) {
+	    	merge(toIncrease, increase);
+	    }    	
+	    
+	    String check = "ok";
 
-        // Capacity to release.
-        Map<String, Map<String, Integer>> decrease = new HashMap<>();
-        List<CmsRfcCI> deleteRfcs = groupedCis.get("delete");
-        if (deleteRfcs != null) {
-            List<Long> deleteCiIds = deleteRfcs.stream().map(CmsRfcCI::getCiId).collect(toList());
-            List<CmsRfcCI> deleteCis = cmProcessor.getCiByIdList(deleteCiIds).stream()
-                    .map(ci -> {
-                        CmsRfcCI rfc = new CmsRfcCI(ci, null);
-                        rfc.setAttributes(ci.getAttributes().values().stream()
-                                                  .map(ciAttr -> {
-                                                      CmsRfcAttribute rfcAttr = new CmsRfcAttribute();
-                                                      rfcAttr.setAttributeId(ciAttr.getAttributeId());
-                                                      rfcAttr.setAttributeName(ciAttr.getAttributeName());
-                                                      rfcAttr.setNewValue(ciAttr.getDfValue());
-                                                      return rfcAttr;
-                                                  })
-                                                  .collect(toMap(CmsRfcAttribute::getAttributeName, Function.identity())));
-                        return rfc;
-                    })
-                    .collect(toList());
-            deployedToRels = cmProcessor.getCIRelationsByFromCiIdsNakedNoAttrs("base.DeployedTo", null, deleteCiIds).stream()
-                    .map(rel -> new CmsRfcRelation(rel, null))
-                    .collect(toList());
-            deployedToCloudInfoMap = getDeployedToCloudInfoMap(deployedToRels);
-            decrease = getCapacityForCis(deleteCis, deployedToRels, deployedToCloudInfoMap, mappings);
-        }
+	    if (!increase.isEmpty()) {
+	    	Map<String, String> info = tektonClient.precheckReservation(increase, getReservationNsPath(nsPath), "oneops-system");
+	    	
+            if (info == null) {
+                check = "failed";
+            } 
+            else if (info.isEmpty()) {
+                check = "ok";
+            } 
+            else {
+                check = capacityShortageMessage(info, deployedToCloudInfoMap, "");
+            }
+    	}
+        
 
-        return new CapacityEstimate(increase, decrease, check);
+        CapacityEstimate result = new CapacityEstimate (increase, decrease, check);
+        logger.debug("estimation result="+result);
+        return result;
     }
 
     public void reserveCapacityForDeployment(CmsDeployment deployment) {
@@ -150,11 +228,33 @@ public class CapacityProcessor {
         List<CmsRfcCI> cis = rfcProcessor.getRfcCIBy3(releaseId, true, null);
         List<CmsRfcRelation> deployedToRels = rfcProcessor.getRfcRelationByReleaseAndClassNoAttrs(releaseId, null, "DeployedTo");
 
-        Map<Long, CloudInfo> deployedToCloudInfoMap = getDeployedToCloudInfoMap(deployedToRels);
+        
         List<CmsRfcCI> addCIs = cis.stream().filter(ci -> ci.getRfcAction().equals("add")).collect(toList());
+        List<CmsRfcCI> updateRfcs = cis.stream().filter(ci -> !ci.getRfcAction().equals("add") && !ci.getRfcAction().equals("delete")).collect(toList());
+        
+        if (!updateRfcs.isEmpty()) {
+        	List<Long> allIds = updateRfcs.stream().map(CmsRfcCI::getCiId).collect(toList());
+            deployedToRels.addAll(cmProcessor.getCIRelationsByFromCiIdsNakedNoAttrs("base.DeployedTo", null, allIds).stream()
+                    .map(rel -> new CmsRfcRelation(rel, null))
+                    .collect(toList()));
+        }    
+        
+        deployedToRels = deployedToRels.stream().filter(distinctByKey(CmsRfcRelation::getFromCiId)).collect(toList());
+        
+        Map<Long, CloudInfo> deployedToCloudInfoMap = getDeployedToCloudInfoMap(deployedToRels);
         Map<String, Map<String, Integer>> capacity = getCapacityForCis(addCIs, deployedToRels, deployedToCloudInfoMap, mappings);
 
-        if (!capacity.isEmpty()) {
+        
+        if (!updateRfcs.isEmpty()) {
+        	DeltaCapacity deltaCapacity = calculateDeltaCapacity(updateRfcs, deployedToRels, deployedToCloudInfoMap, mappings);
+        	logger.debug("delta capacity="+deltaCapacity);
+        	merge(deltaCapacity.getIncrease(), capacity);
+        }        	
+
+    	logger.debug("reserve capacity="+capacity);
+
+        
+         if (!capacity.isEmpty()) {
             try {
                 tektonClient.reserveQuota(capacity, getReservationNsPath(nsPath), deployment.getCreatedBy());
             } catch (ReservationException exception) {
@@ -171,8 +271,21 @@ public class CapacityProcessor {
 
         deleteReservations(getReservationNsPath(nsPath));
     }
+    
+    
+    public void adjustCapacity(CmsWorkOrder wo) {
+    	String rfcAction = wo.getRfcCi().getRfcAction();
+    	if (rfcAction.equalsIgnoreCase("add")) {
+    		commitCapacity(wo);
+    	} else if (rfcAction.equalsIgnoreCase("delete")) {
+    		releaseCapacity(wo);
+    	}
+    	else {
+    		updateCapacity(wo);
+    	}
+    }
 
-    public void commitCapacity(CmsWorkOrder workOrder) {
+    private void commitCapacity(CmsWorkOrder workOrder) {
         CmsRfcCI rfcCi = workOrder.getRfcCi();
         String nsPath = getReservationNsPath(rfcCi.getNsPath());
         if (!isCapacityManagementEnabled(nsPath)) return;
@@ -195,7 +308,7 @@ public class CapacityProcessor {
         }
     }
 
-    public void releaseCapacity(CmsWorkOrder workOrder) {
+    private void releaseCapacity(CmsWorkOrder workOrder) {
         CmsRfcCI rfcCi = workOrder.getRfcCi();
         String nsPath = getReservationNsPath(rfcCi.getNsPath());
         if (!isCapacityManagementEnabled(nsPath)) return;
@@ -218,6 +331,41 @@ public class CapacityProcessor {
         }
     }
 
+    private void updateCapacity(CmsWorkOrder workOrder) {
+        CmsRfcCI rfcCi = workOrder.getRfcCi();
+        String nsPath = getReservationNsPath(rfcCi.getNsPath());
+        if (!isCapacityManagementEnabled(nsPath)) return;
+
+        Map<String, Object> mappings = getCloudProviderMappings();
+        if (mappings == null) return;
+
+        List<CmsRfcRelation> deployedTos = cmProcessor.getFromCIRelationsNakedNoAttrs(rfcCi.getCiId(), "base.DeployedTo", null, null).stream()
+                .map(rel -> new CmsRfcRelation(rel, null))
+                .collect(toList());
+ 
+        CloudInfo cloudInfo = getDeployedToCloudInfo(deployedTos.get(0).getToCiId());
+        DeltaCapacity deltaCapacity = calculateDeltaCapacity(Collections.singletonList(rfcCi), deployedTos, Collections.singletonMap(deployedTos.get(0).getToCiId(), cloudInfo), mappings);
+        
+        logger.debug("updateCapacity: delta capacity="+deltaCapacity);
+        
+        if (!deltaCapacity.isEmpty()) {
+            String subscriptionId = cloudInfo.getSubscriptionId();
+            afterCommit(new TransactionSynchronizationAdapter() {
+                @Override
+                public void afterCommit() {
+                	
+                	if (!deltaCapacity.getIncrease().isEmpty()) {
+                		tektonClient.commitReservation(deltaCapacity.getIncrease().get(subscriptionId), nsPath, subscriptionId);
+                	}
+                	
+                	if (!deltaCapacity.getDecrease().isEmpty()) {
+                		tektonClient.releaseResources(deltaCapacity.getDecrease().get(subscriptionId), nsPath, subscriptionId);
+                	}                	
+                }
+            });
+        }
+    }
+    
     void afterCommit(TransactionSynchronizationAdapter adapter) {
         TransactionSynchronizationManager.registerSynchronization(adapter);
     }
@@ -295,6 +443,27 @@ public class CapacityProcessor {
         return new CloudInfo(cloudCiId, cloud.getCiName(), provider, subscriptionId);
     }
 
+    
+    private List<Map<String, Integer>> getCapacityByCi(List<CmsRfcCI> cis,
+            Collection<CmsRfcRelation> deployedToRels,
+            Map<Long, CloudInfo> cloudInfoMap,
+            Map<String, Object> mappings) {
+    
+    	List<Map<String, Integer>> capacity = new ArrayList<Map<String,Integer>>();
+
+		Map<Long, Long> ciToCloudMap = deployedToRels.stream()
+		.collect(toMap(CmsRfcRelation::getFromCiId, CmsRfcRelation::getToCiId));
+
+		for (CmsRfcCI rfcCI : cis) {
+			CloudInfo cloudInfo = cloudInfoMap.get(ciToCloudMap.get(rfcCI.getCiId()));
+			capacity.add(getCapacityForCi(rfcCI, cloudInfo, mappings));
+
+		}
+
+		return capacity;
+}
+
+    
     private Map<String, Map<String, Integer>> getCapacityForCis(Collection<CmsRfcCI> cis,
                                                                 Collection<CmsRfcRelation> deployedToRels,
                                                                 Map<Long, CloudInfo> cloudInfoMap,
@@ -320,6 +489,9 @@ public class CapacityProcessor {
         return capacity;
     }
 
+    
+    
+    
     private Map<String, Integer> getCapacityForCi(CmsRfcCI rfcCi, CloudInfo cloudInfo, Map<String, Object> mappings) {
         Map<String, Integer> capacity = new HashMap<>();
 
@@ -444,5 +616,147 @@ public class CapacityProcessor {
         public String getCiName() {
             return ciName;
         }
+    }
+    
+    
+    static List<CmsRfcCI> toRfcCis(List<CmsCI> cis) {
+    	return cis.stream().map(ci->{
+            CmsRfcCI rfc = new CmsRfcCI(ci, null);
+            rfc.setAttributes(ci.getAttributes().values().stream()
+                                      .map(ciAttr -> {
+                                          CmsRfcAttribute rfcAttr = new CmsRfcAttribute();
+                                          rfcAttr.setAttributeId(ciAttr.getAttributeId());
+                                          rfcAttr.setAttributeName(ciAttr.getAttributeName());
+                                          rfcAttr.setNewValue(ciAttr.getDfValue());
+                                          return rfcAttr;
+                                      })
+                                      .collect(toMap(CmsRfcAttribute::getAttributeName, Function.identity())));
+            return rfc;
+            }).collect(toList());
+    }
+    
+    static List<CmsRfcCI> createFinalSate(List<CmsRfcCI> rfcCis, List<CmsCI> currentState) {
+    	return rfcCis.stream().map(r->{
+    		CmsCI original = currentState.stream().filter(c->c.getCiId() == r.getCiId()).findFirst().get();
+    		Assert.notNull(original, "Original CI must be present");
+    		CmsRfcCI finalRfc = new CmsRfcCI(original, "");
+    		
+    		original.getAttributes().values().forEach(a->{finalRfc.addOrUpdateAttribute(a.getAttributeName(), a.getDfValue());});
+    		r.getAttributes().values().forEach(a->{finalRfc.addOrUpdateAttribute(a.getAttributeName(), a.getNewValue());});
+    		
+    		return finalRfc;
+    	}).collect(toList());
+    }
+    
+    
+    List<CmsCI> loadCis (List<CmsRfcCI> rfcCis) {
+    	Map<Long, CmsCI> ciMap = cmProcessor.getCiByIdList(rfcCis.stream().map(CmsRfcCI::getCiId).collect(toList()))
+    			.stream()
+    			.collect(toMap(CmsCI::getCiId, Function.identity()))
+    			;
+    	
+    	List<CmsCI> result = new  ArrayList<CmsCI>(rfcCis.size());
+    	
+    	rfcCis.forEach(r->{
+    		CmsCI ci = ciMap.get(r.getCiId());
+    		Assert.notNull("ci for RFC must not be null. cid="+r.getCiId());
+    		result.add(ci);
+    		
+    	});
+    	
+    	return result;
+    }
+    
+    static List<CmsRfcCI> getUpdateOrReplaceCi(Collection<CmsRfcCI> rfcCis) {
+    		if (rfcCis == null) {
+    			return null;
+    		}
+    		
+    		return rfcCis.stream().filter(ci->ci.getRfcAction().equals("update") || ci.getRfcAction().equals("replace")).collect(toList());
+    }
+
+    private DeltaCapacity calculateDeltaCapacity(List<CmsRfcCI> updateRfcs, List<CmsRfcRelation> deployedToRels, Map<Long, CloudInfo> deployedToCloudInfoMap, Map<String, Object> mappings) {
+    	return calculateDeltaCapacity(updateRfcs, loadCis(updateRfcs), deployedToRels, deployedToCloudInfoMap, mappings);
+    }
+
+    
+    
+    private DeltaCapacity calculateDeltaCapacity(List<CmsRfcCI> updateRfcs, List<CmsCI> updateCis, Collection<CmsRfcRelation> deployedToRels, Map<Long, CloudInfo> deployedToCloudInfoMap, Map<String, Object> mappings) {
+    	// First, load everything needed for all categories: delete and update
+    	
+    	List<CmsRfcCI> updateRfcCisOriginal = toRfcCis(updateCis);
+       	List<CmsRfcCI> updateRfcCisFinal = createFinalSate(updateRfcs, updateCis);
+        
+    	List<Map<String, Integer>> originalCapacity = getCapacityByCi(updateRfcCisOriginal,deployedToRels, deployedToCloudInfoMap, mappings);
+    	List<Map<String, Integer>> finalCapacity = getCapacityByCi(updateRfcCisFinal, deployedToRels, deployedToCloudInfoMap, mappings);
+    	List<Map<String, Integer>> delta = calculateDeltaCapacity(originalCapacity, finalCapacity);
+        	
+        Map<Long, Long> ciToCloudMap = deployedToRels.stream()
+                    .collect(toMap(CmsRfcRelation::getFromCiId, CmsRfcRelation::getToCiId));            	
+        
+    	 Map<String, Map<String, Integer>> increase = new HashMap<String, Map<String,Integer>>();
+    	 Map<String, Map<String, Integer>> decrease = new HashMap<String, Map<String,Integer>>();
+        
+        	IntStream.range(0, updateRfcs.size()).forEach(i->{
+        		CmsRfcCI rfcCI = updateRfcs.get(i);
+        		Map<String, Integer> rfcDelta = delta.get(i);
+        		CloudInfo cloudInfo = deployedToCloudInfoMap.get(ciToCloudMap.get(rfcCI.getCiId()));
+        		
+        		rfcDelta.forEach((resource, v)->{
+        			if (v > 0) {
+        				Map<String, Integer> subCapacity = increase.computeIfAbsent(cloudInfo.getSubscriptionId(), (c) -> new HashMap<>());
+                        subCapacity.put(resource, subCapacity.computeIfAbsent(resource, (k) -> 0) + v);
+        			}
+        			
+           			if (v < 0) {
+        				Map<String, Integer> subCapacity = decrease.computeIfAbsent(cloudInfo.getSubscriptionId(), (c) -> new HashMap<>());
+                        subCapacity.put(resource, subCapacity.computeIfAbsent(resource, (k) -> 0) + -v);
+        			}         			
+        		});
+        		
+        	});
+        	
+        	return new DeltaCapacity(increase, decrease);
+    }
+
+    static void merge(Map<String, Map<String, Integer>> from, Map<String, Map<String, Integer>> to) {
+    	from.forEach((subscription, resources)->{
+    		Map<String, Integer> subCapacity = to.computeIfAbsent(subscription, (c) -> new HashMap<>());
+    		resources.forEach((r, v)->{
+    			subCapacity.put(r, subCapacity.computeIfAbsent(r, (k) -> 0) + v);
+    		});
+    	});
+    }
+    
+    static List<Map<String, Integer>> calculateDeltaCapacity(List<Map<String, Integer>> originalCapacity, List<Map<String, Integer>> finalCapacity) {
+    	return IntStream.range(0, originalCapacity.size()).mapToObj(i->calculateDeltaCapacity(originalCapacity.get(i), finalCapacity.get(i)))
+    			.collect(toList());
+    	
+ 
+    }
+    
+    
+    static Map<String, Integer> calculateDeltaCapacity(Map<String, Integer> originalCapacity, Map<String, Integer> finalCapacity) {
+    	Map<String, Integer> result = new HashMap<String, Integer>();
+    	
+    	finalCapacity.forEach((k, v)->{
+    		Integer originalValue = originalCapacity.get(k);
+    		result.put(k ,originalValue == null ? v : v - originalValue);
+    	});
+    	
+       	originalCapacity.forEach((k, v)->{
+    		Integer finalValue = finalCapacity.get(k);
+    		if (finalValue == null) {
+    			result.put(k ,-v);
+    		}
+    	});	
+       	
+       	return result;
+    }
+    
+    
+    public static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {
+        Set<Object> seen = ConcurrentHashMap.newKeySet();
+        return t -> seen.add(keyExtractor.apply(t));
     }
 }

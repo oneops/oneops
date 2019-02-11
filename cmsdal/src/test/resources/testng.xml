@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
 <suite name="unit-oneops">
-	<test verbose="5" name="unit">
+	<test verbose="5" name="testng">
 	  <packages>
 	     <package name="com.oneops.cms.crypto"/>		      
 	     <package name="com.oneops.cms.util"/>		      
@@ -19,4 +19,11 @@
 	     <package name="com.oneops.cms.util.domain"/>		      
 	  </packages>
 	</test>
+	
+	<test verbose="5" name="junit" junit="true">
+	  <packages>
+	  	 <package name="com.oneops.capacity"/>
+	  </packages>
+	</test>	
+	
 </suite>

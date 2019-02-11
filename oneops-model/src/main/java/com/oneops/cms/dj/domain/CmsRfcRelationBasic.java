@@ -446,4 +446,10 @@ public class CmsRfcRelationBasic implements Serializable {
     this.releaseType = releaseType;
   }
 
+@Override
+public String toString() {
+	return "CmsRfcRelationBasic [fromCiId=" + fromCiId + ", toCiId=" + toCiId + "]";
+}
+
+  
 }

@@ -180,4 +180,11 @@ public class CmsBasicAttribute implements Serializable {
     this.updated = updated;
   }
 
+@Override
+public String toString() {
+	return "attributeId=" + attributeId + ", attributeName=" + attributeName + ", dfValue=" + dfValue
+			;
+}
+  
+  
 }

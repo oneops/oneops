@@ -349,7 +349,7 @@ end
 def execute(action, *args)
   result = nil
   if action == 'version'
-    say 'CLI version:    1.2.6'
+    say 'CLI version:    1.2.7'
     info = tt_request('server/version', 'Getting tekton version')
     say "Tekton version: #{info.version} (#{info.timestamp})"
     say "Tekton host:    #{@params.tekton_host}"
@@ -459,22 +459,33 @@ def execute(action, *args)
     end
 
   elsif action == 'oo:org:usage' || action == 'oo:usage'
-    org, cloud_name, _ = args
-    required_arg('org', org)
+    org_name, cloud_name, _ = args
 
-    tt_org_usage = tt_request("quota/usage/entity/#{org}", 'Getting usage in Tekton')
-    result = {:oneops => {}, :tekton => {}}
-    subs = execute!('oo:subs', org, cloud_name)
-    subs.keys.sort.each do |sub|
-      provides_rels = subs[sub]
-      say "Processing clouds for subscription '#{sub.bold}' (#{provides_rels.map {|u| u.fromCi.ciName}.join(', )')})" if @params.verbose > 0
+    result = {}
+    execute('org:prompt', nil, org_name).each do |org|
+      tt_org_usage = tt_request("quota/usage/entity/#{org}", 'Getting usage in Tekton')
+      result[org] = {:oneops => {}, :tekton => {}}
+      subs = execute!('oo:subs', org, cloud_name)
+      subs.keys.sort.each do |sub|
+        provides_rels = subs[sub]
+        say "Processing clouds for subscription '#{sub.bold}' (#{provides_rels.map {|u| u.fromCi.ciName}.join(', )')})" if @params.verbose > 0
 
-      clouds = provides_rels.map(&:fromCi)
-      result[:oneops][sub] = execute('oo:cloud:usage:internal', clouds)
-      result[:tekton][sub] = tt_org_usage[sub]
-      has_diff = usage("#{sub.bold} => #{org.bold}", result[:oneops][sub], result[:tekton][sub])
-      say "  Fix this with:\n    #{"oo:org:usage:transfer -f #{org} #{clouds.first.ciName}".yellow}" if has_diff
-      say
+        clouds = provides_rels.map(&:fromCi)
+        result[org][:oneops][sub] = execute('oo:cloud:usage:internal', clouds)
+        result[org][:tekton][sub] = tt_org_usage[sub]
+        unless @params.totals_only
+          has_diff = usage("#{sub.bold} => #{org.bold}", result[org][:oneops][sub], result[org][:tekton][sub])
+          say "  Fix this with:\n    #{"oo:org:usage:transfer -f #{org} #{clouds.first.ciName}".yellow}" if has_diff
+          say
+        end
+      end
+
+      totals = result[org].inject({}) do |h, (source, usage)|
+        h[source] = usage.values.inject({}) {|hh, sub_usage| hh.update(sub_usage || {}) {|_, value1, value2| value1 + value2}}
+        h
+      end
+      say '=' * 68
+      usage("#{org.bold} => #{'TOTAL'.bold}", totals[:oneops], totals[:tekton])
     end
 
   elsif action == 'oo:cloud:usage:internal'
@@ -900,8 +911,7 @@ def execute(action, *args)
         end
         orgs = quotas.keys
       end
-
-      result = value_prompt('subscriptions', orgs, org[1..-1])
+      result = value_prompt('organizations', orgs, org[1..-1])
       exit if result.empty?
     elsif org[0] == '*'
       orgs = tt_request('org', 'Fetching orgs').map(&:name)
@@ -982,6 +992,7 @@ def run(args)
   @params.refresh         = 0
   @params.mismatch_only   = false
   @params.fix_mismatch    = false
+  @params.totals_only     = false
   begin
     @action, *@args = @opt_parser.parse(args)
   rescue OptionParser::ParseError => e
@@ -1088,9 +1099,9 @@ end
   'oo:resources:transfer' => ['oo:resources:transfer [-f]', 'transfer resource definitions in OneOps to Tekton (global admins only, idempotent!)'],
   'oo:subs'               => ['oo:subs ORG [CLOUD_REGEX]', 'list subsctiptions in OneOps'],
   'oo:subs:transfer'      => ['oo:subs:transfer  [-f] ORG [CLOUD_REGEX]', 'transfer subsctiptions in OneOps to Tekton  (idempotent!)'],
-  'oo:sub:usage'          => ['oo:sub:usage [--mismatch [--fix]] SUB,...|?[SUB_REGEX]|*[SUB_REGEX] [ORG,...]', 'For a given subscription list usage in OneOps and compare with usage in Tekton'],
-  'oo:org:usage'          => ['oo:org:usage ORG [CLOUD_REGEX]', 'For a given org list usage in OneOps and compare with usage in Tekton'],
-  'oo:org:usage:transfer' => ['oo:or./t(:' '):usage:transfer [-f [--omr]] [-b BUFFER_%] ORG [CLOUD_REGEX]', "convert current usage in OneOps into quota in Tekton or update usage for existing Tekton quota with the current ussage in OneOps (idempotent!)\n"]
+  'oo:sub:usage'          => ['oo:sub:usage [--mismatch [--fix]] [--only-totals] SUB,...|?[SUB_REGEX]|*[SUB_REGEX] [ORG,...]', 'For a given subscription list usage in OneOps and compare with usage in Tekton'],
+  'oo:org:usage'          => ['oo:org:usage ORG,...|?[ORG_REGEX]|*[ORG_REGEX] [CLOUD_REGEX] [--only-totals]', 'For a given org list usage in OneOps and compare with usage in Tekton'],
+  'oo:org:usage:transfer' => ['oo:org:usage:transfer [-f [--omr]] [-b BUFFER_%] ORG [CLOUD_REGEX]', "convert current usage in OneOps into quota in Tekton or update usage for existing Tekton quota with the current ussage in OneOps (idempotent!)\n"]
 }
 @action_names = @actions.keys
 
@@ -1166,6 +1177,7 @@ FOOTER
   opts.on('-f', '--force', 'Force operation to overwrite warnings (used in the context of certain actions)') {@params.force = true}
   opts.on('--omr', '--only-missing-resources', "Transfer usage only for resources missing quota (when there is already quota set up for at least one other resource (for a given subscription and org); use with '-f' option") {@params.only_missing = true}
   opts.on('--mismatch', 'Show usage mismatch only') {@params.mismatch_only = true}
+  opts.on('--only-totals', 'Show totals only') {@params.totals_only = true}
   opts.on('--fix', 'Fix usage mismatch by transfering usage number from OneOps to the corresponding soft quotas in Tekton') {@params.fix_mismatch = true}
 
   opts.on('--no-color', 'No output coloring or font formatting.') {String.with_color = false}
