@@ -75,7 +75,7 @@
     <smack.version>3.2.1</smack.version>
     <spring-data-elasticsearch.version>1.0.4.RELEASE</spring-data-elasticsearch.version>
     <spring-retry.version>1.1.2.RELEASE</spring-retry.version>
-    <spring.version>4.1.5.RELEASE</spring.version>
+    <spring.version>4.3.26.RELEASE</spring.version>
     <stax2-api.version>3.1.1</stax2-api.version>
     <testng.version>6.9.10</testng.version>
     <visualization-datasource.version>1.0.2</visualization-datasource.version>
