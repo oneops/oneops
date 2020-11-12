@@ -25,7 +25,7 @@
     <antlr-runtime.version>3.2</antlr-runtime.version>
     <apache.maven-shade-plugin.version>2.3</apache.maven-shade-plugin.version>
     <awaitility.version>1.7.0</awaitility.version>
-    <aws-java-sdk.version>1.10.27</aws-java-sdk.version>
+    <aws-java-sdk.version>1.11.757</aws-java-sdk.version>
     <bcprov-jdk16.version>1.46</bcprov-jdk16.version>
     <cassandra-thrift.version>0.8.2</cassandra-thrift.version>
     <cglib-nodep.version>2.2</cglib-nodep.version>
