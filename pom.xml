@@ -30,7 +30,7 @@
     <cassandra-thrift.version>0.8.2</cassandra-thrift.version>
     <cglib-nodep.version>2.2</cglib-nodep.version>
     <cglib.version>3.1</cglib.version>
-    <codehaus.jackson.version>1.8.11</codehaus.jackson.version>
+    <codehaus.jackson.version>1.9.13</codehaus.jackson.version>
     <commons-codec.version>1.9</commons-codec.version>
     <commons-collections4.version>4.0</commons-collections4.version>
     <commons-dbcp.version>1.4</commons-dbcp.version>
