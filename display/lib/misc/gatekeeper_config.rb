@@ -75,7 +75,7 @@ usage = <<-USAGE
     <this_script> -t TOKEN [OPTIONS] ONEOPS_HOST ORG [ORG ...]
   
   Example:
-    ./gatekeeper_config.rb https://oneops.prod.walmart.com org1 org2 org3
+    ./gatekeeper_config.rb https://oneops org1 org2 org3
 USAGE
 
 params = OpenStruct.new

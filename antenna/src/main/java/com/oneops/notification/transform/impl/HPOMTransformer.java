@@ -32,7 +32,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 /**
  * Message transformer for HP Operations manager agents.
  *
- * @author <a href="mailto:sgopal1@walmartlabs.com">Suresh G</a>
+ * @author <a href="mailto:sgopal1@xxx.com">Suresh G</a>
  */
 public class HPOMTransformer extends Transformer {
 
@@ -121,7 +121,7 @@ public class HPOMTransformer extends Transformer {
                 .setMessageContent(text + " OneOps-Operations: " + getInstanceRedirectUrl(msg) + " TotalAlertPercentage: " + totalAlertPercentage)
                 .setCategory(msg.getType().getName())
                 .setNode(ciName)
-                .setSenderSystem("antenna.oneops.prod.walmart.com")
+                .setSenderSystem("antenna")
                 .setSenderOrg("OneOps")
                 .setMessageGroup(msgGroup) //ESM-Only Needs to be changed to <tenant>:<assembly>
                 .setMonitorName(env + ":" + platform + ":" + ciName + ":" + eventName)//platform:component:monitor

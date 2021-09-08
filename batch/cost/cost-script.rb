@@ -406,7 +406,7 @@ Usage:
     -l | --list    - list daily index info
 
 Example:
-  ./cost-batch.rb es.prod-1312.core.oneops.prod.walmart.com 2017-07-14 2017-07-14
+  ./cost-batch.rb es.prod 2017-07-14 2017-07-14
 HELP
 end
 
