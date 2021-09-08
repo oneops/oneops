@@ -76,11 +76,11 @@ public class URLUtil {
      * <p/>
      * * Deployment nsPath logic
      * <br>Form : /{org}/{assembly}/{env}/bom
-     * <br>URL  : https://oneops.prod.walmart.com/{org}/assemblies/{assembly}/transition/environments/{env}#summary
+     * <br>URL  : https://oneops/{org}/assemblies/{assembly}/transition/environments/{env}#summary
      * <p/>
      * * Procedure nsPath logic
      * <br>From : /{org}/{assembly}/{env}/bom/{platform}/1/{cid}
-     * <br>URL  :  https://oneops.prod.walmart.com/r/ci/{cid}[?org_name={org}]
+     * <br>URL  :  https://oneops/r/ci/{cid}[?org_name={org}]
      *
      * @param msg a NotificationMessage
      * @return URL into OneOps for the nspath and NotificationType
@@ -120,7 +120,7 @@ public class URLUtil {
 
     /**
      * Returns OneOps instance redirect url for the cid of the  given notification message.
-     * Instance redirect url format is, https://oneops.prod.walmart.com/r/instances/{cid}
+     * Instance redirect url format is, https://oneops/r/instances/{cid}
      *
      * @param msg Notification message
      * @return instance redirect url string
@@ -131,7 +131,7 @@ public class URLUtil {
 
     /**
      * Returns OneOps instance monitor redirect url for the given notification message.
-     * Instance redirect url format is, https://oneops.prod.walmart.com/r/instances/{cid}/monitors/{eventName}/d
+     * Instance redirect url format is, https://oneops/r/instances/{cid}/monitors/{eventName}/d
      *
      * @param msg Notification message
      * @return instance monitor redirect url string

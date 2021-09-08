@@ -246,7 +246,7 @@ public class EnvTTLTest {
         env.setProfile("QA");
         ttlPlugin.setEsEnabled(true);
         //SearchDal searchDal = new SearchDal();
-        //searchDal.setEsHost("searchdb.stg.core-1612.oneops.dfwstg2.prod.walmart.com");
+        //searchDal.setEsHost("searchdb");
         ttlPlugin.setSearchDal(searchDal);
         ttlPlugin.createIndex();
 
